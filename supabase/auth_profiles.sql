@@ -1,9 +1,20 @@
--- Dashboard auth: profiles table + login helpers
--- Run in Supabase SQL Editor after main schema (supabase_schema.sql)
--- Or: add SUPABASE_DB_PASSWORD to .env and run python scripts/setup_supabase_auth.py
+-- =============================================================================
+-- Dashboard auth setup (SAFE — additive only)
+-- =============================================================================
+-- What this script DOES:
+--   - Creates public.profiles (new table for login usernames)
+--   - Adds sign-up trigger on auth.users (new accounts only)
+--   - Adds login helper functions (resolve_login_email, is_username_available)
+--
+-- What this script does NOT touch:
+--   - raw_reviews, processed_reviews, weekly_insights
+--   - cluster_insights, historical_trends, or any existing pipeline data
+--
+-- Safe to re-run: uses IF NOT EXISTS / CREATE OR REPLACE only (no DROP).
+-- =============================================================================
 
 -- ---------------------------------------------------------------------------
--- Profiles (extends auth.users)
+-- Profiles (extends auth.users) — new table only
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -19,16 +30,32 @@ CREATE INDEX IF NOT EXISTS idx_profiles_email_lower ON public.profiles (lower(em
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
--- Users read/update their own profile
-CREATE POLICY "Users can read own profile"
-    ON public.profiles FOR SELECT
-    USING (auth.uid() = id);
+-- Policies (skip if already exist — no DROP)
+DO $policy$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE schemaname = 'public' AND tablename = 'profiles'
+          AND policyname = 'Users can read own profile'
+    ) THEN
+        CREATE POLICY "Users can read own profile"
+            ON public.profiles FOR SELECT
+            USING (auth.uid() = id);
+    END IF;
 
-CREATE POLICY "Users can update own profile"
-    ON public.profiles FOR UPDATE
-    USING (auth.uid() = id);
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE schemaname = 'public' AND tablename = 'profiles'
+          AND policyname = 'Users can update own profile'
+    ) THEN
+        CREATE POLICY "Users can update own profile"
+            ON public.profiles FOR UPDATE
+            USING (auth.uid() = id);
+    END IF;
+END;
+$policy$;
 
--- Auto-create profile on sign-up (username in raw_user_meta_data)
+-- Auto-create profile on sign-up (new auth.users rows only)
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -41,19 +68,35 @@ BEGIN
         NEW.id,
         COALESCE(NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1)),
         NEW.email
-    );
+    )
+    ON CONFLICT (id) DO NOTHING;
     RETURN NEW;
 END;
 $$;
 
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-    AFTER INSERT ON auth.users
-    FOR EACH ROW
-    EXECUTE FUNCTION public.handle_new_user();
+-- Attach trigger only if missing (no DROP TRIGGER)
+DO $trigger$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_trigger t
+        JOIN pg_class c ON c.oid = t.tgrelid
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE t.tgname = 'on_auth_user_created'
+          AND n.nspname = 'auth'
+          AND c.relname = 'users'
+          AND NOT t.tgisinternal
+    ) THEN
+        CREATE TRIGGER on_auth_user_created
+            AFTER INSERT ON auth.users
+            FOR EACH ROW
+            EXECUTE FUNCTION public.handle_new_user();
+    END IF;
+END;
+$trigger$;
 
 -- ---------------------------------------------------------------------------
--- RPC: resolve username or email → email (login + password reset)
+-- RPC: resolve username or email -> email (login + password reset)
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.resolve_login_email(identifier TEXT)
 RETURNS TEXT
