@@ -7,7 +7,7 @@ import {
   isProtectedPath,
   isPublicPath,
 } from "@/lib/auth/routes";
-import { isVercel } from "@/lib/env/deployment";
+import { isVercel } from "@/lib/deploy/deployment";
 
 function redirectMissingConfig(request: NextRequest) {
   const redirectUrl = request.nextUrl.clone();

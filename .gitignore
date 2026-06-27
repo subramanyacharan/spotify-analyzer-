@@ -4,7 +4,7 @@ __pycache__/
 *$py.class
 .pytest_cache/
 
-# Virtual environment (repo root only — do not use bare `env/`; it ignores frontend/src/lib/env/)
+# Virtual environment (repo root only)
 /venv/
 /.venv/
 /env/

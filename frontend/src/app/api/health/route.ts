@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isProductionConfigured } from "@/lib/env/deployment";
+import { isProductionConfigured } from "@/lib/deploy/deployment";
 
 export async function GET() {
   return NextResponse.json(

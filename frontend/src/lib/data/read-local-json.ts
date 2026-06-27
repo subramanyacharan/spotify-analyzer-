@@ -1,6 +1,6 @@
 import { readFile } from "fs/promises";
 import path from "path";
-import { allowLocalDataFallback } from "@/lib/env/deployment";
+import { allowLocalDataFallback } from "@/lib/deploy/deployment";
 
 /** Read Phase 3 JSON from ../data/outputs (local dev only). */
 export async function readLocalOutputJson<T>(

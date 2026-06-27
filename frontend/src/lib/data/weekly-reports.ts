@@ -1,5 +1,5 @@
 import { getWeekStart } from "../analytics/chart-theme";
-import { allowLocalDataFallback } from "../env/deployment";
+import { allowLocalDataFallback } from "@/lib/deploy/deployment";
 import type {
   WeekEmergingIssue,
   WeekSegmentFriction,
