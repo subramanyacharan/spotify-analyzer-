@@ -1,5 +1,6 @@
 import type { SegmentsData } from "../analytics/types";
 import { getSupabaseServerClient } from "../supabase/server";
+import { fetchMergedTopThemes, pickPayload } from "./weekly-insights-merge";
 import { loadSegmentsFromLocal, parseSegmentsPayload } from "./segments-local";
 
 export async function getSegmentsData(): Promise<SegmentsData> {
@@ -7,19 +8,9 @@ export async function getSegmentsData(): Promise<SegmentsData> {
 
   if (client) {
     try {
-      const { data: rows } = await client
-        .from("weekly_insights")
-        .select("top_themes")
-        .order("created_at", { ascending: false })
-        .limit(1);
-
-      const topThemes = rows?.[0]?.top_themes as Record<string, unknown> | undefined;
-      const segmentDeepDives = topThemes?.segment_deep_dives as
-        | Record<string, unknown>
-        | undefined;
-      const prioritization = topThemes?.insight_prioritization as
-        | Record<string, unknown>
-        | undefined;
+      const merged = await fetchMergedTopThemes();
+      const segmentDeepDives = pickPayload(merged, "segment_deep_dives");
+      const prioritization = pickPayload(merged, "insight_prioritization");
 
       if (segmentDeepDives?.segment_profiles) {
         return parseSegmentsPayload(segmentDeepDives, prioritization ?? null, "supabase");
@@ -28,7 +19,6 @@ export async function getSegmentsData(): Promise<SegmentsData> {
       /* fall through */
     }
   }
-
   const local = await loadSegmentsFromLocal();
   if (local) return local;
 

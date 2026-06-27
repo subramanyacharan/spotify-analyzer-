@@ -1,6 +1,10 @@
 import type { OverviewData, SegmentationLens, SegmentFriction } from "../types";
 import { sanitizeRecommendation } from "../copy/sanitize";
 import { getSupabaseServerClient } from "../supabase/server";
+import {
+  fetchMergedTopThemes,
+  fetchProcessedReviewCount,
+} from "./weekly-insights-merge";
 import { loadOverviewFromLocal } from "./local-fallback";
 
 const BUSINESS_SEGMENTS = [
@@ -208,26 +212,47 @@ export async function getOverviewData(): Promise<OverviewData> {
 
   if (client) {
     try {
-      const { data: rows } = await client
-        .from("weekly_insights")
-        .select("top_themes, created_at")
-        .order("created_at", { ascending: false })
-        .limit(1);
-
-      const row = rows?.[0];
-      if (row?.top_themes) {
-        const { prioritization, problemStatement, opportunities } =
-          parseWeeklySnapshot(row.top_themes);
-        if (prioritization) {
-          const overview = buildFromSnapshots(
-            prioritization,
-            problemStatement,
-            opportunities
-          );
-          const businessTop = await fetchBusinessFriction();
-          if (businessTop) overview.topFrictionByLens.business = businessTop;
-          return overview;
+      const merged = await fetchMergedTopThemes();
+      const { prioritization, problemStatement, opportunities } =
+        parseWeeklySnapshot(merged);
+      if (prioritization) {
+        const overview = buildFromSnapshots(
+          prioritization,
+          problemStatement,
+          opportunities
+        );
+        if (!overview.totalReviews) {
+          overview.totalReviews = await fetchProcessedReviewCount();
         }
+        const businessTop = await fetchBusinessFriction();
+        if (businessTop) overview.topFrictionByLens.business = businessTop;
+        return overview;
+      }
+
+      const reviewCount = await fetchProcessedReviewCount();
+      if (reviewCount > 0) {
+        const businessTop = await fetchBusinessFriction();
+        return {
+          generatedAt: new Date().toISOString(),
+          totalReviews: reviewCount,
+          dominantThemes: [],
+          sentimentTrend: { positive: 0, neutral: 0, negative: 0, negativePct: 0 },
+          topFrictionByLens: {
+            business: businessTop,
+            engagement: null,
+            behavior: null,
+            context: null,
+            pain: null,
+          },
+          topOpportunity: null,
+          executiveSummary: {
+            text: "Review data is loaded. Insight summaries will appear after the next weekly pipeline run.",
+            tier: "Monitor",
+            quotes: [],
+            reviewCount,
+          },
+          dataSource: "supabase",
+        };
       }
     } catch {
       /* fall through to local */

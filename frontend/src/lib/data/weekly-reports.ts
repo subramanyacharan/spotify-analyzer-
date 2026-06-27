@@ -10,6 +10,10 @@ import type {
 } from "../reports/types";
 import { getSupabaseServerClient } from "../supabase/server";
 import { readLocalOutputJson } from "./read-local-json";
+import {
+  fetchMergedTopThemes,
+  normalizeTopThemes,
+} from "./weekly-insights-merge";
 
 function weekEndFromStart(weekStart: string): string {
   const d = new Date(weekStart);
@@ -412,6 +416,7 @@ function synthesizeWeeksFromFallback(
 export async function getWeeklyReportsCatalog(): Promise<WeeklyReportsCatalog> {
   const client = getSupabaseServerClient();
   const supabaseWeeks: WeekSnapshot[] = [];
+  const mergedGlobal = client ? await fetchMergedTopThemes() : {};
 
   if (client) {
     try {
@@ -422,7 +427,16 @@ export async function getWeeklyReportsCatalog(): Promise<WeeklyReportsCatalog> {
 
       if (rows?.length) {
         rows.forEach((row, i) => {
-          supabaseWeeks.push(snapshotFromSupabaseRow(row as Record<string, unknown>, i + 1));
+          const rowThemes = {
+            ...mergedGlobal,
+            ...normalizeTopThemes((row as Record<string, unknown>).top_themes),
+          };
+          supabaseWeeks.push(
+            snapshotFromSupabaseRow(
+              { ...row, top_themes: rowThemes } as Record<string, unknown>,
+              i + 1
+            )
+          );
         });
       }
     } catch {

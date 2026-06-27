@@ -1,5 +1,6 @@
 import type { InsightsData } from "../insights/catalog";
 import { getSupabaseServerClient } from "../supabase/server";
+import { fetchMergedTopThemes, pickPayload } from "./weekly-insights-merge";
 import { loadInsightsFromLocal, parseInsightsPayload } from "./insights-local";
 
 export async function getInsightsData(): Promise<InsightsData> {
@@ -7,25 +8,15 @@ export async function getInsightsData(): Promise<InsightsData> {
 
   if (client) {
     try {
-      const { data: rows } = await client
-        .from("weekly_insights")
-        .select("top_themes, created_at")
-        .order("created_at", { ascending: false })
-        .limit(1);
-
-      const row = rows?.[0];
-      if (row?.top_themes && typeof row.top_themes === "object") {
-        const topThemes = row.top_themes as Record<string, unknown>;
-        const payload = topThemes.problem_statement_insights as Record<string, unknown> | undefined;
-        if (payload?.answers) {
-          return parseInsightsPayload(payload, "supabase");
-        }
+      const merged = await fetchMergedTopThemes();
+      const payload = pickPayload(merged, "problem_statement_insights");
+      if (payload?.answers) {
+        return parseInsightsPayload(payload, "supabase");
       }
     } catch {
       /* fall through */
     }
   }
-
   const local = await loadInsightsFromLocal();
   if (local) return local;
 

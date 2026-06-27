@@ -1,6 +1,7 @@
 import type { AnalyticsData, WeeklySentiment } from "../analytics/types";
 import { getWeekStart } from "../analytics/chart-theme";
 import { getSupabaseServerClient } from "../supabase/server";
+import { fetchMergedTopThemes, pickPayload } from "./weekly-insights-merge";
 import { loadAnalyticsFromLocal, parseAnalyticsPayload } from "./analytics-local";
 
 async function fetchWeeklyFromReviews(): Promise<{
@@ -105,19 +106,9 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
 
   if (client) {
     try {
-      const { data: rows } = await client
-        .from("weekly_insights")
-        .select("top_themes")
-        .order("created_at", { ascending: false })
-        .limit(1);
-
-      const topThemes = rows?.[0]?.top_themes as Record<string, unknown> | undefined;
-      const problemStatement = topThemes?.problem_statement_insights as
-        | Record<string, unknown>
-        | undefined;
-      const segmentDeepDives = topThemes?.segment_deep_dives as
-        | Record<string, unknown>
-        | undefined;
+      const merged = await fetchMergedTopThemes();
+      const problemStatement = pickPayload(merged, "problem_statement_insights");
+      const segmentDeepDives = pickPayload(merged, "segment_deep_dives");
 
       if (problemStatement?.answers) {
         const weekly = await fetchWeeklyFromReviews();

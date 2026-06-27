@@ -1,5 +1,6 @@
 import type { PrioritizationData } from "../opportunities/types";
 import { getSupabaseServerClient } from "../supabase/server";
+import { fetchMergedTopThemes, pickPayload } from "./weekly-insights-merge";
 import {
   loadPrioritizationFromLocal,
   parsePrioritizationPayload,
@@ -10,15 +11,8 @@ export async function getPrioritizationData(): Promise<PrioritizationData> {
 
   if (client) {
     try {
-      const { data: rows } = await client
-        .from("weekly_insights")
-        .select("top_themes")
-        .order("created_at", { ascending: false })
-        .limit(1);
-
-      const payload = (rows?.[0]?.top_themes as Record<string, unknown>)
-        ?.insight_prioritization as Record<string, unknown> | undefined;
-
+      const merged = await fetchMergedTopThemes();
+      const payload = pickPayload(merged, "insight_prioritization");
       if (payload?.prioritization_matrix) {
         return parsePrioritizationPayload(payload, "supabase");
       }
@@ -26,7 +20,6 @@ export async function getPrioritizationData(): Promise<PrioritizationData> {
       /* fall through */
     }
   }
-
   const local = await loadPrioritizationFromLocal();
   if (local) return local;
 
