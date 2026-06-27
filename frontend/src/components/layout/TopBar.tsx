@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { genericExportError } from "@/lib/auth/user-messages";
 import { Bell, Calendar, Download, Globe, Loader2, Search } from "lucide-react";
 
 interface TopBarProps {
@@ -17,8 +18,7 @@ export function TopBar({ title = "Growth Intelligence" }: TopBarProps) {
     try {
       const res = await fetch("/api/export");
       if (!res.ok) {
-        const body = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(body.error ?? `Export failed (${res.status})`);
+        throw new Error(genericExportError());
       }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
@@ -28,7 +28,7 @@ export function TopBar({ title = "Growth Intelligence" }: TopBarProps) {
       anchor.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      setExportError(err instanceof Error ? err.message : "Export failed");
+      setExportError(genericExportError());
     } finally {
       setExporting(false);
     }

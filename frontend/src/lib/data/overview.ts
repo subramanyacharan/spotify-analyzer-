@@ -255,7 +255,7 @@ export async function getOverviewData(): Promise<OverviewData> {
     },
     topOpportunity: null,
     executiveSummary: {
-      text: "No insight data available yet. Connect your data source or refresh the dashboard.",
+      text: "No insight data is available yet. Please check back later.",
       tier: "Monitor",
       quotes: [],
       reviewCount: 0,

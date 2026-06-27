@@ -12,6 +12,7 @@ import {
   YAxis,
 } from "recharts";
 import { CHART } from "@/lib/analytics/chart-theme";
+import { USER_MESSAGES } from "@/lib/auth/user-messages";
 import type { WeeklySentiment } from "@/lib/analytics/types";
 
 interface SentimentTrendChartProps {
@@ -22,7 +23,7 @@ export function SentimentTrendChart({ data }: SentimentTrendChartProps) {
   if (!data.length) {
     return (
       <div className="flex h-[260px] items-center justify-center text-sm text-zinc-500">
-        Weekly sentiment trend unavailable — connect Supabase for live data.
+        {USER_MESSAGES.noTrendData}
       </div>
     );
   }

@@ -1,5 +1,6 @@
 -- Dashboard auth: profiles table + login helpers
 -- Run in Supabase SQL Editor after main schema (supabase_schema.sql)
+-- Or: add SUPABASE_DB_PASSWORD to .env and run python scripts/setup_supabase_auth.py
 
 -- ---------------------------------------------------------------------------
 -- Profiles (extends auth.users)
