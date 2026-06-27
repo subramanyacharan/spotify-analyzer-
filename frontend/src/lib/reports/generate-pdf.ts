@@ -1,40 +1,5 @@
 import type { ExportReportDocument } from "./export-document";
-
-type JsPDFInstance = import("jspdf").jsPDF;
-
-function wrapText(doc: JsPDFInstance, text: string, maxWidth: number): string[] {
-  return doc.splitTextToSize(text, maxWidth) as string[];
-}
-
-function addSection(
-  doc: JsPDFInstance,
-  title: string,
-  body: string,
-  y: number,
-  margin: number,
-  maxWidth: number
-): number {
-  if (y > 260) {
-    doc.addPage();
-    y = 20;
-  }
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.text(title, margin, y);
-  y += 7;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  const lines = wrapText(doc, body, maxWidth);
-  for (const line of lines) {
-    if (y > 280) {
-      doc.addPage();
-      y = 20;
-    }
-    doc.text(line, margin, y);
-    y += 5;
-  }
-  return y + 4;
-}
+import { PdfBuilder } from "./pdf-layout";
 
 export async function downloadReportPdf(
   report: ExportReportDocument,
@@ -42,116 +7,193 @@ export async function downloadReportPdf(
 ): Promise<void> {
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "mm", format: "a4" });
-  const margin = 16;
-  const maxWidth = 178;
-  let y = 20;
+  const pdf = new PdfBuilder(doc);
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(18);
-  doc.text(report.title, margin, y);
-  y += 10;
+  pdf.cover(report);
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.text(`Period: ${report.periodLabel}`, margin, y);
-  y += 5;
-  doc.text(`Reviews analyzed: ${report.totalReviews.toLocaleString()}`, margin, y);
-  y += 5;
-  doc.text(`Weeks covered: ${report.weekCount}`, margin, y);
-  y += 5;
-  doc.text(`Confidence: ${report.confidenceLevel}`, margin, y);
-  y += 10;
-
-  y = addSection(doc, "Executive summary", report.executiveSummary, y, margin, maxWidth);
-
-  y = addSection(
-    doc,
-    "How we analyzed this",
-    report.methodology.overview,
-    y,
-    margin,
-    maxWidth
+  // 1. Executive Summary
+  pdf.section(
+    1,
+    "Executive Summary",
+    "Headline findings backed by review volume, sentiment, and priority scores."
   );
-  for (const step of report.methodology.steps) {
-    y = addSection(doc, "", `• ${step}`, y, margin, maxWidth);
+  pdf.subheading(report.executiveSummary.headline);
+  pdf.body(report.executiveSummary.narrative);
+  pdf.scorecards(report.executiveSummary.scorecards, 3);
+  pdf.subheading("Evidence-backed highlights");
+  pdf.bullets(report.executiveSummary.proofPoints);
+  pdf.body(
+    `Confidence note: ${report.meta.confidenceNote} Rankings below use friction scores (segment rank), impact scores (pain rank), and composite scores (opportunity rank) — higher always means higher priority in this period.`
+  );
+
+  // 2. Top User Segments Ranked
+  pdf.section(
+    2,
+    "Top User Segments Ranked",
+    "Segments ordered by friction ranking score — combining negative sentiment, pain severity, and review volume."
+  );
+  pdf.table(
+    ["Rank", "Segment", "Vol %", "Sentiment", "Pain", "Rank Score"],
+    report.rankedSegments.slice(0, 8).map((s) => [
+      String(s.rank),
+      s.name,
+      `${s.reviewVolumePct}%`,
+      `${s.sentimentScore}/5`,
+      `${s.painScore}/5`,
+      s.rankingScore.toFixed(2),
+    ]),
+    [12, 38, 18, 22, 18, 22]
+  );
+  pdf.barChart(
+    "Friction ranking score by segment",
+    report.rankedSegments.slice(0, 6).map((s) => ({
+      label: s.name,
+      value: s.rankingScore,
+      display: s.rankingScore.toFixed(2),
+    }))
+  );
+
+  // 3. Segment Breakdown
+  pdf.section(
+    3,
+    "Segment Breakdown",
+    "Definition, scorecard, and proof for each priority cohort."
+  );
+  for (const seg of report.segmentBreakdowns.slice(0, 5)) {
+    pdf.ensure(50);
+    pdf.subheading(`${seg.name}`);
+    pdf.body(`Definition: ${seg.definition}`);
+    pdf.scorecards(seg.metrics, 3);
+    pdf.body(seg.rankingProof);
+    if (seg.topThemes.length) {
+      pdf.subheading("Top themes in this segment");
+      pdf.table(
+        ["Theme", "Mentions", "Share"],
+        seg.topThemes.map((t) => [t.theme, String(t.count), `${t.pct}%`]),
+        [70, 30, 30]
+      );
+    }
+    if (seg.sampleQuote) {
+      pdf.body(`Representative feedback: "${seg.sampleQuote}…"`, 2);
+    }
+    pdf.body(seg.discoverySignals);
+    pdf.y += 4;
   }
 
-  y = addSection(
-    doc,
-    "How rankings were calculated",
-    report.methodology.ranking,
-    y,
-    margin,
-    maxWidth
+  // 4. Top Pain Points Ranked
+  pdf.section(
+    4,
+    "Top Pain Points Ranked",
+    "Ordered by impact score (complaint frequency × severity). Tier reflects composite priority."
   );
-
-  y = addSection(
-    doc,
-    "How priorities were set",
-    report.methodology.prioritization,
-    y,
-    margin,
-    maxWidth
-  );
-
-  y = addSection(
-    doc,
-    "Confidence",
-    report.methodology.confidence,
-    y,
-    margin,
-    maxWidth
-  );
-
-  if (report.keyFindings.length) {
-    y = addSection(
-      doc,
-      "Key findings",
-      report.keyFindings.map((f, i) => `${i + 1}. ${f}`).join("\n\n"),
-      y,
-      margin,
-      maxWidth
+  for (const pain of report.rankedPainPoints.slice(0, 6)) {
+    pdf.rankingBlock(
+      pain.rank,
+      pain.painPoint.slice(0, 200),
+      pain.rankingProof,
+      [
+        { label: "Reviews", value: pain.reviewCount.toLocaleString() },
+        { label: "Frequency", value: `${pain.complaintFrequencyPct}%` },
+        { label: "Pain score", value: `${pain.painScore}/5` },
+        { label: "Tier", value: pain.tier },
+        { label: "Priority", value: pain.rankingScore.toFixed(2) },
+      ]
     );
   }
 
-  if (report.topThemes.length) {
-    const themes = report.topThemes
-      .slice(0, 8)
-      .map((t, i) => `${i + 1}. ${t.theme} — ${t.count.toLocaleString()} mentions`)
-      .join("\n");
-    y = addSection(doc, "Top themes", themes, y, margin, maxWidth);
+  // 5. Top Themes + Discovery
+  pdf.section(
+    5,
+    "Discovery Behavior Analysis",
+    "How listening intent signals differ across behavioral segments."
+  );
+  pdf.table(
+    ["Segment", "Dominant intent", "Discovery %", "Comfort %", "Insight"],
+    report.discoveryBehavior.map((d) => [
+      d.segment,
+      d.dominantIntent,
+      `${d.discoveryPct}%`,
+      `${d.comfortPct}%`,
+      d.insight.slice(0, 55),
+    ]),
+    [32, 28, 22, 22, 70]
+  );
+
+  pdf.subheading("Top themes ranked by mention volume");
+  for (const theme of report.rankedThemes.slice(0, 6)) {
+    pdf.subheading(`#${theme.rank} ${theme.theme}`);
+    pdf.body(`${theme.definition} — ${theme.rankingProof}`);
   }
 
-  if (report.topPainPoints.length) {
-    const pains = report.topPainPoints
-      .slice(0, 5)
-      .map(
-        (p, i) =>
-          `${i + 1}. ${p.painPoint.slice(0, 120)}${p.painPoint.length > 120 ? "…" : ""} (${p.frequency.toLocaleString()} reviews)`
-      )
-      .join("\n\n");
-    y = addSection(doc, "Top pain points", pains, y, margin, maxWidth);
+  // 6. Segment Cross Analysis
+  pdf.section(
+    6,
+    "Segment Cross Analysis",
+    "Side-by-side comparison of the top two friction cohorts."
+  );
+  for (const cross of report.crossAnalysis) {
+    pdf.callout(`${cross.segmentA} vs ${cross.segmentB}`, cross.strategicImplication);
+    pdf.body(cross.frictionGap);
+    pdf.body(cross.volumeComparison);
+    if (cross.sharedThemes.length) {
+      pdf.body(`Shared complaint themes: ${cross.sharedThemes.join(", ")}.`);
+    }
   }
 
-  if (report.priorities.length) {
-    const pri = report.priorities
-      .map((p) => `${p.rank}. [${p.tier}] ${p.title}\n   ${p.why}`)
-      .join("\n\n");
-    y = addSection(doc, "Priority actions", pri, y, margin, maxWidth);
+  // 7. Key Opportunities
+  pdf.section(
+    7,
+    "Key Opportunities",
+    "Product opportunities ranked by composite score (frequency × severity × segment impact)."
+  );
+  pdf.table(
+    ["Rank", "Tier", "Composite", "Affected segment"],
+    report.keyOpportunities.map((o) => [
+      String(o.rank),
+      o.tier,
+      String(o.compositeScore),
+      o.affectedSegment,
+    ]),
+    [14, 22, 24, 50]
+  );
+  for (const opp of report.keyOpportunities.slice(0, 4)) {
+    pdf.rankingBlock(opp.rank, opp.title.slice(0, 180), opp.rankingProof, opp.scores);
+    if (opp.productOpportunity) {
+      pdf.body(`Product opportunity: ${opp.productOpportunity}`);
+    }
+    if (opp.featureRequest) {
+      pdf.body(`Suggested feature direction: ${opp.featureRequest}`);
+    }
   }
 
-  if (report.weeklySnapshots.length) {
-    const weeks = report.weeklySnapshots
-      .map(
-        (w) =>
-          `${w.label}: ${w.reviewCount.toLocaleString()} reviews, ${w.negativePct.toFixed(1)}% negative`
-      )
-      .join("\n");
-    y = addSection(doc, "Weekly snapshot", weeks, y, margin, maxWidth);
+  // 8. Final Recommendation
+  pdf.section(8, "Final Recommendation", "Single highest-priority action with proof and next steps.");
+  pdf.callout(
+    `${report.finalRecommendation.tier} priority · ${report.finalRecommendation.title.slice(0, 100)}`,
+    report.finalRecommendation.action
+  );
+  pdf.subheading("Why this recommendation");
+  pdf.body(report.finalRecommendation.proof);
+  pdf.subheading("Expected impact");
+  pdf.body(report.finalRecommendation.expectedImpact);
+  pdf.subheading("Recommended next steps");
+  pdf.bullets(report.finalRecommendation.nextSteps);
+
+  const totalPages = doc.getNumberOfPages();
+  for (let p = 1; p <= totalPages; p++) {
+    doc.setPage(p);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(113, 113, 122);
+    doc.text(
+      `Product Research Report · Confidential · Page ${p} of ${totalPages}`,
+      18,
+      287
+    );
   }
 
   const name =
     filename ??
-    `growth-intelligence-report-${new Date().toISOString().slice(0, 10)}.pdf`;
+    `product-research-report-${new Date().toISOString().slice(0, 10)}.pdf`;
   doc.save(name);
 }

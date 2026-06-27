@@ -35,7 +35,14 @@ export async function GET(request: Request) {
     const prioritization = pickPayload(themes, "insight_prioritization");
     const weeklyReport = pickPayload(themes, "weekly_report");
 
-    const document = buildExportReportDocument(merged, prioritization, weeklyReport);
+    const segmentDeepDives = pickPayload(themes, "segment_deep_dives");
+
+    const document = buildExportReportDocument(
+      merged,
+      prioritization,
+      weeklyReport,
+      segmentDeepDives
+    );
 
     return NextResponse.json(
       {
