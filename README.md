@@ -12,7 +12,7 @@ GRAD PROJ/
 │       ├── app/                   # Routes (overview, insights, auth, …)
 │       ├── components/            # UI, filters, auth, analytics
 │       ├── lib/                   # Data layer, Supabase, filters, auth
-│       └── middleware.ts          # Session + route protection
+│       └── proxy.ts               # Session + route protection (Next.js 16)
 ├── scripts/                       # Phase 2–3 pipeline runners
 │   ├── run_embedding_clustering.py
 │   ├── run_theme_classification.py

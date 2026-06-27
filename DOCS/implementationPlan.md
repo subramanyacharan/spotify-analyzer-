@@ -413,7 +413,7 @@ Phase 3 engines normalize or map existing `processed_reviews.user_segment` label
   - **Login** — username **or** email + password → resolve username via `profiles` → `signInWithPassword`
   - **Logout** — `signOut` + redirect to `/login`
   - **Forgot password** — username or email → resolve email → `resetPasswordForEmail` → `/auth/callback` → `/reset-password`
-- **Route protection:** Next.js middleware (`frontend/src/middleware.ts`) refreshes session cookies and redirects unauthenticated users from protected routes to `/login`:
+- **Route protection:** Next.js proxy (`frontend/src/proxy.ts`) refreshes session cookies and redirects unauthenticated users from protected routes to `/login`:
   - `/overview`, `/insights`, `/segments`, `/deep-dive`, `/opportunities`, `/reports` (alias `/weekly-reports`, `/dashboard` → overview)
 - **Frontend auth files:**
   - `@supabase/ssr` browser client (`lib/supabase/client.ts`) + middleware session refresh (`lib/supabase/middleware.ts`)
