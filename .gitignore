@@ -1,0 +1,40 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Environment variables
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# Data files (large)
+data/raw/*.csv
+data/raw/*.json
+data/processed/*.csv
+data/processed/*.json
+data/processed/*.jsonl
+data/chroma_db/
+
+# Pipeline run logs
+data/outputs/*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/.env.local

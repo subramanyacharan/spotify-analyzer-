@@ -1,0 +1,42 @@
+{
+  "checked_at": "2026-06-27T09:45:25.239527+00:00",
+  "current_week": {
+    "start": "2026-06-22",
+    "end": "2026-06-28"
+  },
+  "healthy": true,
+  "issues": [],
+  "metrics": {
+    "raw_reviews": 65165,
+    "processed_reviews": 48730,
+    "weekly_insights_rows": 3,
+    "latest_weekly_insights": {
+      "id": "50d41818-002b-47c9-8d5f-973189dc23b9",
+      "week_start": "2026-06-22",
+      "week_end": "2026-06-28",
+      "created_at": "2026-06-27T09:37:18.294612+00:00",
+      "age_days": 0.01,
+      "top_theme_keys": [
+        "dashboard_snapshot",
+        "weekly_report"
+      ],
+      "missing_phase3_keys": [],
+      "missing_post_pipeline_keys": []
+    },
+    "weekly_report": {
+      "total_reviews_analyzed": 48730,
+      "week_start": "2026-06-22",
+      "week_end": "2026-06-28"
+    }
+  },
+  "checkpoint": {
+    "run_id": "4e1eecb8-cf71-40fa-ac63-bf5d0b2ac3f0",
+    "mode": "incremental",
+    "last_completed": "phase5_weekly_report",
+    "completed_stages": [
+      "phase4_snapshots",
+      "phase5_weekly_report"
+    ],
+    "updated_at": "2026-06-27T09:37:23.607590+00:00"
+  }
+}

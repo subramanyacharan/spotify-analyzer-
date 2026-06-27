@@ -1,0 +1,99 @@
+name: Weekly Pipeline
+
+on:
+  schedule:
+    # Every Sunday at 05:00 UTC. GitHub Actions cron uses UTC only.
+    # Examples: 05:00 EET (UTC+2) -> "0 3 * * 0" | 05:00 EST (UTC-5) -> "0 10 * * 0"
+    - cron: "0 5 * * 0"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Pipeline mode
+        required: false
+        default: incremental
+        type: choice
+        options:
+          - incremental
+          - full
+
+concurrency:
+  group: weekly-pipeline
+  cancel-in-progress: false
+
+jobs:
+  run-pipeline:
+    name: Run weekly insight pipeline
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      GROQ_MODEL: ${{ secrets.GROQ_MODEL }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      VERCEL_DASHBOARD_URL: ${{ secrets.VERCEL_DASHBOARD_URL }}
+      EMBEDDING_BACKEND: local
+      CHROMA_PERSIST_DIR: ./data/chroma_db
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Restore ChromaDB and model caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            data/chroma_db
+            ~/.cache/huggingface
+            ~/.cache/torch
+          key: pipeline-chroma-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            pipeline-chroma-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          python -m spacy download en_core_web_sm
+
+      - name: Validate secrets
+        run: |
+          test -n "$SUPABASE_URL" || (echo "Missing SUPABASE_URL secret" && exit 1)
+          test -n "$SUPABASE_KEY" || (echo "Missing SUPABASE_KEY secret" && exit 1)
+          test -n "$GROQ_API_KEY" || (echo "Missing GROQ_API_KEY secret" && exit 1)
+
+      - name: Run scheduled pipeline
+        run: |
+          MODE="${{ github.event.inputs.mode || 'incremental' }}"
+          python scripts/run_scheduled_pipeline.py --mode "$MODE"
+
+      - name: Upload pipeline artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-outputs-${{ github.run_id }}
+          path: |
+            data/outputs/pipeline_checkpoint.json
+            data/outputs/pipeline_health.json
+            data/outputs/weekly_report.json
+            data/outputs/dashboard_snapshot.json
+          if-no-files-found: ignore
+
+      - name: Save ChromaDB cache
+        if: success()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            data/chroma_db
+            ~/.cache/huggingface
+            ~/.cache/torch
+          key: pipeline-chroma-${{ hashFiles('requirements.txt') }}
