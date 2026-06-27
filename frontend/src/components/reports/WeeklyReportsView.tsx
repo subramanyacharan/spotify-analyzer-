@@ -9,6 +9,7 @@ import { applyWeeklyReportFilters } from "@/lib/filters/apply";
 import { useFilters } from "../filters/FilterProvider";
 import { ConfidenceBadge } from "../ui/ConfidenceBadge";
 import { LowConfidenceDisclaimer } from "../ui/LowConfidenceDisclaimer";
+import { ScreenGuide } from "../ui/ScreenGuide";
 import { WeekRangeFilter } from "./WeekRangeFilter";
 import { WeeklyTrendChart } from "./WeeklyTrendChart";
 
@@ -42,6 +43,23 @@ export function WeeklyReportsView({ catalog }: { catalog: WeeklyReportsCatalog }
       </div>
 
       <LowConfidenceDisclaimer level={report.confidenceLevel} />
+
+      <ScreenGuide
+        items={[
+          {
+            label: "Week range",
+            text: "Select which weeks to include — metrics and trends update for that window.",
+          },
+          {
+            label: "Emerging issues",
+            text: "Themes or pain points growing faster than the prior week.",
+          },
+          {
+            label: "Segment friction",
+            text: "Which audience groups show the highest negative feedback in the selected range.",
+          },
+        ]}
+      />
 
       <WeekRangeFilter
         totalWeeks={totalWeeks}

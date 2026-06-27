@@ -1,12 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { SegmentationLens, SegmentsData } from "@/lib/analytics/types";
+import { buildChartMetrics } from "@/lib/analytics/segment-chart-metrics";
 import { DATA_FRESHNESS, LENS_DESCRIPTIONS, LENS_LABELS } from "@/lib/copy/terminology";
 import { filterProfiles } from "@/lib/filters/apply";
 import { matchesGlobalFilters } from "@/lib/filters/match";
 import { useFilters } from "../filters/FilterProvider";
 import { FilterEmptyState } from "../ui/FilterEmptyState";
+import { ScreenGuide } from "../ui/ScreenGuide";
+import { CohortSelector, type CohortChartView } from "./CohortSelector";
 import { SegmentComparisonCards } from "./SegmentComparisonCards";
 import { SegmentMatrix } from "./SegmentMatrix";
 import { SubClusterTable } from "./SubClusterTable";
@@ -25,6 +28,8 @@ const LENSES: SegmentationLens[] = [
 
 export function SegmentsView({ data }: SegmentsViewProps) {
   const [lens, setLens] = useState<SegmentationLens>("behavior");
+  const [chartView, setChartView] = useState<CohortChartView>("compare");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const { appliedFilters } = useFilters();
 
   const profiles = useMemo(
@@ -36,18 +41,36 @@ export function SegmentsView({ data }: SegmentsViewProps) {
     () => [...profiles].sort((a, b) => b.frictionScore - a.frictionScore),
     [profiles]
   );
-  const segmentA = sorted[0];
-  const segmentB = sorted[1] ?? sorted[0];
 
-  const behaviorSorted = useMemo(
+  useEffect(() => {
+    const topTwo = sorted.slice(0, 2).map((p) => p.id);
+    setSelectedIds(topTwo);
+  }, [lens, sorted]);
+
+  const selectedProfiles = useMemo(
     () =>
-      [...filterProfiles(data.profilesByLens.behavior, appliedFilters)].sort(
-        (a, b) => b.frictionScore - a.frictionScore
-      ),
-    [data.profilesByLens.behavior, appliedFilters]
+      sorted.filter((p) => selectedIds.includes(p.id)).length
+        ? sorted.filter((p) => selectedIds.includes(p.id))
+        : sorted.slice(0, 2),
+    [sorted, selectedIds]
   );
-  const matrixA = behaviorSorted[0]?.name ?? "Habit Listener";
-  const matrixB = behaviorSorted[1]?.name ?? "Playlist Driven";
+
+  const chartProfiles = chartView === "all" ? sorted : selectedProfiles;
+
+  const chartMetrics = useMemo(
+    () => buildChartMetrics(sorted, data.matrixMetrics, lens),
+    [sorted, data.matrixMetrics, lens]
+  );
+
+  const segmentA = selectedProfiles[0] ?? sorted[0];
+  const segmentB = selectedProfiles[1] ?? sorted[1] ?? sorted[0];
+
+  const frictionDeltaPct =
+    segmentA && segmentB && segmentB.frictionScore > 0
+      ? Math.round(
+          ((segmentA.frictionScore - segmentB.frictionScore) / segmentB.frictionScore) * 100
+        )
+      : data.varianceDeltaPct;
 
   return (
     <div className="space-y-6 p-6">
@@ -61,6 +84,27 @@ export function SegmentsView({ data }: SegmentsViewProps) {
           <span className="text-[#1db954]">{data.highestFrictionSegment}</span>
         </p>
       </div>
+
+      <ScreenGuide
+        items={[
+          {
+            label: "Lens tabs",
+            text: "Switch how audiences are grouped — by user type, engagement, listening behavior, context, or pain point.",
+          },
+          {
+            label: "Cohort chart",
+            text: "Pick specific cohorts to compare, or switch to “All cohorts” for a full side-by-side view.",
+          },
+          {
+            label: "Friction index",
+            text: "Share of negative reviews in that cohort — higher means more frustration in feedback.",
+          },
+          {
+            label: "Table",
+            text: "Ranked list of cohorts with review volume, friction, and churn risk. Open a row for a deep dive.",
+          },
+        ]}
+      />
 
       <div className="flex flex-wrap gap-2">
         {LENSES.map((l) => (
@@ -84,17 +128,25 @@ export function SegmentsView({ data }: SegmentsViewProps) {
         <FilterEmptyState message="No segments match the selected global filters." />
       ) : (
         <>
+          <CohortSelector
+            profiles={sorted}
+            chartView={chartView}
+            onChartViewChange={setChartView}
+            selectedIds={selectedIds}
+            onSelectedIdsChange={setSelectedIds}
+          />
+
           <div className="grid gap-4 lg:grid-cols-3">
             <SegmentMatrix
-              metrics={data.matrixMetrics}
-              segmentA={matrixA}
-              segmentB={matrixB}
+              metrics={chartMetrics}
+              cohorts={chartProfiles}
+              viewMode={chartView}
             />
             {segmentA && segmentB && (
               <SegmentComparisonCards
                 segmentA={segmentA}
                 segmentB={segmentB}
-                varianceDeltaPct={data.varianceDeltaPct}
+                varianceDeltaPct={frictionDeltaPct}
               />
             )}
           </div>

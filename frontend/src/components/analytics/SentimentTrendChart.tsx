@@ -14,6 +14,7 @@ import {
 import { CHART } from "@/lib/analytics/chart-theme";
 import { USER_MESSAGES } from "@/lib/auth/user-messages";
 import type { WeeklySentiment } from "@/lib/analytics/types";
+import { ChartAxisLabels } from "../ui/ChartAxisLabels";
 
 interface SentimentTrendChartProps {
   data: WeeklySentiment[];
@@ -29,8 +30,9 @@ export function SentimentTrendChart({ data }: SentimentTrendChartProps) {
   }
 
   return (
-    <ResponsiveContainer width="100%" height={280}>
-      <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+    <>
+      <ResponsiveContainer width="100%" height={280}>
+        <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
         <XAxis
           dataKey="weekLabel"
@@ -81,5 +83,11 @@ export function SentimentTrendChart({ data }: SentimentTrendChartProps) {
         />
       </AreaChart>
     </ResponsiveContainer>
+      <ChartAxisLabels
+        xLabel="Week (time period of collected reviews)"
+        yLabel="Review count (stacked areas) and negative % (amber line on right scale)"
+        note="Stacked areas show positive, neutral, and negative review volume per week. The line tracks negative sentiment percentage."
+      />
+    </>
   );
 }

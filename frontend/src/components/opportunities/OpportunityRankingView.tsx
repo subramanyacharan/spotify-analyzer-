@@ -15,6 +15,7 @@ import { useFilters } from "../filters/FilterProvider";
 import { ConfidenceBadge } from "../ui/ConfidenceBadge";
 import { FilterEmptyState } from "../ui/FilterEmptyState";
 import { LowConfidenceDisclaimer } from "../ui/LowConfidenceDisclaimer";
+import { ScreenGuide } from "../ui/ScreenGuide";
 import { OpportunityScoreChart } from "./OpportunityScoreChart";
 
 type SortKey = "rank" | "score" | "reviews";
@@ -75,6 +76,23 @@ export function OpportunityRankingView({ data }: { data: OpportunitiesData }) {
           {data.scoringFormula} · {data.totalReviews.toLocaleString()} reviews analyzed
         </p>
       </div>
+
+      <ScreenGuide
+        items={[
+          {
+            label: "Ranking",
+            text: "Opportunities ordered by composite score — frequency of mentions × severity × segment impact.",
+          },
+          {
+            label: "Tiers",
+            text: "Critical = act now, High = plan soon, Monitor = watch for trend changes.",
+          },
+          {
+            label: "Expand rows",
+            text: "Click an opportunity for rationale, supporting quotes, and recommended next steps.",
+          },
+        ]}
+      />
 
       <div className="flex flex-wrap gap-3">
         <FilterSelect

@@ -13,6 +13,8 @@ export const USER_MESSAGES = {
   accountExists: "An account with this email already exists. Try signing in instead.",
   emailConfirmRequired:
     "Please confirm your email address before signing in.",
+  emailConfirmed:
+    "Your email is confirmed. Sign in with your username or email and password.",
   resetEmailFailed:
     "We couldn't send a reset link. Please try again later.",
   resetLinkInvalid:

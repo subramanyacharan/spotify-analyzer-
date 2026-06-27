@@ -8,6 +8,7 @@ import { insightFilterCtx, scaleCount } from "@/lib/filters/apply";
 import { matchesGlobalFilters } from "@/lib/filters/match";
 import { useFilters } from "../filters/FilterProvider";
 import { FilterEmptyState } from "../ui/FilterEmptyState";
+import { ScreenGuide } from "../ui/ScreenGuide";
 import { InsightCard } from "./InsightCard";
 import { InsightTopicFilters } from "./InsightTopicFilters";
 
@@ -45,6 +46,23 @@ export function InsightsView({ data }: InsightsViewProps) {
           {new Date(data.generatedAt).toLocaleDateString(undefined, { dateStyle: "medium" })}
         </p>
       </div>
+
+      <ScreenGuide
+        items={[
+          {
+            label: "Topics",
+            text: "Each card answers a product question from grouped review themes (discovery, recommendations, playlists, etc.).",
+          },
+          {
+            label: "Confidence",
+            text: "Based on review volume and consistency — low confidence means interpret findings cautiously.",
+          },
+          {
+            label: "Filters",
+            text: "Narrow by date, sentiment, or audience using the global filter bar at the top.",
+          },
+        ]}
+      />
 
       <InsightTopicFilters activeGroup={topicGroup} onGroupChange={setTopicGroup} />
 

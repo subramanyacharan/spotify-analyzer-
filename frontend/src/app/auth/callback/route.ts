@@ -2,14 +2,22 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
+function resolveRedirectOrigin(requestOrigin: string): string {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
+  return configured || requestOrigin;
+}
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
+  const confirm = searchParams.get("confirm") === "1";
   const nextParam = searchParams.get("next") ?? "/overview";
   const next =
     nextParam.startsWith("/") && !nextParam.startsWith("//")
       ? nextParam
       : "/overview";
+
+  const redirectOrigin = resolveRedirectOrigin(origin);
 
   if (code) {
     const cookieStore = await cookies();
@@ -32,10 +40,14 @@ export async function GET(request: Request) {
 
       const { error } = await supabase.auth.exchangeCodeForSession(code);
       if (!error) {
-        return NextResponse.redirect(`${origin}${next}`);
+        if (confirm) {
+          await supabase.auth.signOut();
+          return NextResponse.redirect(`${redirectOrigin}/login?confirmed=1`);
+        }
+        return NextResponse.redirect(`${redirectOrigin}${next}`);
       }
     }
   }
 
-  return NextResponse.redirect(`${origin}/login?error=auth_callback`);
+  return NextResponse.redirect(`${redirectOrigin}/login?error=auth_callback`);
 }

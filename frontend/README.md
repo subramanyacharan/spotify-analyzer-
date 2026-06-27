@@ -36,6 +36,7 @@ Vercel → Project → **Settings → Environment Variables** (enable for **Prod
 |----------|-------|-------|
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://xxx.supabase.co` | Browser-safe (auth) |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase **anon** key | Auth only — never for data reads |
+| `NEXT_PUBLIC_SITE_URL` | `https://your-app.vercel.app` | Public app URL for email confirmation & reset links |
 | `SUPABASE_URL` | Same project URL | Server-side |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase **service_role** key | Server data reads only |
 

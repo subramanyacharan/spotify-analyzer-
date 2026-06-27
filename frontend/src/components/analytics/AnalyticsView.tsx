@@ -5,9 +5,11 @@ import type { AnalyticsData } from "@/lib/analytics/types";
 import { DATA_FRESHNESS } from "@/lib/copy/terminology";
 import { applyAnalyticsFilters } from "@/lib/filters/apply";
 import { useFilters } from "../filters/FilterProvider";
+import { ChartAxisLabels } from "../ui/ChartAxisLabels";
 import { SentimentTrendChart } from "./SentimentTrendChart";
 import { ThemeDonut, ThemeBarChart } from "./ThemeCharts";
 import { ThemeSegmentHeatmap } from "./ThemeSegmentHeatmap";
+import { ScreenGuide } from "../ui/ScreenGuide";
 
 interface AnalyticsViewProps {
   data: AnalyticsData;
@@ -40,6 +42,23 @@ export function AnalyticsView({ data }: AnalyticsViewProps) {
         </p>
       </div>
 
+      <ScreenGuide
+        items={[
+          {
+            label: "Theme charts",
+            text: "Which topics appear most in reviews and what share of each theme is negative.",
+          },
+          {
+            label: "Sentiment trend",
+            text: "How positive vs negative feedback changes week over week.",
+          },
+          {
+            label: "Heatmap",
+            text: "Which audience segments talk about which themes — darker cells mean more mentions.",
+          },
+        ]}
+      />
+
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
           <h3 className="mb-4 text-sm font-semibold text-white">Theme volume</h3>
@@ -68,6 +87,11 @@ export function AnalyticsView({ data }: AnalyticsViewProps) {
           cells={filtered.heatmap}
           segments={filtered.heatmapSegments}
           themes={filtered.heatmapThemes}
+        />
+        <ChartAxisLabels
+          xLabel="Behavioral audience segment (column)"
+          yLabel="Review theme (row)"
+          note="Cell intensity = how often that segment mentions the theme. Use this to spot where friction clusters."
         />
       </section>
 

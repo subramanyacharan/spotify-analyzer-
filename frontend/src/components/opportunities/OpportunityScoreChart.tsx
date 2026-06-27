@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { CHART } from "@/lib/analytics/chart-theme";
 import type { OpportunityItem } from "@/lib/opportunities/types";
+import { ChartAxisLabels } from "../ui/ChartAxisLabels";
 
 interface OpportunityScoreChartProps {
   opportunities: OpportunityItem[];
@@ -29,33 +30,40 @@ export function OpportunityScoreChart({ opportunities }: OpportunityScoreChartPr
     tier === "Critical" ? CHART.red : tier === "High" ? CHART.amber : CHART.neutral;
 
   return (
-    <ResponsiveContainer width="100%" height={220}>
-      <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} vertical={false} />
-        <XAxis dataKey="name" stroke={CHART.axis} tick={{ fill: CHART.axis, fontSize: 11 }} />
-        <YAxis
-          stroke={CHART.axis}
-          tick={{ fill: CHART.axis, fontSize: 10 }}
-          tickFormatter={(v) => `${v}`}
-        />
-        <Tooltip
-          contentStyle={{
-            background: CHART.tooltipBg,
-            border: `1px solid ${CHART.tooltipBorder}`,
-            borderRadius: 8,
-            fontSize: 12,
-          }}
-          formatter={(value) => [`${value}`, "Composite ×100"]}
-          labelFormatter={(_, payload) =>
-            (payload?.[0]?.payload as { fullTitle?: string })?.fullTitle ?? ""
-          }
-        />
-        <Bar dataKey="score" radius={[4, 4, 0, 0]}>
-          {data.map((entry, i) => (
-            <Cell key={i} fill={tierColor(entry.tier)} fillOpacity={0.85} />
-          ))}
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
+    <>
+      <ResponsiveContainer width="100%" height={220}>
+        <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} vertical={false} />
+          <XAxis dataKey="name" stroke={CHART.axis} tick={{ fill: CHART.axis, fontSize: 11 }} />
+          <YAxis
+            stroke={CHART.axis}
+            tick={{ fill: CHART.axis, fontSize: 10 }}
+            tickFormatter={(v) => `${v}`}
+          />
+          <Tooltip
+            contentStyle={{
+              background: CHART.tooltipBg,
+              border: `1px solid ${CHART.tooltipBorder}`,
+              borderRadius: 8,
+              fontSize: 12,
+            }}
+            formatter={(value) => [`${value}`, "Priority score (×10)"]}
+            labelFormatter={(_, payload) =>
+              (payload?.[0]?.payload as { fullTitle?: string })?.fullTitle ?? ""
+            }
+          />
+          <Bar dataKey="score" radius={[4, 4, 0, 0]}>
+            {data.map((entry, i) => (
+              <Cell key={i} fill={tierColor(entry.tier)} fillOpacity={0.85} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+      <ChartAxisLabels
+        xLabel="Opportunity rank (#1 = highest priority)"
+        yLabel="Composite priority score (higher = more urgent)"
+        note="Color matches tier — red Critical, amber High, gray Monitor."
+      />
+    </>
   );
 }
