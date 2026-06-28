@@ -9,7 +9,6 @@ import { ChartAxisLabels } from "../ui/ChartAxisLabels";
 import { SentimentTrendChart } from "./SentimentTrendChart";
 import { ThemeDonut, ThemeBarChart } from "./ThemeCharts";
 import { ThemeSegmentHeatmap } from "./ThemeSegmentHeatmap";
-import { ScreenGuide } from "../ui/ScreenGuide";
 
 interface AnalyticsViewProps {
   data: AnalyticsData;
@@ -41,23 +40,6 @@ export function AnalyticsView({ data }: AnalyticsViewProps) {
               : "Corpus snapshot"}
         </p>
       </div>
-
-      <ScreenGuide
-        items={[
-          {
-            label: "Theme charts",
-            text: "Which topics appear most in reviews and what share of each theme is negative.",
-          },
-          {
-            label: "Sentiment trend",
-            text: "How positive vs negative feedback changes week over week.",
-          },
-          {
-            label: "Heatmap",
-            text: "Which audience segments talk about which themes — darker cells mean more mentions.",
-          },
-        ]}
-      />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">

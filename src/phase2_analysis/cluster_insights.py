@@ -327,6 +327,44 @@ def call_llm_with_retry(
     )
 
 
+def _build_fallback_insight(
+    themes: List[str],
+    samples: List[Dict[str, Any]],
+    sentiment_counts: Counter,
+) -> Dict[str, Any]:
+    """User-facing fallback when the LLM call fails — never expose pipeline jargon."""
+    theme_list = [t for t in themes if t][:3]
+    theme_text = ", ".join(theme_list) if theme_list else "the product experience"
+
+    pain_point = f"Users frequently mention issues related to {theme_text}."
+
+    total = sum(sentiment_counts.values()) or 1
+    negative = sentiment_counts.get("negative", 0)
+    severity = min(5, max(2, 2 + int(3 * negative / total)))
+
+    quotes: List[str] = []
+    for review in samples:
+        text = (review.get("cleaned_text") or "").strip()
+        if text:
+            quotes.append(text[:120])
+        if len(quotes) >= 3:
+            break
+    while len(quotes) < 3:
+        quotes.append("")
+
+    primary_theme = theme_list[0] if theme_list else "this area"
+    feature_request = f"Improve {primary_theme.lower()} based on recurring user feedback."
+    product_opportunity = f"Address feedback about {theme_text} to reduce friction for affected users."
+
+    return {
+        "pain_point": pain_point,
+        "severity": severity,
+        "feature_request": feature_request,
+        "representative_user_quotes": quotes,
+        "product_opportunity": product_opportunity,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Validate and normalise the LLM response
 # ---------------------------------------------------------------------------
@@ -583,14 +621,8 @@ def process_cluster(
         )
         insight = _validate_insight(raw_insight, cluster_id)
     except RuntimeError as exc:
-        logger.error("  Cluster %d LLM call failed: %s — using fallback.", cluster_id, exc)
-        insight = {
-            "pain_point": f"Cluster {cluster_id}: LLM extraction failed",
-            "severity": 3,
-            "feature_request": "Manual review required",
-            "representative_user_quotes": ["", "", ""],
-            "product_opportunity": "Review cluster manually",
-        }
+        logger.error("  Cluster %d LLM call failed: %s — using theme-based fallback.", cluster_id, exc)
+        insight = _build_fallback_insight(themes, samples, sentiment_counts)
 
     logger.info("  Cluster %d insight: pain=%s | severity=%d",
                 cluster_id, insight["pain_point"][:80], insight["severity"])

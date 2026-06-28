@@ -15,4 +15,6 @@ def get_groq_client() -> OpenAI:
 
 
 def get_model_name() -> str:
-    return os.environ.get("GROQ_MODEL", DEFAULT_GROQ_MODEL)
+    """Return configured Groq model, falling back when unset or blank."""
+    model = (os.environ.get("GROQ_MODEL") or "").strip()
+    return model or DEFAULT_GROQ_MODEL

@@ -8,7 +8,6 @@ import { filterProfiles } from "@/lib/filters/apply";
 import { matchesGlobalFilters } from "@/lib/filters/match";
 import { useFilters } from "../filters/FilterProvider";
 import { FilterEmptyState } from "../ui/FilterEmptyState";
-import { ScreenGuide } from "../ui/ScreenGuide";
 import { CohortSelector, type CohortChartView } from "./CohortSelector";
 import { SegmentComparisonCards } from "./SegmentComparisonCards";
 import { SegmentMatrix } from "./SegmentMatrix";
@@ -84,27 +83,6 @@ export function SegmentsView({ data }: SegmentsViewProps) {
           <span className="text-[#1db954]">{data.highestFrictionSegment}</span>
         </p>
       </div>
-
-      <ScreenGuide
-        items={[
-          {
-            label: "Lens tabs",
-            text: "Switch how audiences are grouped — by user type, engagement, listening behavior, context, or pain point.",
-          },
-          {
-            label: "Cohort chart",
-            text: "Pick specific cohorts to compare, or switch to “All cohorts” for a full side-by-side view.",
-          },
-          {
-            label: "Friction index",
-            text: "Share of negative reviews in that cohort — higher means more frustration in feedback.",
-          },
-          {
-            label: "Table",
-            text: "Ranked list of cohorts with review volume, friction, and churn risk. Open a row for a deep dive.",
-          },
-        ]}
-      />
 
       <div className="flex flex-wrap gap-2">
         {LENSES.map((l) => (

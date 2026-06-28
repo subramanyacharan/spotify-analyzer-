@@ -17,3 +17,8 @@ def test_get_groq_client_uses_groq_endpoint(mock_openai):
 def test_get_model_name_defaults_to_llama():
     with patch.dict("os.environ", {}, clear=True):
         assert get_model_name() == DEFAULT_GROQ_MODEL
+
+
+def test_get_model_name_ignores_blank_env():
+    with patch.dict("os.environ", {"GROQ_MODEL": "   "}):
+        assert get_model_name() == DEFAULT_GROQ_MODEL

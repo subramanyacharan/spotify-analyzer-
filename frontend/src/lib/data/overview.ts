@@ -1,5 +1,5 @@
 import type { OverviewData, SegmentationLens, SegmentFriction } from "../types";
-import { sanitizeRecommendation } from "../copy/sanitize";
+import { filterQuotes, sanitizePainPoint, sanitizeRecommendation } from "../copy/sanitize";
 import { getSupabaseServerClient } from "../supabase/server";
 import {
   fetchMergedTopThemes,
@@ -124,7 +124,7 @@ function buildFromSnapshots(
   const painTop = topPain[0]
     ? {
         segment:
-          topPain[0].pain_point.slice(0, 48) +
+          sanitizePainPoint(topPain[0].pain_point).slice(0, 48) +
           (topPain[0].pain_point.length > 48 ? "…" : ""),
         reviewCount: topPain[0].frequency,
         frictionScore: topPain[0].avg_severity / 5,
@@ -164,11 +164,12 @@ function buildFromSnapshots(
   const matrix = (prioritization.prioritization_matrix ?? []) as Array<{
     evidence?: { quotes?: string[] };
   }>;
-  const quotes =
+  const quotes = filterQuotes(
     topPriority?.evidence?.quotes ??
-    matrix.find((m) => m.evidence?.quotes?.length)?.evidence?.quotes ??
-    topOpp?.evidence?.representative_quotes ??
-    [];
+      matrix.find((m) => m.evidence?.quotes?.length)?.evidence?.quotes ??
+      topOpp?.evidence?.representative_quotes ??
+      []
+  );
 
   return {
     generatedAt:
@@ -186,10 +187,10 @@ function buildFromSnapshots(
       ? {
           rank: topOpp.rank,
           tier: topOpp.tier,
-          painPoint: sanitizeRecommendation(topOpp.pain_point),
+          painPoint: sanitizePainPoint(topOpp.pain_point),
           compositeScore: topOpp.scores.composite,
           reviewCount: topOpp.review_count,
-          quotes: topOpp.evidence?.representative_quotes ?? [],
+          quotes: filterQuotes(topOpp.evidence?.representative_quotes ?? []),
         }
       : null,
     executiveSummary: {

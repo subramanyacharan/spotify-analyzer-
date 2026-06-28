@@ -9,7 +9,6 @@ import type { OverviewData } from "@/lib/types";
 import { ExecutiveSummary } from "./ExecutiveSummary";
 import { KpiCards } from "./KpiCards";
 import { QuickLinks } from "./QuickLinks";
-import { ScreenGuide } from "../ui/ScreenGuide";
 
 interface OverviewViewProps {
   data: OverviewData;
@@ -44,23 +43,6 @@ export function OverviewView({ data }: OverviewViewProps) {
           {DATA_FRESHNESS(data.dataSource, data.generatedAt)}
         </p>
       </div>
-
-      <ScreenGuide
-        items={[
-          {
-            label: "KPI cards",
-            text: "Headline metrics from analyzed reviews — volume, top theme, negative share, highest-friction audience, and top priority.",
-          },
-          {
-            label: "Key finding",
-            text: "The main takeaway for product and growth teams this period, with supporting quotes when available.",
-          },
-          {
-            label: "Quick links",
-            text: "Jump to detailed insights, opportunities, or segment views for deeper analysis.",
-          },
-        ]}
-      />
 
       <KpiCards data={filtered} />
       <ExecutiveSummary data={filtered} />

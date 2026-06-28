@@ -24,9 +24,10 @@ It is designed to answer the core questions in [Problem statement.md](./Problem%
 | Layer | Technology | Role |
 |-------|-----------|------|
 | **Primary Storage** | Supabase (PostgreSQL) | Source of truth — raw reviews, processed reviews, cluster insights, weekly insights, historical trends |
-| **Optional Vector Store** | ChromaDB | Semantic retrieval accelerator (embeddings from Phase 2 / knowledge layer) — not required for core insight engines |
+| **Vector Store (Phase 2)** | ChromaDB | Persistent embedding store for Phase 2.1 — collection `reviews` at `data/chroma_db`; used by weekly pipeline for upsert, incremental skip, and clustering |
+| **Vector Store (Phase 3.1, optional)** | ChromaDB | Optional collection `review_knowledge` for semantic quote retrieval — separate script, not in scheduled pipeline |
 
-Supabase holds all historical data permanently. ChromaDB, when used, supports optional semantic search within a rolling 90-day window. Evicted vectors remain in Supabase.
+Supabase holds all historical data permanently and receives final `cluster_id` and analysis fields. ChromaDB holds review embeddings for the clustering pipeline; the dashboard never reads ChromaDB directly. GitHub Actions caches `data/chroma_db` between weekly runs.
 
 ---
 
@@ -49,7 +50,7 @@ graph TD
 
     subgraph Storage
         S1[(Supabase)]
-        S2[(ChromaDB - optional)]
+        S2[(ChromaDB — Phase 2 embeddings)]
     end
 
     subgraph "Phase 2: Hybrid Analysis"
@@ -112,7 +113,7 @@ graph TD
 
 | Component | Responsibility |
 |-----------|---------------|
-| Embeddings & Clustering | Vector embeddings + K-Means/DBSCAN; cluster IDs in Supabase |
+| Embeddings & Clustering | Local sentence-transformers (default) or OpenAI; embeddings persisted in **ChromaDB** (`reviews` collection); cluster IDs written to Supabase |
 | Theme Classification | Cluster-level themes propagated to reviews |
 | Sentiment Analysis | VADER/TextBlob polarity and scores |
 | User Segment Detection | Rule-based segments (New User, Casual, Premium, Heavy, Niche) |
@@ -195,7 +196,7 @@ sequenceDiagram
 | Primary Storage | Supabase (PostgreSQL) |
 | LLM (cluster insights) | Groq `llama-3.3-70b-versatile` |
 | Embeddings | Local sentence-transformers (default) or OpenAI |
-| Vector Store | ChromaDB (optional) |
+| Vector Store | ChromaDB — **Phase 2 required** (`reviews`); Phase 3.1 optional (`review_knowledge`) |
 | Sentiment | VADER, TextBlob |
 | Clustering | scikit-learn (K-Means, DBSCAN) |
 | Dashboard frontend | Next.js + React + Tailwind + Recharts |
@@ -221,7 +222,7 @@ sequenceDiagram
 
 1. **Hybrid analysis over per-review LLM** — Lightweight models + cluster-level Groq calls scale to ~50k reviews.
 2. **Behavioral segmentation for decisions** — Phase 3 uses six behavioral segments; demographics are not inferred.
-3. **Supabase-first insight layer** — Phase 3 engines aggregate structured Phase 2 data; ChromaDB is optional.
+3. **Supabase-first insight layer** — Phase 3 engines aggregate structured Phase 2 data from Supabase. ChromaDB supports Phase 2 clustering (weekly pipeline) and optional Phase 3.1 semantic retrieval; the dashboard reads Supabase only.
 4. **Evidence-backed outputs** — Every insight links to metrics, themes, cluster summaries, or review quotes.
 5. **Modular phases** — Each phase is independently testable and deployable.
 6. **Vercel for frontend, Python for pipeline** — Analysis runs locally or on a scheduler; dashboard hosted on Vercel with read-only Supabase access.

@@ -88,8 +88,16 @@ Potential failure modes across the AI-Powered Review Discovery Engine. Aligned w
 
 ---
 
-## Optional: ChromaDB
+## ChromaDB
 
-- **Index corruption** after interrupted writes — requires collection reset and re-embed
-- **Empty vector store** when optional layer is enabled but embedding step skipped
-- **Concurrent client access** causing read errors during active upsert
+### Phase 2 — `reviews` collection (weekly pipeline)
+
+- **Missing or empty `data/chroma_db`** on first run — full embed of all processed reviews (slower; expected once)
+- **Index corruption** after interrupted writes — delete `data/chroma_db` and re-run Phase 2 embedding stage; Supabase retains review text
+- **Concurrent client access** causing read errors during active upsert — weekly pipeline uses concurrency lock; avoid parallel pipeline runs
+- **GitHub Actions cache miss** — re-embeds reviews that were previously cached locally (longer run, same outcome)
+
+### Phase 3.1 — `review_knowledge` collection (optional)
+
+- **Empty vector store** when optional layer is enabled but `run_embedding_store.py` was never run
+- **Stale knowledge collection** if Phase 3.1 script not re-run after major data refresh

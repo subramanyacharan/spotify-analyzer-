@@ -1,8 +1,10 @@
 from src.phase2_analysis.cluster_insights import (
+    _build_fallback_insight,
     _validate_insight,
     build_weekly_pulse_markdown,
     select_representative_samples,
 )
+from collections import Counter
 
 
 def test_select_representative_samples_prioritises_negative():
@@ -28,6 +30,18 @@ def test_validate_insight_clamps_severity_and_quotes():
     )
     assert insight["severity"] == 5
     assert len(insight["representative_user_quotes"]) == 3
+
+
+def test_build_fallback_insight_uses_themes_not_pipeline_jargon():
+    insight = _build_fallback_insight(
+        themes=["Discovery", "Playlists"],
+        samples=[{"cleaned_text": "I cannot find new music", "sentiment_score": 1}],
+        sentiment_counts=Counter({"negative": 8, "neutral": 2}),
+    )
+    assert "Cluster" not in insight["pain_point"]
+    assert "LLM" not in insight["pain_point"]
+    assert "Discovery" in insight["pain_point"]
+    assert insight["representative_user_quotes"][0] == "I cannot find new music"
 
 
 def test_build_weekly_pulse_markdown_includes_clusters():

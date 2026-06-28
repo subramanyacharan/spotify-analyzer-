@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { computeConfidence } from "@/lib/confidence";
-import { sanitizeRecommendation } from "@/lib/copy/sanitize";
+import { sanitizePainPoint, sanitizeRecommendation } from "@/lib/copy/sanitize";
 import { LENS_LABELS } from "@/lib/copy/terminology";
 import type { SegmentProfile, SegmentationLens } from "@/lib/analytics/types";
 import { profileFilterCtx } from "@/lib/filters/apply";
@@ -97,7 +97,7 @@ export function DeepDiveView({ profile, lens }: DeepDiveViewProps) {
           <ul className="space-y-3">
             {profile.topPainPoints.slice(0, 4).map((p) => (
               <li key={p.painPoint} className="text-sm text-zinc-400">
-                <span className="text-zinc-200">{p.painPoint}</span>
+                <span className="text-zinc-200">{sanitizePainPoint(p.painPoint)}</span>
                 <span className="ml-2 text-xs text-zinc-600">
                   {p.pct.toFixed(1)}% · {p.count.toLocaleString()} mentions
                 </span>
@@ -119,7 +119,7 @@ export function DeepDiveView({ profile, lens }: DeepDiveViewProps) {
                 <p className="font-medium text-zinc-300">
                   Severity {c.severity}/5 · {c.reviewCount.toLocaleString()} reviews
                 </p>
-                <p className="mt-1 text-zinc-500">{sanitizeRecommendation(c.painPoint)}</p>
+                <p className="mt-1 text-zinc-500">{sanitizePainPoint(sanitizeRecommendation(c.painPoint))}</p>
               </div>
             ))}
           </div>

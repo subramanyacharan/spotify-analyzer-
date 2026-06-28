@@ -2,7 +2,7 @@
 
 This document outlines the development roadmap for the **AI-Powered Review Discovery Engine** — a Product Decision Intelligence Platform that answers the core questions in [Problem statement.md](./Problem%20statement.md).
 
-**Architecture:** Supabase (permanent structured storage) + optional ChromaDB (semantic retrieval). **Rolling 90-day window** for ingestion and active analysis. Phases 3–5 convert Phase 2 outputs into behavioral insights, dashboards, and automated weekly reports — without demographic inference beyond what review data supports.
+**Architecture:** Supabase (permanent structured storage) + **ChromaDB** (Phase 2 embedding store for clustering; optional Phase 3.1 knowledge collection). **Rolling 90-day window** for ingestion and active analysis. Phases 3–5 convert Phase 2 outputs into behavioral insights, dashboards, and automated weekly reports — without demographic inference beyond what review data supports.
 
 ---
 
@@ -77,8 +77,8 @@ This document outlines the development roadmap for the **AI-Powered Review Disco
 
 - **Action:** Generate embeddings for all processed reviews and cluster semantically similar reviews.
 - **Details:**
-  - Generate vector embeddings using OpenAI `text-embedding-3-small` for cost efficiency.
-  - Store embeddings in ChromaDB for optional semantic retrieval in Phase 3.
+  - Generate vector embeddings using **local sentence-transformers** (`all-MiniLM-L6-v2`, default) or OpenAI `text-embedding-3-small` when `EMBEDDING_BACKEND=openai`.
+  - **Store embeddings in ChromaDB** (`data/chroma_db`, collection `reviews`) — used every weekly run for upsert, incremental skip, and clustering input.
   - Apply clustering algorithms to group semantically similar reviews:
     - K-Means for initial clustering
     - DBSCAN or HDBSCAN for density-based clustering
@@ -167,7 +167,7 @@ This document outlines the development roadmap for the **AI-Powered Review Disco
 - **Supabase (permanent):** `raw_reviews`, `processed_reviews`, `cluster_insights`, `weekly_insights`, `historical_trends` — no schema redesign required.
 - **Phase 2 outputs (inputs):** themes, sentiment, behavioral segments, cluster IDs, cluster-level pain points, product opportunities.
 - **Available signals:** review text, ratings, timestamps, sources, and Phase 2 classifications only.
-- **Optional accelerator:** ChromaDB knowledge layer for semantic retrieval — supports query engines but is not required for core insight delivery.
+- **Optional accelerator:** Phase 3.1 ChromaDB collection `review_knowledge` (via `scripts/run_embedding_store.py`) for semantic quote retrieval — **not** part of the scheduled weekly pipeline; core Phase 3 engines read Supabase only.
 
 **Insight Scope Constraint:**  
 The system must only generate insights **realistically supported by review text, ratings, timestamps, sources, and Phase 2 outputs**. 
@@ -506,7 +506,7 @@ Phase 3 engines normalize or map existing `processed_reviews.user_segment` label
   - **Entry point:** `scripts/run_scheduled_pipeline.py` — resets checkpoint, runs full incremental pipeline, health check, optional Slack notify.
   - **Health monitor:** `scripts/check_pipeline_health.py` — row counts, `weekly_insights` freshness, required `top_themes` keys → `data/outputs/pipeline_health.json`.
   - Optional **Slack** notification via `SLACK_WEBHOOK_URL` secret; optional dashboard link via `VERCEL_DASHBOARD_URL`.
-  - ChromaDB / Hugging Face caches persisted between GitHub Actions runs to avoid re-embedding all reviews weekly.
+  - ChromaDB (`data/chroma_db`) and Hugging Face model caches persisted between GitHub Actions runs to avoid re-embedding all reviews weekly.
 - **Required GitHub secrets:** `SUPABASE_URL`, `SUPABASE_KEY`, `GROQ_API_KEY`
 - **Optional secrets:** `GROQ_MODEL`, `OPENAI_API_KEY`, `SLACK_WEBHOOK_URL`, `VERCEL_DASHBOARD_URL`
 - **Output:** Hands-off weekly reporting automation; dashboard on Vercel reflects new Supabase data on next page load.

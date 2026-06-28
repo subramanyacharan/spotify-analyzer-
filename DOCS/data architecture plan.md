@@ -20,9 +20,10 @@ The system converts large-scale user feedback into:
 | Store | Role | Retention |
 |-------|------|-----------|
 | **Supabase** | Primary source of truth — all structured data | Permanent |
-| **ChromaDB** | Optional vector store for semantic retrieval | Rolling 90-day window (when enabled) |
+| **ChromaDB (Phase 2)** | Embedding store for clustering pipeline — collection `reviews` at `data/chroma_db` | Persistent on disk; cached in GitHub Actions between weekly runs |
+| **ChromaDB (Phase 3.1, optional)** | Semantic retrieval collection `review_knowledge` | Rolling 90-day window when `run_embedding_store.py` is run manually |
 
-All insight engines (Phase 3) read primarily from Supabase. ChromaDB is an optional accelerator, not a dependency for core reporting.
+Phase 3 insight engines and the Vercel dashboard read **Supabase only**. ChromaDB is used in production by Phase 2.1 (`embedding_clustering.py`) on every weekly pipeline run.
 
 ---
 
@@ -42,21 +43,38 @@ All insight engines (Phase 3) read primarily from Supabase. ChromaDB is an optio
 
 ---
 
-## 4. ChromaDB (Optional Analyzer Storage)
+## 4. ChromaDB (Vector Storage)
 
-When enabled, stores:
+ChromaDB is **in active use** in the current codebase. Configure via `CHROMA_PERSIST_DIR` (default `./data/chroma_db`).
 
-- Review embeddings (text + theme + sentiment chunks)
-- Metadata filters: date, source, segment, theme, week_number, cluster_id
+### 4.1 Phase 2 — `reviews` collection (weekly pipeline)
 
-Used for optional semantic retrieval supporting Phase 3 query engines. Data evicted from ChromaDB remains in Supabase.
+Used by `src/phase2_analysis/embedding_clustering.py` on every orchestrated run:
+
+- Stores review embedding vectors (local sentence-transformers by default)
+- Supports incremental runs — skips reviews already embedded
+- Loads embeddings back for K-Means / DBSCAN clustering
+- Final `cluster_id` and analysis fields are written to Supabase `processed_reviews`
+
+This collection is **required** for the standard weekly GitHub Actions pipeline. The workflow restores and saves `data/chroma_db` as a cache.
+
+### 4.2 Phase 3.1 — `review_knowledge` collection (optional)
+
+Used only when `scripts/run_embedding_store.py` is run separately:
+
+- Stores richer metadata chunks for optional semantic quote retrieval
+- **Not** included in `scripts/run_scheduled_pipeline.py` stage list
+- Phase 3 core engines (problem statement, deep-dive, opportunities, prioritization) do not depend on it
+
+Data evicted from optional Phase 3.1 collections remains in Supabase.
 
 ---
 
 ## 5. Rolling Analysis Window
 
-- **Ingestion:** Reviews collected for the last **90 days (3 months)** on each full run.
-- **ChromaDB (optional):** Active embeddings limited to the same 90-day window.
+- **Ingestion:** Reviews collected for the last **90 days (3 months)** on each full run; **7 days** on incremental weekly runs.
+- **ChromaDB (Phase 2):** Embeddings for all processed reviews in the active analysis set; persisted at `data/chroma_db`.
+- **ChromaDB (Phase 3.1, optional):** Active embeddings limited to the same 90-day window when the knowledge-layer script is run.
 - **Supabase:** Retains all ingested historical data for trend analysis.
 
 ---
@@ -67,7 +85,7 @@ Used for optional semantic retrieval supporting Phase 3 query engines. Data evic
 Review Sources
     → Ingestion & Cleaning (Phase 1)
     → Supabase (raw_reviews, processed_reviews)
-    → Hybrid Analysis (Phase 2): themes, sentiment, segments, clusters, cluster_insights
+    → Hybrid Analysis (Phase 2): embeddings in ChromaDB → themes, sentiment, segments, clusters → Supabase
     → Insight Intelligence (Phase 3): problem answers, segment profiles, opportunity scores, prioritization
     → Supabase (weekly_insights, historical_trends)
     → Next.js Dashboard on Vercel (Phase 4) — read-only fetch via @supabase/supabase-js
@@ -113,4 +131,4 @@ Demographic profiles (students, age groups, parents, etc.) are **not** used as p
 - Realistic, evidence-backed product insights
 - Dashboard-ready structured outputs for growth and product teams
 - **Vercel-hosted** Next.js frontend with read-only Supabase access — no duplicate data store
-- Optional vector search without blocking core analytics
+- ChromaDB accelerates Phase 2 embedding reuse; dashboard and Phase 3 reporting do not query ChromaDB

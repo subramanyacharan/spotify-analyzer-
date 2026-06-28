@@ -4,6 +4,7 @@ import type {
   SegmentationLens,
   SegmentsData,
 } from "../analytics/types";
+import { sanitizePainPoint, filterQuotes } from "../copy/sanitize";
 import { readLocalOutputJson } from "./read-local-json";
 
 const BUSINESS_SEGMENTS = [
@@ -47,7 +48,7 @@ function normalizeBehaviorProfile(raw: Record<string, unknown>): SegmentProfile 
     topThemes: (raw.top_themes ?? []) as SegmentProfile["topThemes"],
     topPainPoints: ((raw.top_pain_points ?? []) as Array<Record<string, unknown>>).map(
       (p) => ({
-        painPoint: p.pain_point as string,
+        painPoint: sanitizePainPoint(p.pain_point as string),
         count: p.count as number,
         pct: p.pct as number,
       })
@@ -71,7 +72,7 @@ function normalizeBehaviorProfile(raw: Record<string, unknown>): SegmentProfile 
       clusterId: c.cluster_id as number,
       reviewCount: c.review_count as number,
       pct: c.pct as number,
-      painPoint: c.pain_point as string,
+      painPoint: sanitizePainPoint(c.pain_point as string),
       severity: c.severity as number,
     })),
   };
@@ -82,7 +83,7 @@ function buildPainProfiles(
 ): SegmentProfile[] {
   return painPoints.slice(0, 5).map((p, i) => ({
     id: `pain_${i}`,
-    name: ((p.pain_point as string) ?? "").slice(0, 56) + "…",
+    name: sanitizePainPoint((p.pain_point as string) ?? "").slice(0, 56) + "…",
     lens: "pain" as const,
     reviewCount: (p.frequency as number) ?? 0,
     negativePct: 0,
@@ -91,7 +92,7 @@ function buildPainProfiles(
     topThemes: [],
     topPainPoints: [
       {
-        painPoint: p.pain_point as string,
+        painPoint: sanitizePainPoint(p.pain_point as string),
         count: p.frequency as number,
         pct: 100,
       },
@@ -103,7 +104,7 @@ function buildPainProfiles(
       clusterId: id,
       reviewCount: p.frequency as number,
       pct: 100,
-      painPoint: p.pain_point as string,
+      painPoint: sanitizePainPoint(p.pain_point as string),
       severity: p.avg_severity as number,
     })),
   }));

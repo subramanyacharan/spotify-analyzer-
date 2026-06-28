@@ -1,5 +1,6 @@
 import type { InsightAnswer, InsightsData, InsightTopicId } from "../insights/catalog";
 import { getTopicMeta } from "../insights/catalog";
+import { filterQuotes, sanitizeInsightSummary, sanitizePainPoint } from "../copy/sanitize";
 import { readLocalOutputJson } from "./read-local-json";
 
 function normalizeAnswer(raw: Record<string, unknown>): InsightAnswer | null {
@@ -17,7 +18,7 @@ function normalizeAnswer(raw: Record<string, unknown>): InsightAnswer | null {
     shortLabel: meta.shortLabel,
     description: meta.description,
     filterGroup: meta.filterGroup,
-    findingSummary: (raw.finding_summary as string) ?? "",
+    findingSummary: sanitizeInsightSummary((raw.finding_summary as string) ?? ""),
     reviewCount: (metrics.review_count as number) ?? 0,
     sentiment: {
       positive: sentiment.positive ?? 0,
@@ -28,14 +29,14 @@ function normalizeAnswer(raw: Record<string, unknown>): InsightAnswer | null {
     topThemes: (metrics.top_themes as InsightAnswer["topThemes"]) ?? [],
     segmentBreakdown: (metrics.segment_breakdown as InsightAnswer["segmentBreakdown"]) ?? [],
     affectedSegments: (raw.affected_segments as string[]) ?? [],
-    quotes: (raw.representative_quotes as string[]) ?? [],
+    quotes: filterQuotes((raw.representative_quotes as string[]) ?? []),
     avgRating: metrics.avg_rating as number | undefined,
     relatedClusters: clusters.map((c) => ({
       clusterId: c.cluster_id as number,
       reviewCount: c.review_count as number,
-      painPoint: c.pain_point as string,
+      painPoint: sanitizePainPoint(c.pain_point as string),
       severity: c.severity as number,
-      productOpportunity: c.product_opportunity as string,
+      productOpportunity: sanitizePainPoint(c.product_opportunity as string),
     })),
   };
 }

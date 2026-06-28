@@ -1,5 +1,5 @@
 import { computeConfidence } from "@/lib/confidence";
-import { sanitizeInsightSummary, sanitizeRecommendation } from "@/lib/copy/sanitize";
+import { filterQuotes, sanitizeInsightSummary, sanitizePainPoint, sanitizeRecommendation } from "@/lib/copy/sanitize";
 import { DATA_FRESHNESS } from "@/lib/copy/terminology";
 import type { OverviewData } from "@/lib/types";
 import { ConfidenceBadge } from "../ui/ConfidenceBadge";
@@ -23,9 +23,11 @@ export function ExecutiveSummary({ data }: ExecutiveSummaryProps) {
     sanitizeInsightSummary(executiveSummary.text)
   );
 
+  const quotes = filterQuotes(executiveSummary.quotes);
+
   const quoteBlock =
-    executiveSummary.quotes.length > 0
-      ? ` Users say: "${executiveSummary.quotes.slice(0, 2).join('" · "')}".`
+    quotes.length > 0
+      ? ` Users say: "${quotes.slice(0, 2).join('" · "')}".`
       : "";
 
   return (

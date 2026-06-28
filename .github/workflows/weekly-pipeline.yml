@@ -73,6 +73,9 @@ jobs:
           test -n "$SUPABASE_URL" || missing+=("SUPABASE_URL")
           test -n "$SUPABASE_KEY" || missing+=("SUPABASE_KEY or SUPABASE_SERVICE_ROLE_KEY")
           test -n "$GROQ_API_KEY" || missing+=("GROQ_API_KEY")
+          if [ -z "${GROQ_MODEL// }" ]; then
+            echo "::warning::GROQ_MODEL secret is empty — pipeline will use default llama-3.3-70b-versatile"
+          fi
           if [ ${#missing[@]} -gt 0 ]; then
             echo "::error::Missing GitHub Actions secrets: ${missing[*]}"
             echo "Add them under Settings → Secrets and variables → Actions"

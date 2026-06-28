@@ -1,4 +1,4 @@
-import { sanitizeRecommendation } from "../copy/sanitize";
+import { filterQuotes, sanitizeRecommendation } from "../copy/sanitize";
 import type { OpportunityItem, OpportunitiesData } from "../opportunities/types";
 import { readLocalOutputJson } from "./read-local-json";
 
@@ -25,7 +25,7 @@ function normalizeOpportunity(raw: Record<string, unknown>): OpportunityItem {
     },
     segments: (evidence.segment_breakdown ?? []) as OpportunityItem["segments"],
     themeBreakdown: (evidence.theme_breakdown ?? []) as OpportunityItem["themeBreakdown"],
-    quotes: (evidence.representative_quotes ?? []) as string[],
+    quotes: filterQuotes((evidence.representative_quotes ?? []) as string[]),
     dominantSentiment: (evidence.dominant_sentiment as string) ?? "mixed",
   };
 }

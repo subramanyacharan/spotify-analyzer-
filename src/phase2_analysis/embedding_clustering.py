@@ -252,13 +252,39 @@ def upsert_embeddings_in_chromadb(
         logger.warning("Nothing to upsert into ChromaDB.")
         return
 
-    ids = [str(r["id"]) for r in reviews]
-    documents = [r["cleaned_text"] for r in reviews]
+    # Drop duplicate review IDs (can occur when incremental ingest overlaps).
+    seen: set[str] = set()
+    deduped_reviews: List[Dict[str, Any]] = []
+    deduped_embeddings: List[List[float]] = []
+    for review, embedding in zip(reviews, embeddings):
+        review_id = str(review["id"])
+        if review_id in seen:
+            continue
+        seen.add(review_id)
+        deduped_reviews.append(review)
+        deduped_embeddings.append(embedding)
+
+    dropped = len(reviews) - len(deduped_reviews)
+    if dropped:
+        logger.warning(
+            "Dropped %d duplicate review IDs before ChromaDB upsert.", dropped
+        )
+
+    ids = [str(r["id"]) for r in deduped_reviews]
+    documents = [r["cleaned_text"] for r in deduped_reviews]
 
     for i in range(0, len(ids), EMBED_BATCH_SIZE):
         batch_ids = ids[i : i + EMBED_BATCH_SIZE]
         batch_docs = documents[i : i + EMBED_BATCH_SIZE]
-        batch_embs = embeddings[i : i + EMBED_BATCH_SIZE]
+        batch_embs = deduped_embeddings[i : i + EMBED_BATCH_SIZE]
+
+        # Chroma rejects duplicate IDs within a single upsert call.
+        unique: Dict[str, Tuple[str, List[float]]] = {}
+        for review_id, doc, emb in zip(batch_ids, batch_docs, batch_embs):
+            unique[review_id] = (doc, emb)
+        batch_ids = list(unique.keys())
+        batch_docs = [unique[rid][0] for rid in batch_ids]
+        batch_embs = [unique[rid][1] for rid in batch_ids]
 
         try:
             collection.upsert(ids=batch_ids, documents=batch_docs, embeddings=batch_embs)

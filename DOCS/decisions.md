@@ -23,11 +23,11 @@ Technical decisions for the AI-Powered Review Discovery Engine, aligned with [Pr
 
 ---
 
-## ADR-003: Dual-Storage Architecture (Supabase + Optional ChromaDB)
+## ADR-003: Dual-Storage Architecture (Supabase + ChromaDB)
 
-- **Context:** Need permanent structured storage plus optional semantic retrieval.
-- **Decision:** Supabase as primary source of truth; ChromaDB as optional vector accelerator.
-- **Rationale:** Phase 3 insight engines aggregate Supabase data directly. ChromaDB supports optional semantic retrieval but is not required for core dashboards or weekly reports.
+- **Context:** Need permanent structured storage plus a local embedding store for the clustering pipeline.
+- **Decision:** Supabase as primary source of truth; ChromaDB for Phase 2.1 embedding persistence and clustering (`reviews` collection). Optional Phase 3.1 `review_knowledge` collection via separate script.
+- **Rationale:** Phase 2.1 (`embedding_clustering.py`) upserts embeddings to ChromaDB on every weekly run and reloads them for clustering. Incremental runs skip already-embedded reviews using ChromaDB. Phase 3 insight engines and the dashboard aggregate Supabase data only; they do not require the optional Phase 3.1 collection.
 - **Status:** Accepted
 
 ---
@@ -35,7 +35,7 @@ Technical decisions for the AI-Powered Review Discovery Engine, aligned with [Pr
 ## ADR-004: Rolling 90-Day Analysis Window
 
 - **Context:** User sentiment and app features evolve; analysis should focus on recent feedback.
-- **Decision:** 90-day (3-month) window for ingestion and optional ChromaDB embeddings.
+- **Decision:** 90-day (3-month) window for full ingestion; 7-day window for incremental weekly runs. ChromaDB Phase 2 embeddings follow the active processed review set.
 - **Rationale:** Keeps active analysis relevant; all historical data retained in Supabase for long-term trends.
 - **Status:** Accepted
 
@@ -83,7 +83,7 @@ Technical decisions for the AI-Powered Review Discovery Engine, aligned with [Pr
 |---|----------|------|--------|
 | ADR-001 | Spotify as target product | 2026-06-20 | Accepted |
 | ADR-002 | Hybrid analysis (not per-review LLM) | 2026-06-21 | Accepted |
-| ADR-003 | Supabase primary + optional ChromaDB | 2026-06-20 | Accepted |
+| ADR-003 | Supabase primary + ChromaDB (Phase 2 required, Phase 3.1 optional) | 2026-06-20 | Accepted |
 | ADR-004 | Rolling 90-day window | 2026-06-20 | Accepted |
 | ADR-005 | Batch processing | 2026-06-20 | Accepted |
 | ADR-006 | Behavioral segmentation (Phase 3) | 2026-06-21 | Accepted |
