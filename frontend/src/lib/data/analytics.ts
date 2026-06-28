@@ -109,6 +109,7 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
       const merged = await fetchMergedTopThemes();
       const problemStatement = pickPayload(merged, "problem_statement_insights");
       const segmentDeepDives = pickPayload(merged, "segment_deep_dives");
+      const prioritization = pickPayload(merged, "insight_prioritization");
 
       if (problemStatement?.answers) {
         const weekly = await fetchWeeklyFromReviews();
@@ -116,7 +117,8 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
           problemStatement,
           segmentDeepDives ?? null,
           "supabase",
-          weekly.source
+          weekly.source,
+          prioritization
         );
         if (weekly.points.length) base.weeklySentiment = weekly.points;
         return base;

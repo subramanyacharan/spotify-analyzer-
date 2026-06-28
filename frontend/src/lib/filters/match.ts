@@ -197,8 +197,6 @@ export function dateRangeLabel(range: string): string {
   return labels[range] ?? range;
 }
 
-export function filterScaleFactor(dateRange: string): number {
-  if (dateRange === "last_7") return 0.12;
-  if (dateRange === "last_30") return 0.35;
+export function filterScaleFactor(_dateRange: string): number {
   return 1;
 }

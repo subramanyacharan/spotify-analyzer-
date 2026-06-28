@@ -7,15 +7,6 @@ import { getActiveFilterChips } from "@/lib/filters/labels";
 
 const BASE_FILTERS: { key: FilterKey; label: string; options: { value: string; label: string }[] }[] = [
   {
-    key: "dateRange",
-    label: "Date range",
-    options: [
-      { value: "last_7", label: "Last 7 days" },
-      { value: "last_30", label: "Last 30 days" },
-      { value: "last_90", label: "Last 90 days (default)" },
-    ],
-  },
-  {
     key: "source",
     label: "Source",
     options: [

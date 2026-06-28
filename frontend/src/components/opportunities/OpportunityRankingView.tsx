@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { computeConfidence } from "@/lib/confidence";
 import { sanitizeRecommendation } from "@/lib/copy/sanitize";
+import { corpusReviewCaption } from "@/lib/copy/corpus-caption";
 import { DATA_FRESHNESS } from "@/lib/copy/terminology";
 import type { OpportunitiesData } from "@/lib/opportunities/types";
 import { TIER_STYLES } from "@/lib/opportunities/types";
@@ -79,7 +80,7 @@ export function OpportunityRankingView({ data }: { data: OpportunitiesData }) {
         </p>
         <h2 className="mt-1 text-lg font-semibold text-white">Where to invest next</h2>
         <p className="mt-1 text-sm text-zinc-400">
-          {data.scoringFormula} · {data.totalReviews.toLocaleString()} reviews analyzed
+          {data.scoringFormula} · {corpusReviewCaption(data.totalReviews)}
         </p>
       </div>
 

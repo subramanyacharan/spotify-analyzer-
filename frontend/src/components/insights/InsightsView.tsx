@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import type { InsightsData } from "@/lib/insights/catalog";
 import type { InsightFilterGroupId } from "@/lib/insights/catalog";
 import { DATA_FRESHNESS } from "@/lib/copy/terminology";
-import { insightFilterCtx, filterWithFallback, scaleCount } from "@/lib/filters/apply";
+import { corpusReviewCaption } from "@/lib/copy/corpus-caption";
+import { insightFilterCtx, filterWithFallback } from "@/lib/filters/apply";
 import { useFilters } from "../filters/FilterProvider";
 import { FilterEmptyState } from "../ui/FilterEmptyState";
 import { InsightCard } from "./InsightCard";
@@ -24,10 +25,7 @@ export function InsightsView({ data }: InsightsViewProps) {
     );
   }, [data.topics, topicGroup, appliedFilters]);
 
-  const reviewsInSelection = useMemo(
-    () => scaleCount(data.totalReviews, appliedFilters.dateRange),
-    [data.totalReviews, appliedFilters.dateRange]
-  );
+  const reviewsInSelection = data.totalReviews;
 
   return (
     <div className="space-y-6 p-6">
@@ -39,7 +37,7 @@ export function InsightsView({ data }: InsightsViewProps) {
           What users are telling us
         </h2>
         <p className="mt-1 text-sm text-zinc-400">
-          {reviewsInSelection.toLocaleString()} reviews in selection · Updated{" "}
+          {corpusReviewCaption(reviewsInSelection)} · Updated{" "}
           {new Date(data.generatedAt).toLocaleDateString(undefined, { dateStyle: "medium" })}
         </p>
       </div>

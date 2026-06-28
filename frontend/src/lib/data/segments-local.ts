@@ -6,6 +6,7 @@ import type {
 } from "../analytics/types";
 import { sanitizePainPoint, filterQuotes } from "../copy/sanitize";
 import { filterThemesForDisplay } from "../copy/theme-display";
+import { resolveCorpusReviewCount } from "./corpus-metrics";
 import { readLocalOutputJson } from "./read-local-json";
 
 const BUSINESS_SEGMENTS = [
@@ -358,7 +359,10 @@ export function parseSegmentsPayload(
   return {
     generatedAt:
       (segmentDeepDives.generated_at as string) ?? new Date().toISOString(),
-    totalReviews: (segmentDeepDives.total_reviews_analyzed as number) ?? 0,
+    totalReviews: resolveCorpusReviewCount({
+      segmentDeepDives,
+      prioritization,
+    }),
     profilesByLens: {
       business: buildBusinessProfiles(frictionScores),
       engagement: buildEngagementProfiles(frictionScores),

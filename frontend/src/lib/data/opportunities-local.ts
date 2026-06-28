@@ -1,5 +1,6 @@
 import { filterQuotes, sanitizeRecommendation } from "../copy/sanitize";
 import { filterThemeNames } from "../copy/theme-display";
+import { resolveCorpusReviewCount } from "./corpus-metrics";
 import type { OpportunityItem, OpportunitiesData } from "../opportunities/types";
 import { readLocalOutputJson } from "./read-local-json";
 
@@ -33,12 +34,16 @@ function normalizeOpportunity(raw: Record<string, unknown>): OpportunityItem {
 
 export function parseOpportunitiesPayload(
   payload: Record<string, unknown>,
-  source: "supabase" | "local"
+  source: "supabase" | "local",
+  prioritization?: Record<string, unknown> | null
 ): OpportunitiesData {
   const opps = (payload.opportunities ?? []) as Array<Record<string, unknown>>;
   return {
     generatedAt: (payload.generated_at as string) ?? new Date().toISOString(),
-    totalReviews: (payload.total_reviews_analyzed as number) ?? 0,
+    totalReviews: resolveCorpusReviewCount({
+      opportunities: payload,
+      prioritization,
+    }),
     scoringFormula:
       (payload.scoring_formula as string) ??
       "Frequency × Severity × Segment Impact × Sentiment Intensity",

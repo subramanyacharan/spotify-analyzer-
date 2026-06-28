@@ -15,6 +15,7 @@ import {
   normalizeTopThemes,
 } from "./weekly-insights-merge";
 import { filterThemesForDisplay } from "../copy/theme-display";
+import { resolveCorpusReviewCount } from "./corpus-metrics";
 
 function weekEndFromStart(weekStart: string): string {
   const d = new Date(weekStart);
@@ -58,10 +59,11 @@ function parseTopThemesFromPayload(topThemes: unknown): {
   const prioritization = t.insight_prioritization as Record<string, unknown> | undefined;
   const problem = t.problem_statement_insights as Record<string, unknown> | undefined;
 
-  let reviewCount = (prioritization?.total_reviews_analyzed as number) ?? 0;
-  if (!reviewCount && problem) {
-    reviewCount = (problem.total_reviews_analyzed as number) ?? 0;
-  }
+  let reviewCount = resolveCorpusReviewCount({
+    prioritization,
+    problemStatement: problem,
+    weeklyReport,
+  });
 
   const answers = (problem?.answers ?? []) as Array<Record<string, unknown>>;
   const rec = answers.find((a) => a.question_id === "recommendation_frustrations");

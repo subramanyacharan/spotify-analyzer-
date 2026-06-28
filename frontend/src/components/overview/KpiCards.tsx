@@ -12,7 +12,7 @@ import {
 import { useFilters } from "@/components/filters/FilterProvider";
 import { KPI_LABELS, LENS_LABELS } from "@/lib/copy/terminology";
 import { displayThemeName } from "@/lib/copy/theme-display";
-import { dateRangeLabel } from "@/lib/filters/match";
+import { analysisWindowLabel } from "@/lib/data/analysis-window";
 import type { OverviewData, SegmentationLens } from "@/lib/types";
 
 interface KpiCardsProps {
@@ -52,7 +52,7 @@ export function KpiCards({ data }: KpiCardsProps) {
           icon={Users}
           label={KPI_LABELS.reviews}
           value={data.totalReviews.toLocaleString()}
-          sub={dateRangeLabel(appliedFilters.dateRange)}
+          sub={analysisWindowLabel()}
         />
         <KpiCard
           icon={TrendingUp}

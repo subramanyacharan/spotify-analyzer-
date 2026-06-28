@@ -1,6 +1,9 @@
 import { getSupabaseServerClient } from "../supabase/server";
 import { analysisWindowStartIso } from "./analysis-window";
-
+import {
+  resolveCorpusReviewCount,
+  type CorpusPayloadSources,
+} from "./corpus-metrics";
 export const PHASE3_THEME_KEYS = [
   "problem_statement_insights",
   "segment_deep_dives",
@@ -69,4 +72,13 @@ export function pickPayload(
   const value = merged[key];
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   return value as Record<string, unknown>;
+}
+
+/** Server-side fallback when Phase 3 payloads omit total_reviews_analyzed. */
+export async function fetchCanonicalCorpusReviewCount(
+  sources: CorpusPayloadSources = {}
+): Promise<number> {
+  const fromPayloads = resolveCorpusReviewCount(sources);
+  if (fromPayloads > 0) return fromPayloads;
+  return fetchProcessedReviewCount();
 }

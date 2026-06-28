@@ -5,6 +5,7 @@ import {
   filterThemeNames,
 } from "../copy/theme-display";
 import { sanitizeInsightSummary } from "../copy/sanitize";
+import { resolveCorpusReviewCount } from "../data/corpus-metrics";
 import type { MergedWeeklyReport } from "./types";
 
 export interface ReportMetric {
@@ -358,9 +359,12 @@ export function buildExportReportDocument(
   segmentDeepDives: Record<string, unknown> | null
 ): ExportReportDocument {
   const totalReviews =
-    (prioritization?.total_reviews_analyzed as number) ??
-    (segmentDeepDives?.total_reviews_analyzed as number) ??
-    merged.totalReviews;
+    resolveCorpusReviewCount({
+      prioritization,
+      segmentDeepDives,
+      weeklyReport,
+      fallback: merged.totalReviews,
+    }) || merged.totalReviews;
 
   const frictionScores = (
     (prioritization?.segment_friction_scores ?? []) as Array<Record<string, unknown>>

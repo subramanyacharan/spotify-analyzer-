@@ -21,7 +21,9 @@ export function mergeWeekRange(
     return emptyMerged(from, to);
   }
 
-  const totalReviews = inRange.reduce((s, w) => s + w.reviewCount, 0);
+  const totalReviews = inRange.length
+    ? Math.max(...inRange.map((w) => w.reviewCount))
+    : 0;
   const sentiment = mergeSentiment(inRange);
   const topThemes = mergeThemes(inRange);
   const first = inRange[0];

@@ -1,11 +1,12 @@
 import type { OverviewData, SegmentationLens, SegmentFriction } from "../types";
 import { filterQuotes, sanitizePainPoint, sanitizeRecommendation } from "../copy/sanitize";
 import { prepareThemesForDisplay } from "../copy/theme-display";
-import { getCorpusMetrics } from "./corpus-metrics";
+import { getCorpusMetrics, resolveCorpusReviewCount } from "./corpus-metrics";
 import { getSupabaseServerClient } from "../supabase/server";
 import {
   fetchMergedTopThemes,
   fetchProcessedReviewCount,
+  fetchCanonicalCorpusReviewCount,
 } from "./weekly-insights-merge";
 import { loadOverviewFromLocal } from "./local-fallback";
 
@@ -165,10 +166,11 @@ function buildFromSnapshots(
   return {
     generatedAt:
       (prioritization.generated_at as string) ?? new Date().toISOString(),
-    totalReviews:
-      (corpus?.review_count as number) ??
-      (prioritization.total_reviews_analyzed as number) ??
-      0,
+    totalReviews: resolveCorpusReviewCount({
+      prioritization,
+      problemStatement,
+      opportunities,
+    }),
     dominantThemes: prepareThemesForDisplay(corpus?.top_themes ?? [], 3),
     sentimentTrend: {
       positive: sentiment.positive,
@@ -217,7 +219,11 @@ export async function getOverviewData(): Promise<OverviewData> {
           opportunities
         );
         if (!overview.totalReviews) {
-          overview.totalReviews = await fetchProcessedReviewCount();
+          overview.totalReviews = await fetchCanonicalCorpusReviewCount({
+            prioritization,
+            problemStatement,
+            opportunities,
+          });
         }
         const businessTop = await fetchBusinessFriction();
         if (businessTop) overview.topFrictionByLens.business = businessTop;

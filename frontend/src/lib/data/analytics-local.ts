@@ -6,6 +6,7 @@ import type {
 } from "../analytics/types";
 import { getWeekStart } from "../analytics/chart-theme";
 import { filterThemesForDisplay, canonicalThemeName } from "../copy/theme-display";
+import { resolveCorpusReviewCount } from "./corpus-metrics";
 import { readLocalOutputJson } from "./read-local-json";
 
 function buildThemesFromProblemStatement(payload: Record<string, unknown>): ThemeVolume[] {
@@ -101,7 +102,8 @@ export function parseAnalyticsPayload(
   problemStatement: Record<string, unknown>,
   segmentDeepDives: Record<string, unknown> | null,
   source: "supabase" | "local",
-  weeklySource: AnalyticsData["weeklySource"] = "review_sample"
+  weeklySource: AnalyticsData["weeklySource"] = "review_sample",
+  prioritization?: Record<string, unknown> | null
 ): AnalyticsData {
   const themes = buildThemesFromProblemStatement(problemStatement);
   const profiles = (segmentDeepDives?.segment_profiles ?? []) as Array<
@@ -126,7 +128,11 @@ export function parseAnalyticsPayload(
   return {
     generatedAt:
       (problemStatement.generated_at as string) ?? new Date().toISOString(),
-    totalReviews: (problemStatement.total_reviews_analyzed as number) ?? 0,
+    totalReviews: resolveCorpusReviewCount({
+      problemStatement,
+      segmentDeepDives,
+      prioritization,
+    }),
     themes,
     weeklySentiment,
     heatmap: cells,

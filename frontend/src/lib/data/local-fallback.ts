@@ -1,7 +1,6 @@
 import type { OverviewData, SegmentationLens, SegmentFriction } from "../types";
 import { prepareThemesForDisplay } from "../copy/theme-display";
-import { getCorpusMetrics } from "./corpus-metrics";
-import { readLocalOutputJson } from "./read-local-json";
+import { getCorpusMetrics, resolveCorpusReviewCount } from "./corpus-metrics";import { readLocalOutputJson } from "./read-local-json";
 
 function topBehaviorFriction(
   scores: Array<{
@@ -114,11 +113,11 @@ export async function loadOverviewFromLocal(): Promise<OverviewData | null> {
       (prioritization.generated_at as string) ??
       (problemStatement.generated_at as string) ??
       new Date().toISOString(),
-    totalReviews:
-      (corpus?.review_count as number) ??
-      (prioritization.total_reviews_analyzed as number) ??
-      (problemStatement.total_reviews_analyzed as number) ??
-      0,
+    totalReviews: resolveCorpusReviewCount({
+      prioritization,
+      problemStatement,
+      opportunities,
+    }),
     dominantThemes: themes,
     sentimentTrend: {
       positive: sentiment.positive,

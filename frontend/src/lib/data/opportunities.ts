@@ -10,8 +10,9 @@ export async function getOpportunitiesData(): Promise<OpportunitiesData> {
     try {
       const merged = await fetchMergedTopThemes();
       const payload = pickPayload(merged, "opportunity_scores");
+      const prioritization = pickPayload(merged, "insight_prioritization");
       if (payload?.opportunities) {
-        return parseOpportunitiesPayload(payload, "supabase");
+        return parseOpportunitiesPayload(payload, "supabase", prioritization);
       }
     } catch {
       /* fall through */

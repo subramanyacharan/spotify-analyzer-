@@ -10,8 +10,9 @@ export async function getInsightsData(): Promise<InsightsData> {
     try {
       const merged = await fetchMergedTopThemes();
       const payload = pickPayload(merged, "problem_statement_insights");
+      const prioritization = pickPayload(merged, "insight_prioritization");
       if (payload?.answers) {
-        return parseInsightsPayload(payload, "supabase");
+        return parseInsightsPayload(payload, "supabase", prioritization);
       }
     } catch {
       /* fall through */

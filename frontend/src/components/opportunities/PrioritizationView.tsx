@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import { computeConfidence } from "@/lib/confidence";
 import { sanitizeRecommendation } from "@/lib/copy/sanitize";
+import { corpusReviewCaption } from "@/lib/copy/corpus-caption";
 import { DATA_FRESHNESS } from "@/lib/copy/terminology";
 import type { PrioritizationData, PrioritizationItem } from "@/lib/opportunities/types";
 import { TIER_STYLES } from "@/lib/opportunities/types";
@@ -59,7 +60,8 @@ export function PrioritizationView({ data }: { data: PrioritizationData }) {
         </p>
         <h2 className="mt-1 text-lg font-semibold text-white">What to do this week</h2>
         <p className="mt-1 text-sm text-zinc-400">
-          Unified matrix from pain points, segment friction, and opportunities
+          {corpusReviewCaption(data.totalReviews)} · Unified matrix from pain points, segment
+          friction, and opportunities
         </p>
       </div>
 

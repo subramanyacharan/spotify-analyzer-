@@ -6,7 +6,6 @@ import type { MergedWeeklyReport } from "@/lib/reports/types";
 import type { OverviewData, SegmentationLens } from "@/lib/types";
 import { displayThemeName } from "@/lib/copy/theme-display";
 import {
-  filterScaleFactor,
   filterWithFallback,
   isDefaultFilters,
   matchesGlobalFilters,
@@ -15,8 +14,8 @@ import type { GlobalFiltersState } from "./types";
 
 export { filterWithFallback } from "./match";
 
-export function scaleCount(count: number, dateRange: string): number {
-  return Math.max(0, Math.round(count * filterScaleFactor(dateRange)));
+export function scaleCount(count: number, _dateRange?: string): number {
+  return Math.max(0, Math.round(count));
 }
 
 function sentimentScale(filters: GlobalFiltersState, negativePct: number) {

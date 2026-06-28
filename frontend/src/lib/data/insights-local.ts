@@ -2,7 +2,7 @@ import type { InsightAnswer, InsightsData, InsightTopicId } from "../insights/ca
 import { getTopicMeta } from "../insights/catalog";
 import { filterQuotes, sanitizeInsightSummary, sanitizePainPoint } from "../copy/sanitize";
 import { filterThemesForDisplay } from "../copy/theme-display";
-import { readLocalOutputJson } from "./read-local-json";
+import { resolveCorpusReviewCount } from "./corpus-metrics";import { readLocalOutputJson } from "./read-local-json";
 
 function normalizeAnswer(raw: Record<string, unknown>): InsightAnswer | null {
   const topicId = raw.question_id as string;
@@ -44,7 +44,11 @@ function normalizeAnswer(raw: Record<string, unknown>): InsightAnswer | null {
   };
 }
 
-function buildInsights(payload: Record<string, unknown>, source: "supabase" | "local"): InsightsData {
+function buildInsights(
+  payload: Record<string, unknown>,
+  source: "supabase" | "local",
+  prioritization?: Record<string, unknown> | null
+): InsightsData {
   const answers = (payload.answers ?? []) as Array<Record<string, unknown>>;
   const topics = answers
     .map(normalizeAnswer)
@@ -52,12 +56,14 @@ function buildInsights(payload: Record<string, unknown>, source: "supabase" | "l
 
   return {
     generatedAt: (payload.generated_at as string) ?? new Date().toISOString(),
-    totalReviews: (payload.total_reviews_analyzed as number) ?? 0,
+    totalReviews: resolveCorpusReviewCount({
+      problemStatement: payload,
+      prioritization,
+    }),
     topics,
     dataSource: source,
   };
 }
-
 async function readLocalPayload(): Promise<Record<string, unknown> | null> {
   return readLocalOutputJson<Record<string, unknown>>(
     "problem_statement_insights.json"
@@ -72,7 +78,8 @@ export async function loadInsightsFromLocal(): Promise<InsightsData | null> {
 
 export function parseInsightsPayload(
   payload: Record<string, unknown>,
-  source: "supabase" | "local"
+  source: "supabase" | "local",
+  prioritization?: Record<string, unknown> | null
 ): InsightsData {
-  return buildInsights(payload, source);
+  return buildInsights(payload, source, prioritization);
 }

@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import type { AnalyticsData } from "@/lib/analytics/types";
+import { corpusReviewCaption } from "@/lib/copy/corpus-caption";
 import { DATA_FRESHNESS } from "@/lib/copy/terminology";
 import { applyAnalyticsFilters } from "@/lib/filters/apply";
 import { useFilters } from "../filters/FilterProvider";
@@ -32,7 +33,7 @@ export function AnalyticsView({ data }: AnalyticsViewProps) {
           What themes drive friction
         </h2>
         <p className="mt-1 text-sm text-zinc-400">
-          {filtered.totalReviews.toLocaleString()} reviews ·{" "}
+          {corpusReviewCaption(filtered.totalReviews)} ·{" "}
           {filtered.weeklySource === "historical_trends"
             ? "Trends from historical_trends"
             : filtered.weeklySource === "review_sample"

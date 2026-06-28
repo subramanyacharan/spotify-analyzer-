@@ -5,6 +5,7 @@ import type {
   PrioritizationType,
 } from "../opportunities/types";
 import { TYPE_LABELS } from "../opportunities/types";
+import { resolveCorpusReviewCount } from "./corpus-metrics";
 import { readLocalOutputJson } from "./read-local-json";
 
 function normalizeItem(raw: Record<string, unknown>): PrioritizationItem {
@@ -34,7 +35,7 @@ export function parsePrioritizationPayload(
 
   return {
     generatedAt: (payload.generated_at as string) ?? new Date().toISOString(),
-    totalReviews: (payload.total_reviews_analyzed as number) ?? 0,
+    totalReviews: resolveCorpusReviewCount({ prioritization: payload }),
     tierSummary: (payload.tier_summary ?? {}) as Record<string, number>,
     items,
     topPriority: topRaw ? normalizeItem(topRaw) : items[0] ?? null,

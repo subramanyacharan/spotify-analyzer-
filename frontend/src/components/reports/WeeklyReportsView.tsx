@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { AlertTriangle, TrendingDown, TrendingUp } from "lucide-react";
+import { corpusReviewCaption } from "@/lib/copy/corpus-caption";
 import { mergeWeekRange } from "@/lib/reports/merge-weeks";
 import type { WeeklyReportsCatalog } from "@/lib/reports/types";
 import { LENS_LABELS } from "@/lib/analytics/types";
@@ -52,7 +53,10 @@ export function WeeklyReportsView({ catalog }: { catalog: WeeklyReportsCatalog }
       />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Kpi label="Reviews in range" value={report.totalReviews.toLocaleString()} />
+        <Kpi
+          label="Reviews analyzed · Last 90 days"
+          value={report.totalReviews.toLocaleString()}
+        />
         <Kpi
           label="Negative sentiment"
           value={`${report.sentiment.negativePct.toFixed(1)}%`}

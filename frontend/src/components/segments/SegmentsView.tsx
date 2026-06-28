@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { SegmentationLens, SegmentsData } from "@/lib/analytics/types";
 import { buildChartMetrics } from "@/lib/analytics/segment-chart-metrics";
+import { corpusReviewCaption } from "@/lib/copy/corpus-caption";
 import { DATA_FRESHNESS, LENS_DESCRIPTIONS, LENS_LABELS } from "@/lib/copy/terminology";
 import { filterProfiles } from "@/lib/filters/apply";
 import { filterWithFallback } from "@/lib/filters/match";
@@ -79,7 +80,7 @@ export function SegmentsView({ data }: SegmentsViewProps) {
         </p>
         <h2 className="mt-1 text-lg font-semibold text-white">Compare audience cohorts</h2>
         <p className="mt-1 text-sm text-zinc-400">
-          {data.totalReviews.toLocaleString()} reviews · Highest friction:{" "}
+          {corpusReviewCaption(data.totalReviews)} · Highest friction:{" "}
           <span className="text-[#1db954]">{data.highestFrictionSegment}</span>
         </p>
       </div>
