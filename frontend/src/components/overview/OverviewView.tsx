@@ -1,11 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
-import { useFilters } from "@/components/filters/FilterProvider";
 import { DATA_FRESHNESS } from "@/lib/copy/terminology";
 import { analysisWindowLabel } from "@/lib/data/analysis-window";
-import { applyOverviewFilters } from "@/lib/filters/apply";
-import { countActiveFilters } from "@/lib/filters/match";
 import type { OverviewData } from "@/lib/types";
 import { ExecutiveSummary } from "./ExecutiveSummary";
 import { KpiCards } from "./KpiCards";
@@ -16,15 +12,6 @@ interface OverviewViewProps {
 }
 
 export function OverviewView({ data }: OverviewViewProps) {
-  const { appliedFilters } = useFilters();
-
-  const filtered = useMemo(
-    () => applyOverviewFilters(data, appliedFilters),
-    [data, appliedFilters]
-  );
-
-  const activeCount = countActiveFilters(appliedFilters);
-
   return (
     <div className="space-y-6 p-6">
       <div>
@@ -33,21 +20,15 @@ export function OverviewView({ data }: OverviewViewProps) {
         </p>
         <p className="mt-1 text-sm text-zinc-400">
           Top themes and priorities from user reviews · {analysisWindowLabel()}
-          {activeCount > 0 && (
-            <span className="text-zinc-600">
-              {" "}
-              · {activeCount} filter{activeCount !== 1 ? "s" : ""} applied
-            </span>
-          )}
         </p>
         <p className="mt-1 text-[10px] text-zinc-600">
           {DATA_FRESHNESS(data.dataSource, data.generatedAt)}
         </p>
       </div>
 
-      <KpiCards data={filtered} />
-      <ExecutiveSummary data={filtered} />
-      <QuickLinks data={filtered} />
+      <KpiCards data={data} />
+      <ExecutiveSummary data={data} />
+      <QuickLinks data={data} />
     </div>
   );
 }

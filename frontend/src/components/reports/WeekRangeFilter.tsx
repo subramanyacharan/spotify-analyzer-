@@ -1,5 +1,7 @@
 "use client";
 
+import { analysisWindowLabel } from "@/lib/data/analysis-window";
+
 interface WeekRangeFilterProps {
   totalWeeks: number;
   fromWeek: number;
@@ -23,8 +25,8 @@ export function WeekRangeFilter({
         <div>
           <p className="text-sm font-semibold text-white">Week range</p>
           <p className="text-xs text-zinc-500">
-            Showing aggregated data for weeks {fromWeek}–{toWeek} ({toWeek - fromWeek + 1}{" "}
-            {toWeek - fromWeek + 1 === 1 ? "week" : "weeks"})
+            {analysisWindowLabel()} · Showing aggregated data for weeks {fromWeek}–{toWeek} (
+            {toWeek - fromWeek + 1} {toWeek - fromWeek + 1 === 1 ? "week" : "weeks"})
           </p>
         </div>
         <div className="flex items-center gap-2">

@@ -9,8 +9,6 @@ import { corpusReviewCaption } from "@/lib/copy/corpus-caption";
 import { DATA_FRESHNESS } from "@/lib/copy/terminology";
 import type { PrioritizationData, PrioritizationItem } from "@/lib/opportunities/types";
 import { TIER_STYLES } from "@/lib/opportunities/types";
-import { filterWithFallback, prioritizationFilterCtx } from "@/lib/filters/apply";
-import { useFilters } from "../filters/FilterProvider";
 import { ConfidenceBadge } from "../ui/ConfidenceBadge";
 import { FilterEmptyState } from "../ui/FilterEmptyState";
 import { LowConfidenceDisclaimer } from "../ui/LowConfidenceDisclaimer";
@@ -19,7 +17,6 @@ type SortKey = "rank" | "score" | "tier";
 type TierTab = "all" | "Critical" | "High" | "Monitor";
 
 export function PrioritizationView({ data }: { data: PrioritizationData }) {
-  const { appliedFilters } = useFilters();
   const [tierTab, setTierTab] = useState<TierTab>("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [sortKey, setSortKey] = useState<SortKey>("rank");
@@ -31,7 +28,7 @@ export function PrioritizationView({ data }: { data: PrioritizationData }) {
   }, [data.items]);
 
   const filtered = useMemo(() => {
-    let list = filterWithFallback(data.items, appliedFilters, prioritizationFilterCtx);
+    let list = [...data.items];
     if (tierTab !== "all") {
       const tierList = list.filter((i) => i.tier === tierTab);
       list = tierList.length ? tierList : list;
@@ -50,7 +47,7 @@ export function PrioritizationView({ data }: { data: PrioritizationData }) {
       return a.rank - b.rank;
     });
     return list;
-  }, [data.items, appliedFilters, tierTab, typeFilter, sortKey]);
+  }, [data.items, tierTab, typeFilter, sortKey]);
 
   return (
     <div className="space-y-6 p-6">

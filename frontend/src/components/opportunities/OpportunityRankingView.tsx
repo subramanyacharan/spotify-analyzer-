@@ -10,8 +10,6 @@ import { DATA_FRESHNESS } from "@/lib/copy/terminology";
 import type { OpportunitiesData } from "@/lib/opportunities/types";
 import { TIER_STYLES } from "@/lib/opportunities/types";
 import type { ConfidenceLevel } from "@/lib/types";
-import { filterWithFallback, opportunityFilterCtx } from "@/lib/filters/apply";
-import { useFilters } from "../filters/FilterProvider";
 import { ConfidenceBadge } from "../ui/ConfidenceBadge";
 import { FilterEmptyState } from "../ui/FilterEmptyState";
 import { LowConfidenceDisclaimer } from "../ui/LowConfidenceDisclaimer";
@@ -22,7 +20,6 @@ type TierFilter = "all" | "Critical" | "High" | "Monitor";
 type ConfidenceFilter = "all" | ConfidenceLevel;
 
 export function OpportunityRankingView({ data }: { data: OpportunitiesData }) {
-  const { appliedFilters } = useFilters();
   const [tierFilter, setTierFilter] = useState<TierFilter>("all");
   const [themeFilter, setThemeFilter] = useState("all");
   const [confidenceFilter, setConfidenceFilter] = useState<ConfidenceFilter>("all");
@@ -36,11 +33,7 @@ export function OpportunityRankingView({ data }: { data: OpportunitiesData }) {
   }, [data.opportunities]);
 
   const filtered = useMemo(() => {
-    let list = filterWithFallback(
-      data.opportunities,
-      appliedFilters,
-      opportunityFilterCtx
-    );
+    let list = [...data.opportunities];
 
     if (tierFilter !== "all") {
       const tierList = list.filter((o) => o.tier === tierFilter);
@@ -70,7 +63,7 @@ export function OpportunityRankingView({ data }: { data: OpportunitiesData }) {
     });
 
     return list;
-  }, [data.opportunities, appliedFilters, tierFilter, themeFilter, confidenceFilter, sortKey]);
+  }, [data.opportunities, tierFilter, themeFilter, confidenceFilter, sortKey]);
 
   return (
     <div className="space-y-6 p-6">

@@ -1,5 +1,9 @@
 import { getWeekStart } from "../analytics/chart-theme";
 import { allowLocalDataFallback } from "@/lib/deploy/deployment";
+import {
+  ANALYSIS_WINDOW_WEEKS,
+  analysisWindowStartIso,
+} from "./analysis-window";
 import type {
   WeekEmergingIssue,
   WeekSegmentFriction,
@@ -12,6 +16,7 @@ import { getSupabaseServerClient } from "../supabase/server";
 import { readLocalOutputJson } from "./read-local-json";
 import {
   fetchMergedTopThemes,
+  fetchProcessedReviewCount,
   normalizeTopThemes,
 } from "./weekly-insights-merge";
 import { filterThemesForDisplay } from "../copy/theme-display";
@@ -163,6 +168,36 @@ function snapshotFromSupabaseRow(
   };
 }
 
+function isWithinAnalysisWindow(weekStart: string): boolean {
+  return weekStart >= analysisWindowStartIso();
+}
+
+function overlayComputedWeek(
+  snapshot: WeekSnapshot,
+  computed: Map<
+    string,
+    { sentiment: WeekSentiment; themes: Map<string, number>; count: number }
+  >
+): WeekSnapshot {
+  const bucket = computed.get(snapshot.weekStart);
+  if (!bucket) return snapshot;
+
+  const topThemes = filterThemesForDisplay(
+    Array.from(bucket.themes.entries())
+      .map(([theme, count]) => ({ theme, count }))
+      .sort((a, b) => b.count - a.count),
+    8
+  );
+
+  return {
+    ...snapshot,
+    reviewCount: bucket.count,
+    sentiment: bucket.sentiment,
+    topThemes: topThemes.length ? topThemes : snapshot.topThemes,
+    source: snapshot.source === "supabase" ? "mixed" : snapshot.source,
+  };
+}
+
 async function fetchComputedWeeksFromReviews(): Promise<
   Map<string, { sentiment: WeekSentiment; themes: Map<string, number>; count: number }>
 > {
@@ -171,14 +206,14 @@ async function fetchComputedWeeksFromReviews(): Promise<
     string,
     { pos: number; neu: number; neg: number; themes: Map<string, number>; count: number }
   >();
+  const cutoff = analysisWindowStartIso();
 
   if (!client) return new Map();
 
   let offset = 0;
-  const PAGE = 2000;
-  const MAX = 20000;
+  const PAGE = 4000;
 
-  while (offset < MAX) {
+  while (true) {
     const { data } = await client
       .from("processed_reviews")
       .select("sentiment_label, themes, raw_reviews(review_date)")
@@ -189,9 +224,11 @@ async function fetchComputedWeeksFromReviews(): Promise<
     for (const row of data) {
       const raw = row.raw_reviews as { review_date?: string } | null;
       const dateStr = raw?.review_date;
-      if (!dateStr) continue;
+      if (!dateStr || dateStr.slice(0, 10) < cutoff) continue;
 
       const weekStart = getWeekStart(new Date(dateStr));
+      if (!isWithinAnalysisWindow(weekStart)) continue;
+
       const bucket = buckets.get(weekStart) ?? {
         pos: 0,
         neu: 0,
@@ -364,7 +401,7 @@ function buildComputedSnapshots(
 
 function synthesizeWeeksFromFallback(
   fallback: ReturnType<typeof parseTopThemesFromPayload>,
-  count = 8
+  count = ANALYSIS_WINDOW_WEEKS
 ): WeekSnapshot[] {
   const now = new Date();
   const weeks: WeekSnapshot[] = [];
@@ -425,16 +462,22 @@ export async function getWeeklyReportsCatalog(): Promise<WeeklyReportsCatalog> {
   const client = getSupabaseServerClient();
   const supabaseWeeks: WeekSnapshot[] = [];
   const mergedGlobal = client ? await fetchMergedTopThemes() : {};
+  const corpusReviewCount = client ? await fetchProcessedReviewCount() : 0;
 
   if (client) {
     try {
+      const cutoff = analysisWindowStartIso();
       const { data: rows } = await client
         .from("weekly_insights")
         .select("week_start, week_end, top_themes, pulse_report_md, created_at")
+        .gte("week_start", cutoff)
         .order("week_start", { ascending: true });
 
       if (rows?.length) {
         rows.forEach((row, i) => {
+          const weekStart = (row.week_start as string) ?? "";
+          if (!isWithinAnalysisWindow(weekStart)) return;
+
           const rowThemes = {
             ...mergedGlobal,
             ...normalizeTopThemes((row as Record<string, unknown>).top_themes),
@@ -458,35 +501,37 @@ export async function getWeeklyReportsCatalog(): Promise<WeeklyReportsCatalog> {
     loadLocalFallbackSnapshot(),
   ]);
 
+  const resolvedCorpus =
+    corpusReviewCount > 0 ? corpusReviewCount : fallback.reviewCount;
+
   let weeks: WeekSnapshot[] = [];
 
   if (computedMap.size >= 2) {
-    const computed = buildComputedSnapshots(
-      computedMap,
-      emergingByWeek,
-      fallback,
-      1
-    );
-    weeks = computed;
+    weeks = buildComputedSnapshots(computedMap, emergingByWeek, fallback, 1);
   } else if (supabaseWeeks.length >= 1) {
-    weeks = supabaseWeeks;
-    if (weeks.length < 4) {
-      const synthetic = synthesizeWeeksFromFallback(fallback, Math.max(8, 4));
+    weeks = supabaseWeeks.map((w) => overlayComputedWeek(w, computedMap));
+    if (weeks.length < ANALYSIS_WINDOW_WEEKS) {
+      const synthetic = synthesizeWeeksFromFallback(
+        fallback,
+        ANALYSIS_WINDOW_WEEKS
+      );
       const existingStarts = new Set(weeks.map((w) => w.weekStart));
       for (const s of synthetic) {
-        if (!existingStarts.has(s.weekStart) && weeks.length < 8) {
-          s.weekNumber = weeks.length + 1;
-          s.label = formatWeekLabel(s.weekStart, s.weekNumber);
-          weeks.push(s);
+        if (!existingStarts.has(s.weekStart) && weeks.length < ANALYSIS_WINDOW_WEEKS) {
+          weeks.push(overlayComputedWeek(s, computedMap));
         }
       }
     }
   } else {
-    weeks = synthesizeWeeksFromFallback(fallback, 8);
+    weeks = synthesizeWeeksFromFallback(fallback, ANALYSIS_WINDOW_WEEKS).map((w) =>
+      overlayComputedWeek(w, computedMap)
+    );
   }
 
   weeks = weeks
+    .filter((w) => isWithinAnalysisWindow(w.weekStart))
     .sort((a, b) => a.weekStart.localeCompare(b.weekStart))
+    .slice(-ANALYSIS_WINDOW_WEEKS)
     .map((w, i) => ({
       ...w,
       weekNumber: i + 1,
@@ -494,15 +539,19 @@ export async function getWeeklyReportsCatalog(): Promise<WeeklyReportsCatalog> {
     }));
 
   const dataSource =
-    weeks.some((w) => w.source === "supabase") && weeks.some((w) => w.source === "computed")
+    weeks.some((w) => w.source === "supabase" || w.source === "mixed") &&
+    weeks.some((w) => w.source === "computed")
       ? "mixed"
-      : weeks.some((w) => w.source === "supabase")
+      : weeks.some((w) => w.source === "supabase" || w.source === "mixed")
         ? "supabase"
-        : "local";
+        : weeks.some((w) => w.source === "computed")
+          ? "local"
+          : "local";
 
   return {
     generatedAt: new Date().toISOString(),
     totalWeeks: weeks.length,
+    corpusReviewCount: resolvedCorpus,
     weeks,
     dataSource,
   };

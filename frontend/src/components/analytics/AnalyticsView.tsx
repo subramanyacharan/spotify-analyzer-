@@ -1,11 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
 import type { AnalyticsData } from "@/lib/analytics/types";
 import { corpusReviewCaption } from "@/lib/copy/corpus-caption";
 import { DATA_FRESHNESS } from "@/lib/copy/terminology";
-import { applyAnalyticsFilters } from "@/lib/filters/apply";
-import { useFilters } from "../filters/FilterProvider";
 import { ChartAxisLabels } from "../ui/ChartAxisLabels";
 import { SentimentTrendChart } from "./SentimentTrendChart";
 import { ThemeDonut, ThemeBarChart } from "./ThemeCharts";
@@ -16,13 +13,6 @@ interface AnalyticsViewProps {
 }
 
 export function AnalyticsView({ data }: AnalyticsViewProps) {
-  const { appliedFilters } = useFilters();
-
-  const filtered = useMemo(
-    () => applyAnalyticsFilters(data, appliedFilters),
-    [data, appliedFilters]
-  );
-
   return (
     <div className="space-y-6 p-6">
       <div>
@@ -33,10 +23,10 @@ export function AnalyticsView({ data }: AnalyticsViewProps) {
           What themes drive friction
         </h2>
         <p className="mt-1 text-sm text-zinc-400">
-          {corpusReviewCaption(filtered.totalReviews)} ·{" "}
-          {filtered.weeklySource === "historical_trends"
+          {corpusReviewCaption(data.totalReviews)} ·{" "}
+          {data.weeklySource === "historical_trends"
             ? "Trends from historical_trends"
-            : filtered.weeklySource === "review_sample"
+            : data.weeklySource === "review_sample"
               ? "Weekly trend from review sample"
               : "Corpus snapshot"}
         </p>
@@ -45,11 +35,11 @@ export function AnalyticsView({ data }: AnalyticsViewProps) {
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
           <h3 className="mb-4 text-sm font-semibold text-white">Theme volume</h3>
-          <ThemeBarChart themes={filtered.themes} />
+          <ThemeBarChart themes={data.themes} />
         </section>
         <section className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
           <h3 className="mb-4 text-sm font-semibold text-white">Theme share</h3>
-          <ThemeDonut themes={filtered.themes} />
+          <ThemeDonut themes={data.themes} />
         </section>
       </div>
 
@@ -58,7 +48,7 @@ export function AnalyticsView({ data }: AnalyticsViewProps) {
         <p className="mb-4 text-xs text-zinc-500">
           Positive, neutral, and negative review mix by week
         </p>
-        <SentimentTrendChart data={filtered.weeklySentiment} />
+        <SentimentTrendChart data={data.weeklySentiment} />
       </section>
 
       <section className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
@@ -67,9 +57,9 @@ export function AnalyticsView({ data }: AnalyticsViewProps) {
           Where discovery friction concentrates across behavioral segments
         </p>
         <ThemeSegmentHeatmap
-          cells={filtered.heatmap}
-          segments={filtered.heatmapSegments}
-          themes={filtered.heatmapThemes}
+          cells={data.heatmap}
+          segments={data.heatmapSegments}
+          themes={data.heatmapThemes}
         />
         <ChartAxisLabels
           xLabel="Behavioral audience segment (column)"
@@ -79,7 +69,7 @@ export function AnalyticsView({ data }: AnalyticsViewProps) {
       </section>
 
       <p className="text-[10px] text-zinc-600">
-        {DATA_FRESHNESS(filtered.dataSource, filtered.generatedAt)}
+        {DATA_FRESHNESS(data.dataSource, data.generatedAt)}
       </p>
     </div>
   );

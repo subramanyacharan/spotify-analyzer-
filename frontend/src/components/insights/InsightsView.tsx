@@ -5,9 +5,6 @@ import type { InsightsData } from "@/lib/insights/catalog";
 import type { InsightFilterGroupId } from "@/lib/insights/catalog";
 import { DATA_FRESHNESS } from "@/lib/copy/terminology";
 import { corpusReviewCaption } from "@/lib/copy/corpus-caption";
-import { insightFilterCtx, filterWithFallback } from "@/lib/filters/apply";
-import { useFilters } from "../filters/FilterProvider";
-import { FilterEmptyState } from "../ui/FilterEmptyState";
 import { InsightCard } from "./InsightCard";
 import { InsightTopicFilters } from "./InsightTopicFilters";
 
@@ -17,13 +14,12 @@ interface InsightsViewProps {
 
 export function InsightsView({ data }: InsightsViewProps) {
   const [topicGroup, setTopicGroup] = useState<InsightFilterGroupId>("all");
-  const { appliedFilters } = useFilters();
 
   const filtered = useMemo(() => {
-    return filterWithFallback(data.topics, appliedFilters, insightFilterCtx).filter(
+    return data.topics.filter(
       (topic) => topicGroup === "all" || topic.filterGroup === topicGroup
     );
-  }, [data.topics, topicGroup, appliedFilters]);
+  }, [data.topics, topicGroup]);
 
   const reviewsInSelection = data.totalReviews;
 
@@ -45,7 +41,7 @@ export function InsightsView({ data }: InsightsViewProps) {
       <InsightTopicFilters activeGroup={topicGroup} onGroupChange={setTopicGroup} />
 
       {filtered.length === 0 ? (
-        <FilterEmptyState message="No insights match the selected filters." />
+        <p className="text-sm text-zinc-500">No insights in this topic group.</p>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
           {filtered.map((insight) => (

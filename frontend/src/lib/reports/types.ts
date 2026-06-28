@@ -40,7 +40,7 @@ export interface WeekSnapshot {
   topPainPoints: { painPoint: string; frequency: number; avgSeverity: number }[];
   tierSummary: Record<string, number>;
   pulseReportMd: string;
-  source: "supabase" | "computed";
+  source: "supabase" | "computed" | "mixed";
 }
 
 export interface MergedWeeklyReport {
@@ -74,6 +74,8 @@ export interface MergedWeeklyReport {
 export interface WeeklyReportsCatalog {
   generatedAt: string;
   totalWeeks: number;
+  /** Full 90-day corpus review count (canonical). */
+  corpusReviewCount: number;
   weeks: WeekSnapshot[];
   dataSource: "supabase" | "local" | "mixed";
 }

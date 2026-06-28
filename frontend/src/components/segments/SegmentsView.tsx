@@ -5,10 +5,6 @@ import type { SegmentationLens, SegmentsData } from "@/lib/analytics/types";
 import { buildChartMetrics } from "@/lib/analytics/segment-chart-metrics";
 import { corpusReviewCaption } from "@/lib/copy/corpus-caption";
 import { DATA_FRESHNESS, LENS_DESCRIPTIONS, LENS_LABELS } from "@/lib/copy/terminology";
-import { filterProfiles } from "@/lib/filters/apply";
-import { filterWithFallback } from "@/lib/filters/match";
-import { useFilters } from "../filters/FilterProvider";
-import { FilterEmptyState } from "../ui/FilterEmptyState";
 import { CohortSelector, type CohortChartView } from "./CohortSelector";
 import { SegmentComparisonCards } from "./SegmentComparisonCards";
 import { SegmentMatrix } from "./SegmentMatrix";
@@ -30,12 +26,8 @@ export function SegmentsView({ data }: SegmentsViewProps) {
   const [lens, setLens] = useState<SegmentationLens>("behavior");
   const [chartView, setChartView] = useState<CohortChartView>("compare");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const { appliedFilters } = useFilters();
 
-  const profiles = useMemo(
-    () => filterProfiles(data.profilesByLens[lens], appliedFilters),
-    [data.profilesByLens, lens, appliedFilters]
-  );
+  const profiles = data.profilesByLens[lens];
 
   const sorted = useMemo(
     () => [...profiles].sort((a, b) => b.frictionScore - a.frictionScore),
@@ -104,7 +96,7 @@ export function SegmentsView({ data }: SegmentsViewProps) {
       </div>
 
       {sorted.length === 0 ? (
-        <FilterEmptyState message="No segments match the selected global filters." />
+        <p className="text-sm text-zinc-500">No segment data for this lens.</p>
       ) : (
         <>
           <CohortSelector
@@ -133,11 +125,7 @@ export function SegmentsView({ data }: SegmentsViewProps) {
           <SubClusterTable
             subClusters={
               lens === "behavior"
-                ? filterWithFallback(data.subClusters, appliedFilters, (row) => ({
-                    segments: [row.name],
-                    negativePct: row.negativePct,
-                    frictionScore: row.frictionScore,
-                  }))
+                ? data.subClusters
                 : sorted.map((p) => ({
                     name: p.name,
                     reviewCount: p.reviewCount,
