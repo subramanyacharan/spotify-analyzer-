@@ -155,19 +155,11 @@ export function applyAnalyticsFilters(
   data: AnalyticsData,
   filters: GlobalFiltersState
 ): AnalyticsData {
-  const themes = filterWithFallback(data.themes, filters, (t) => ({
-    themes: [t.theme],
-    negativePct: t.negativePct,
-  })).map((t) => ({
+  const themes = data.themes.map((t) => ({
     ...t,
     theme: displayThemeName(t.theme),
     count: scaleCount(t.count, filters.dateRange),
     negativePct: sentimentScale(filters, t.negativePct),
-  }));
-
-  const heatmap = filterWithFallback(data.heatmap, filters, (cell) => ({
-    themes: [cell.theme],
-    segments: [cell.segment],
   }));
 
   const weeklySentiment = data.weeklySentiment.map((w) => {
@@ -188,9 +180,9 @@ export function applyAnalyticsFilters(
     ...data,
     totalReviews: scaleCount(data.totalReviews, filters.dateRange),
     themes,
-    heatmap,
-    heatmapSegments: [...new Set(heatmap.map((c) => c.segment))],
-    heatmapThemes: [...new Set(heatmap.map((c) => displayThemeName(c.theme)))],
+    heatmap: data.heatmap,
+    heatmapSegments: data.heatmapSegments,
+    heatmapThemes: data.heatmapThemes.map((t) => displayThemeName(t)),
     weeklySentiment,
   };
 }

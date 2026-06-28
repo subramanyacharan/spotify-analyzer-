@@ -5,7 +5,11 @@ import type {
   WeeklySentiment,
 } from "../analytics/types";
 import { getWeekStart } from "../analytics/chart-theme";
-import { filterThemesForDisplay, canonicalThemeName } from "../copy/theme-display";
+import {
+  PROJECT_THEME_TAXONOMY,
+  canonicalThemeName,
+  displayThemeName,
+} from "../copy/theme-display";
 import { resolveCorpusReviewCount } from "./corpus-metrics";
 import { readLocalOutputJson } from "./read-local-json";
 
@@ -15,43 +19,41 @@ function buildThemesFromProblemStatement(payload: Record<string, unknown>): Them
   if (!rec) return [];
 
   const metrics = (rec.supporting_metrics ?? {}) as Record<string, unknown>;
-  const themes = (metrics.top_themes ?? []) as Array<{ theme: string; count: number }>;
+  const rawThemes = (metrics.top_themes ?? []) as Array<{ theme: string; count: number }>;
   const sentiment = (metrics.sentiment_breakdown ?? {}) as { negative_pct?: number };
   const globalNeg = sentiment.negative_pct ?? 22.7;
 
-  return filterThemesForDisplay(
-    themes.slice(0, 8).map((t, i) => ({
-      theme: t.theme,
-      count: t.count,
-      negativePct: Math.min(globalNeg + (i % 3) * 2, 45),
-    }))
-  );
+  const countByTheme = new Map<string, number>();
+  for (const t of rawThemes) {
+    const name = displayThemeName(t.theme);
+    countByTheme.set(name, (countByTheme.get(name) ?? 0) + (t.count ?? 0));
+  }
+
+  return PROJECT_THEME_TAXONOMY.map((theme, i) => ({
+    theme: displayThemeName(theme),
+    count: countByTheme.get(displayThemeName(theme)) ?? 0,
+    negativePct: Math.min(globalNeg + (i % 3) * 2, 45),
+  })).sort((a, b) => b.count - a.count || a.theme.localeCompare(b.theme));
 }
 
 function buildHeatmapFromSegments(
   profiles: Array<Record<string, unknown>>
 ): { cells: HeatmapCell[]; segments: string[]; themes: string[] } {
-  const themeSet = new Set<string>();
-  profiles.forEach((p) => {
-    filterThemesForDisplay(
-      ((p.top_themes ?? []) as Array<{ theme: string }>)
-    ).forEach((t) => themeSet.add(t.theme));
-  });
-  const themes = Array.from(themeSet).slice(0, 8);
   const segments = profiles.map((p) => p.segment as string);
+  const themes = PROJECT_THEME_TAXONOMY.map((t) => displayThemeName(t));
 
   const cells: HeatmapCell[] = [];
   let maxVal = 1;
 
-  for (const profile of profiles) {
-    const seg = profile.segment as string;
-    const topThemes = (profile.top_themes ?? []) as Array<{
-      theme: string;
-      count: number;
-    }>;
-    for (const theme of themes) {
+  for (const theme of themes) {
+    for (const profile of profiles) {
+      const seg = profile.segment as string;
+      const topThemes = (profile.top_themes ?? []) as Array<{
+        theme: string;
+        count: number;
+      }>;
       const match = topThemes.find(
-        (t) => canonicalThemeName(t.theme) === theme
+        (t) => displayThemeName(t.theme) === theme || canonicalThemeName(t.theme) === theme
       );
       const value = match?.count ?? 0;
       if (value > maxVal) maxVal = value;

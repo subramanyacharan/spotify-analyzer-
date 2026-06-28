@@ -3,6 +3,18 @@
 export const GENERAL_APP_THEME = "General App Feedback";
 export const LEGACY_GENERAL_THEME = "Unrelated to Discovery";
 
+/** Full Phase 2/3 theme taxonomy — used for heatmaps and analytics charts. */
+export const PROJECT_THEME_TAXONOMY = [
+  "Repetitive Recommendations",
+  "Discover Weekly Issues",
+  "Niche Music Gap",
+  "Playlist Fatigue",
+  "Algorithm Bias",
+  "Recommendation Quality",
+  "Search & Discovery UX",
+  GENERAL_APP_THEME,
+] as const;
+
 const DISPLAY_NAMES: Record<string, string> = {
   [LEGACY_GENERAL_THEME]: GENERAL_APP_THEME,
 };
@@ -15,6 +27,12 @@ export function canonicalThemeName(theme: string | undefined | null): string {
 export function displayThemeName(theme: string | undefined | null): string {
   const canonical = canonicalThemeName(theme);
   return canonical?.trim() || "—";
+}
+
+/** Replace legacy theme labels in free-text analyzer output. */
+export function replaceLegacyThemeText(text: string): string {
+  if (!text?.trim()) return text;
+  return text.replace(new RegExp(LEGACY_GENERAL_THEME, "gi"), GENERAL_APP_THEME);
 }
 
 export function themesMatch(filterTheme: string, dataTheme: string): boolean {

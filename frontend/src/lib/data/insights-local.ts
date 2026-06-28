@@ -1,8 +1,9 @@
 import type { InsightAnswer, InsightsData, InsightTopicId } from "../insights/catalog";
 import { getTopicMeta } from "../insights/catalog";
 import { filterQuotes, sanitizeInsightSummary, sanitizePainPoint } from "../copy/sanitize";
-import { filterThemesForDisplay } from "../copy/theme-display";
-import { resolveCorpusReviewCount } from "./corpus-metrics";import { readLocalOutputJson } from "./read-local-json";
+import { filterThemesForDisplay, displayThemeName } from "../copy/theme-display";
+import { resolveCorpusReviewCount } from "./corpus-metrics";
+import { readLocalOutputJson } from "./read-local-json";
 
 function normalizeAnswer(raw: Record<string, unknown>): InsightAnswer | null {
   const topicId = raw.question_id as string;
@@ -28,7 +29,10 @@ function normalizeAnswer(raw: Record<string, unknown>): InsightAnswer | null {
       negativePct: sentiment.negative_pct ?? 0,
     },
     topThemes: filterThemesForDisplay(
-      (metrics.top_themes as InsightAnswer["topThemes"]) ?? []
+      ((metrics.top_themes as InsightAnswer["topThemes"]) ?? []).map((t) => ({
+        ...t,
+        theme: displayThemeName(t.theme),
+      }))
     ),
     segmentBreakdown: (metrics.segment_breakdown as InsightAnswer["segmentBreakdown"]) ?? [],
     affectedSegments: (raw.affected_segments as string[]) ?? [],

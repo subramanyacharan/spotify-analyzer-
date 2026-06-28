@@ -73,8 +73,8 @@ export function AnalyticsView({ data }: AnalyticsViewProps) {
         />
         <ChartAxisLabels
           xLabel="Behavioral audience segment (column)"
-          yLabel="Review theme (row)"
-          note="Cell intensity = how often that segment mentions the theme. Use this to spot where friction clusters."
+          yLabel="Review theme (row — full taxonomy)"
+          note="Each row is a project theme; each column is a behavioral segment. Cell intensity = mention volume for that theme in that segment."
         />
       </section>
 

@@ -26,30 +26,37 @@ export function ThemeSegmentHeatmap({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[520px] border-collapse text-xs">
+      <table className="w-full min-w-[640px] border-collapse text-xs">
         <thead>
           <tr>
-            <th className="p-2 text-left text-zinc-500">Segment</th>
-            {themes.map((t) => (
+            <th className="sticky left-0 z-10 bg-zinc-900/95 p-2 text-left text-zinc-500">
+              Theme
+            </th>
+            {segments.map((seg) => (
               <th
-                key={t}
-                className="max-w-[72px] truncate p-2 text-center text-zinc-500"
-                title={t}
+                key={seg}
+                className="max-w-[88px] truncate p-2 text-center text-zinc-500"
+                title={seg}
               >
-                {t.split(" ")[0]}
+                {seg.split(" ")[0]}
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {segments.map((seg) => (
-            <tr key={seg} className="border-t border-zinc-800/80">
-              <td className="whitespace-nowrap p-2 font-medium text-zinc-300">{seg}</td>
-              {themes.map((theme) => {
+          {themes.map((theme) => (
+            <tr key={theme} className="border-t border-zinc-800/80">
+              <td
+                className="sticky left-0 z-10 max-w-[140px] truncate bg-zinc-900/95 p-2 font-medium text-zinc-300"
+                title={theme}
+              >
+                {theme}
+              </td>
+              {segments.map((seg) => {
                 const cell = getCell(seg, theme);
                 const intensity = cell?.intensity ?? 0;
                 return (
-                  <td key={theme} className="p-1">
+                  <td key={`${theme}-${seg}`} className="p-1">
                     <div
                       className="flex h-8 items-center justify-center rounded text-[10px] text-zinc-300"
                       style={{
@@ -57,11 +64,15 @@ export function ThemeSegmentHeatmap({
                       }}
                       title={
                         cell?.value
-                          ? `${seg} · ${theme}: ${cell.value.toLocaleString()}`
+                          ? `${theme} · ${seg}: ${cell.value.toLocaleString()} mentions`
                           : "No signal"
                       }
                     >
-                      {cell?.value ? (cell.value > 999 ? `${Math.round(cell.value / 1000)}k` : cell.value) : "—"}
+                      {cell?.value
+                        ? cell.value > 999
+                          ? `${Math.round(cell.value / 1000)}k`
+                          : cell.value
+                        : "—"}
                     </div>
                   </td>
                 );

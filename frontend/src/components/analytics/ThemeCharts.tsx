@@ -23,7 +23,9 @@ interface ThemeBarChartProps {
 }
 
 export function ThemeBarChart({ themes }: ThemeBarChartProps) {
-  const data = themes.map((t) => ({
+  const data = themes
+    .filter((t) => t.count > 0)
+    .map((t) => ({
     name: t.theme.length > 22 ? `${t.theme.slice(0, 20)}…` : t.theme,
     fullName: t.theme,
     count: t.count,
@@ -79,7 +81,7 @@ interface ThemeDonutProps {
 }
 
 export function ThemeDonut({ themes }: ThemeDonutProps) {
-  const data = themes.slice(0, 6).map((t, i) => ({
+  const data = themes.filter((t) => t.count > 0).map((t) => ({
     name: t.theme,
     value: t.count,
     fill: chartBarColor(t.negativePct),
