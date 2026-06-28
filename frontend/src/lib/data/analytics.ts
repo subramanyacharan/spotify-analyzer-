@@ -2,6 +2,7 @@ import type { AnalyticsData, WeeklySentiment } from "../analytics/types";
 import { getWeekStart } from "../analytics/chart-theme";
 import { getSupabaseServerClient } from "../supabase/server";
 import { fetchMergedTopThemes, pickPayload } from "./weekly-insights-merge";
+import { enrichAnalyticsFromSupabase } from "./analytics-supabase";
 import { loadAnalyticsFromLocal, parseAnalyticsPayload } from "./analytics-local";
 
 async function fetchWeeklyFromReviews(): Promise<{
@@ -110,6 +111,7 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
       const problemStatement = pickPayload(merged, "problem_statement_insights");
       const segmentDeepDives = pickPayload(merged, "segment_deep_dives");
       const prioritization = pickPayload(merged, "insight_prioritization");
+      const opportunities = pickPayload(merged, "opportunity_scores");
 
       if (problemStatement?.answers) {
         const weekly = await fetchWeeklyFromReviews();
@@ -118,10 +120,12 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
           segmentDeepDives ?? null,
           "supabase",
           weekly.source,
-          prioritization
+          prioritization,
+          opportunities
         );
         if (weekly.points.length) base.weeklySentiment = weekly.points;
-        return base;
+        const enriched = await enrichAnalyticsFromSupabase(client, base);
+        return enriched ?? base;
       }
     } catch {
       /* fall through */
