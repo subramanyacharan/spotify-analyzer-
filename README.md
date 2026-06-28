@@ -94,10 +94,18 @@ GitHub Actions runs the pipeline **every Sunday at 05:00 UTC** (see `.github/wor
 | Secret | Purpose |
 |--------|---------|
 | `SUPABASE_URL` | Supabase project URL |
-| `SUPABASE_KEY` | Supabase service role key |
+| `SUPABASE_KEY` | Supabase service role key (or use `SUPABASE_SERVICE_ROLE_KEY`) |
 | `GROQ_API_KEY` | Groq LLM API key |
 
 Optional: `GROQ_MODEL`, `OPENAI_API_KEY`, `SLACK_WEBHOOK_URL`, `VERCEL_DASHBOARD_URL`
+
+After cloning, install Python deps then App Store scraper without its stale pins:
+
+```bash
+pip install -r requirements.txt
+pip install --no-deps "app-store-scraper>=0.3.5"
+pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
+```
 
 To change the schedule to 5:00 AM in your timezone, edit the `cron` line in the workflow (GitHub uses UTC).
 

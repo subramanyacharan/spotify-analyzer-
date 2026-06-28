@@ -4,7 +4,15 @@ numpy>=1.24.0
 
 # Scraping (Phase 1)
 google-play-scraper>=1.2.0
-app-store-scraper>=0.3.5
+# app-store-scraper: install after requirements (pins stale requests==2.23)
+#   pip install --no-deps "app-store-scraper>=0.3.5"
+
+# Modern HTTP stack (required for app-store-scraper on Python 3.12+)
+requests>=2.32.0
+urllib3>=2.2.0,<3
+certifi>=2024.0.0
+charset-normalizer>=3.0
+idna>=3.4
 
 # LLM (Phase 2.5 — Groq via OpenAI-compatible SDK)
 openai>=1.30.0
