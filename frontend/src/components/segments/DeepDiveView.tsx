@@ -7,11 +7,7 @@ import { sanitizePainPoint, sanitizeRecommendation } from "@/lib/copy/sanitize";
 import { displayThemeName, prepareThemesForDisplay } from "@/lib/copy/theme-display";
 import { LENS_LABELS } from "@/lib/copy/terminology";
 import type { SegmentProfile, SegmentationLens } from "@/lib/analytics/types";
-import { profileFilterCtx } from "@/lib/filters/apply";
-import { matchesGlobalFilters } from "@/lib/filters/match";
-import { useFilters } from "../filters/FilterProvider";
 import { ConfidenceBadge } from "../ui/ConfidenceBadge";
-import { FilterEmptyState } from "../ui/FilterEmptyState";
 import { LowConfidenceDisclaimer } from "../ui/LowConfidenceDisclaimer";
 
 interface DeepDiveViewProps {
@@ -20,9 +16,6 @@ interface DeepDiveViewProps {
 }
 
 export function DeepDiveView({ profile, lens }: DeepDiveViewProps) {
-  const { appliedFilters } = useFilters();
-  const matches = matchesGlobalFilters(appliedFilters, profileFilterCtx(profile));
-
   const { level, factors } = computeConfidence({
     reviewCount: profile.reviewCount,
     avgClusterSeverity: profile.avgClusterSeverity,
@@ -30,21 +23,6 @@ export function DeepDiveView({ profile, lens }: DeepDiveViewProps) {
     quoteCount: profile.quotes.length,
     hasClusterInsight: profile.clusterOverlap.length > 0,
   });
-
-  if (!matches) {
-    return (
-      <div className="space-y-6 p-6">
-        <Link
-          href="/segments"
-          className="inline-flex items-center gap-2 text-sm text-zinc-500 transition hover:text-[#1db954]"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to segments
-        </Link>
-        <FilterEmptyState message="This audience profile does not match the active filters." />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6 p-6">

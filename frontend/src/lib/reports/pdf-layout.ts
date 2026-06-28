@@ -54,24 +54,22 @@ export class PdfBuilder {
 
   cover(report: ExportReportDocument): void {
     const { doc } = this;
-    doc.setFillColor(PDF.dark.r, PDF.dark.g, PDF.dark.b);
-    doc.rect(0, 0, PDF.pageW, 95, "F");
-    doc.setFillColor(PDF.brand.r, PDF.brand.g, PDF.brand.b);
-    doc.rect(0, 95, PDF.pageW, 3, "F");
-
-    doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(22);
-    doc.text(report.meta.title, PDF.margin, 38);
+    doc.setFontSize(20);
+    doc.setTextColor(PDF.dark.r, PDF.dark.g, PDF.dark.b);
+    doc.text(report.meta.title, PDF.margin, 32);
     doc.setFontSize(11);
     doc.setFont("helvetica", "normal");
-    doc.text(report.meta.subtitle, PDF.margin, 48);
-
     doc.setTextColor(PDF.muted.r, PDF.muted.g, PDF.muted.b);
-    doc.setFontSize(10);
-    this.y = 115;
+    doc.text(report.meta.subtitle, PDF.margin, 42);
+
+    doc.setDrawColor(PDF.line.r, PDF.line.g, PDF.line.b);
+    doc.line(PDF.margin, 50, PDF.margin + PDF.contentW, 50);
+
+    this.y = 62;
     doc.setTextColor(PDF.dark.r, PDF.dark.g, PDF.dark.b);
     doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
     doc.text("Reporting period", PDF.margin, this.y);
     this.y += 7;
     doc.setFont("helvetica", "normal");
@@ -99,11 +97,11 @@ export class PdfBuilder {
       PDF.margin,
       this.y
     );
-    this.y += 20;
+    this.y += 16;
     doc.setFontSize(9);
     doc.setTextColor(PDF.muted.r, PDF.muted.g, PDF.muted.b);
     const note = this.wrap(
-      "This report ranks segments, themes, and pain points using review volume, sentiment, complaint frequency, and composite priority scores. Rankings are evidence-backed — not generic summaries."
+      "This report presents analyzer findings only — segments, themes, pain points, behaviors, and opportunities ranked with supporting metrics. Rankings explain why each item appears above the next."
     );
     for (const line of note) {
       doc.text(line, PDF.margin, this.y);

@@ -9,8 +9,7 @@ import { DATA_FRESHNESS } from "@/lib/copy/terminology";
 import type { OpportunitiesData } from "@/lib/opportunities/types";
 import { TIER_STYLES } from "@/lib/opportunities/types";
 import type { ConfidenceLevel } from "@/lib/types";
-import { opportunityFilterCtx } from "@/lib/filters/apply";
-import { matchesGlobalFilters } from "@/lib/filters/match";
+import { filterWithFallback, opportunityFilterCtx } from "@/lib/filters/apply";
 import { useFilters } from "../filters/FilterProvider";
 import { ConfidenceBadge } from "../ui/ConfidenceBadge";
 import { FilterEmptyState } from "../ui/FilterEmptyState";
@@ -36,12 +35,20 @@ export function OpportunityRankingView({ data }: { data: OpportunitiesData }) {
   }, [data.opportunities]);
 
   const filtered = useMemo(() => {
-    let list = data.opportunities.filter((o) =>
-      matchesGlobalFilters(appliedFilters, opportunityFilterCtx(o))
+    let list = filterWithFallback(
+      data.opportunities,
+      appliedFilters,
+      opportunityFilterCtx
     );
 
-    if (tierFilter !== "all") list = list.filter((o) => o.tier === tierFilter);
-    if (themeFilter !== "all") list = list.filter((o) => o.themes.includes(themeFilter));
+    if (tierFilter !== "all") {
+      const tierList = list.filter((o) => o.tier === tierFilter);
+      list = tierList.length ? tierList : list;
+    }
+    if (themeFilter !== "all") {
+      const themeList = list.filter((o) => o.themes.includes(themeFilter));
+      list = themeList.length ? themeList : list;
+    }
 
     if (confidenceFilter !== "all") {
       list = list.filter((o) => {

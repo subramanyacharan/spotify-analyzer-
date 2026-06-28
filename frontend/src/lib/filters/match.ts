@@ -5,6 +5,7 @@ import {
   DEFAULT_GLOBAL_FILTERS,
   PAIN_THEME_KEYWORDS,
 } from "./types";
+import { themesMatch } from "../copy/theme-display";
 
 export function isDefaultFilters(filters: GlobalFiltersState): boolean {
   return (Object.keys(DEFAULT_GLOBAL_FILTERS) as FilterKey[]).every(
@@ -20,11 +21,8 @@ export function countActiveFilters(filters: GlobalFiltersState): number {
 
 function matchesTheme(themes: string[], filterTheme: string): boolean {
   if (filterTheme === "all") return true;
-  return themes.some(
-    (t) =>
-      t.toLowerCase().includes(filterTheme.toLowerCase()) ||
-      filterTheme.toLowerCase().includes(t.toLowerCase().split(" ")[0])
-  );
+  if (themes.length === 0) return true;
+  return themes.some((t) => themesMatch(filterTheme, t));
 }
 
 function matchesSentiment(negativePct: number, filter: string): boolean {
@@ -37,6 +35,7 @@ function matchesSentiment(negativePct: number, filter: string): boolean {
 
 function matchesBehavior(segments: string[], filter: string): boolean {
   if (filter === "all") return true;
+  if (segments.length === 0) return true;
   const label = BEHAVIOR_SEGMENT_MAP[filter];
   if (!label) return true;
   return segments.some((s) => s.toLowerCase().includes(label.toLowerCase()));
@@ -44,6 +43,7 @@ function matchesBehavior(segments: string[], filter: string): boolean {
 
 function matchesBusiness(segments: string[], filter: string): boolean {
   if (filter === "all") return true;
+  if (segments.length === 0) return true;
   const targets = BUSINESS_SEGMENT_MAP[filter] ?? [];
   return segments.some((s) => targets.some((t) => s.includes(t)));
 }
@@ -52,17 +52,19 @@ function matchesPain(themes: string[], painPoint: string, filter: string): boole
   if (filter === "all") return true;
   const keywords = PAIN_THEME_KEYWORDS[filter] ?? [];
   const text = `${themes.join(" ")} ${painPoint}`.toLowerCase();
+  if (!text.trim()) return true;
   return keywords.some((k) => text.includes(k.toLowerCase()));
 }
 
 function matchesCluster(clusterId: number | undefined, filter: string): boolean {
   if (filter === "all") return true;
-  if (clusterId === undefined) return false;
+  if (clusterId === undefined) return true;
   return String(clusterId) === filter;
 }
 
-function matchesTier(tier: string, filter: string): boolean {
+function matchesTier(tier: string | undefined, filter: string): boolean {
   if (filter === "all") return true;
+  if (!tier) return true;
   return tier.toLowerCase() === filter.toLowerCase();
 }
 
@@ -81,6 +83,7 @@ function matchesSourceFilter(
 ): boolean {
   if (sourceFilter === "all") return true;
   const text = `${hints.join(" ")} ${segments.join(" ")}`.toLowerCase();
+  if (!text.trim()) return true;
   const key = sourceFilter.replace("_", " ");
   return text.includes(sourceFilter) || text.includes(key);
 }
@@ -93,12 +96,14 @@ function matchesContextFilter(
 ): boolean {
   if (contextFilter === "all") return true;
   const text = `${hints.join(" ")} ${segments.join(" ")} ${themes.join(" ")}`.toLowerCase();
+  if (!text.trim()) return true;
   const keywords = CONTEXT_KEYWORDS[contextFilter] ?? [contextFilter];
   return keywords.some((k) => text.includes(k));
 }
 
 function matchesEngagement(segments: string[], filter: string): boolean {
   if (filter === "all") return true;
+  if (segments.length === 0) return true;
   if (filter === "heavy")
     return segments.some((s) => /heavy|new|discovery seeker/i.test(s));
   if (filter === "casual") return segments.some((s) => /casual|playlist/i.test(s));
@@ -106,60 +111,80 @@ function matchesEngagement(segments: string[], filter: string): boolean {
   return true;
 }
 
-function matchesContext(filter: string, globalContext: string): boolean {
-  if (globalContext === "all") return true;
-  if (filter === "all") return true;
-  return filter === globalContext || globalContext.includes(filter);
-}
-
-function matchesFrictionTier(frictionScore: number, filter: string): boolean {
+function matchesFrictionTier(frictionScore: number | undefined, filter: string): boolean {
   if (filter === "all" || filter === "critical" || filter === "high") {
-    if (filter === "critical") return frictionScore >= 0.7;
-    if (filter === "high") return frictionScore >= 0.5;
+    if (filter === "critical") {
+      if (frictionScore === undefined) return true;
+      return frictionScore >= 0.7;
+    }
+    if (filter === "high") {
+      if (frictionScore === undefined) return true;
+      return frictionScore >= 0.5;
+    }
     return true;
   }
   return matchesPain([], "", filter);
 }
 
-/** Generic AND matcher for insight/opportunity rows */
+export type FilterMatchContext = {
+  themes?: string[];
+  segments?: string[];
+  negativePct?: number;
+  tier?: string;
+  clusterId?: number;
+  painPoint?: string;
+  frictionScore?: number;
+  sourceHints?: string[];
+};
+
+/** Generic AND matcher — skips dimensions when the row has no signal for them. */
 export function matchesGlobalFilters(
   filters: GlobalFiltersState,
-  ctx: {
-    themes?: string[];
-    segments?: string[];
-    negativePct?: number;
-    tier?: string;
-    clusterId?: number;
-    painPoint?: string;
-    frictionScore?: number;
-    sourceHints?: string[];
-  }
+  ctx: FilterMatchContext
 ): boolean {
   const themes = ctx.themes ?? [];
   const segments = ctx.segments ?? [];
-  const negativePct = ctx.negativePct ?? 0;
   const sourceHints = ctx.sourceHints ?? [];
 
   if (!matchesTheme(themes, filters.theme)) return false;
-  if (!matchesSentiment(negativePct, filters.sentiment)) return false;
+
+  if (ctx.negativePct !== undefined && !matchesSentiment(ctx.negativePct, filters.sentiment)) {
+    return false;
+  }
+
   if (!matchesBehavior(segments, filters.behavior)) return false;
   if (!matchesBusiness(segments, filters.business)) return false;
   if (!matchesEngagement(segments, filters.engagement)) return false;
   if (!matchesSourceFilter(filters.source, segments, sourceHints)) return false;
-  if (!matchesContextFilter(filters.context, segments, themes, sourceHints))
-    return false;
+  if (!matchesContextFilter(filters.context, segments, themes, sourceHints)) return false;
   if (!matchesCluster(ctx.clusterId, filters.cluster)) return false;
-  if (ctx.tier && !matchesTier(ctx.tier, filters.opportunityTier)) return false;
-  if (
-    !matchesPain(themes, ctx.painPoint ?? "", filters.pain) &&
-    filters.pain !== "all"
-  ) {
-    if (ctx.frictionScore !== undefined) {
-      if (!matchesFrictionTier(ctx.frictionScore, filters.pain)) return false;
-    } else return false;
+  if (!matchesTier(ctx.tier, filters.opportunityTier)) return false;
+
+  if (filters.pain !== "all") {
+    const painMatch = matchesPain(themes, ctx.painPoint ?? "", filters.pain);
+    if (!painMatch) {
+      if (ctx.frictionScore !== undefined) {
+        if (!matchesFrictionTier(ctx.frictionScore, filters.pain)) return false;
+      } else if (themes.length === 0 && !ctx.painPoint) {
+        return true;
+      } else {
+        return false;
+      }
+    }
   }
 
   return true;
+}
+
+/** Filter list; if nothing matches, return the original list so screens stay populated. */
+export function filterWithFallback<T>(
+  items: T[],
+  filters: GlobalFiltersState,
+  getCtx: (item: T) => FilterMatchContext
+): T[] {
+  if (isDefaultFilters(filters)) return items;
+  const matched = items.filter((item) => matchesGlobalFilters(filters, getCtx(item)));
+  return matched.length > 0 ? matched : items;
 }
 
 export function dateRangeLabel(range: string): string {

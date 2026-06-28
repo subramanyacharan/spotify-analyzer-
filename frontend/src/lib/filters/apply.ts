@@ -4,8 +4,16 @@ import type { InsightAnswer } from "@/lib/insights/catalog";
 import type { OpportunityItem, PrioritizationItem } from "@/lib/opportunities/types";
 import type { MergedWeeklyReport } from "@/lib/reports/types";
 import type { OverviewData, SegmentationLens } from "@/lib/types";
-import { filterScaleFactor, isDefaultFilters, matchesGlobalFilters } from "./match";
+import { displayThemeName } from "@/lib/copy/theme-display";
+import {
+  filterScaleFactor,
+  filterWithFallback,
+  isDefaultFilters,
+  matchesGlobalFilters,
+} from "./match";
 import type { GlobalFiltersState } from "./types";
+
+export { filterWithFallback } from "./match";
 
 export function scaleCount(count: number, dateRange: string): number {
   return Math.max(0, Math.round(count * filterScaleFactor(dateRange)));
@@ -77,50 +85,48 @@ export function applyOverviewFilters(
   data: OverviewData,
   filters: GlobalFiltersState
 ): OverviewData {
-  const strict = !isDefaultFilters(filters);
-
-  let dominantThemes = data.dominantThemes.filter((t) =>
-    matchesGlobalFilters(filters, { themes: [t.theme] })
-  );
-  if (strict && dominantThemes.length === 0) dominantThemes = [];
-
-  const scaledThemes = (dominantThemes.length ? dominantThemes : strict ? [] : data.dominantThemes).map(
-    (t) => ({ ...t, count: scaleCount(t.count, filters.dateRange) })
-  );
+  const dominantThemes = filterWithFallback(
+    data.dominantThemes,
+    filters,
+    (t) => ({ themes: [t.theme] })
+  ).map((t) => ({
+    ...t,
+    theme: displayThemeName(t.theme),
+    count: scaleCount(t.count, filters.dateRange),
+  }));
 
   let topOpportunity = data.topOpportunity;
-  if (topOpportunity) {
-    const matches = matchesGlobalFilters(filters, {
-      themes: [topOpportunity.painPoint],
-      tier: topOpportunity.tier,
-      negativePct: data.sentimentTrend.negativePct,
-    });
-    if (!matches && strict) topOpportunity = null;
-    else if (topOpportunity) {
-      topOpportunity = {
-        ...topOpportunity,
-        reviewCount: scaleCount(topOpportunity.reviewCount, filters.dateRange),
-      };
-    }
+  if (topOpportunity && !isDefaultFilters(filters)) {
+    const oppList = filterWithFallback(
+      [topOpportunity],
+      filters,
+      (o) => ({
+        themes: o.quotes.length ? [o.painPoint] : [],
+        tier: o.tier,
+        negativePct: data.sentimentTrend.negativePct,
+      })
+    );
+    topOpportunity = oppList[0] ?? topOpportunity;
+    topOpportunity = {
+      ...topOpportunity,
+      reviewCount: scaleCount(topOpportunity.reviewCount, filters.dateRange),
+    };
+  } else if (topOpportunity) {
+    topOpportunity = {
+      ...topOpportunity,
+      reviewCount: scaleCount(topOpportunity.reviewCount, filters.dateRange),
+    };
   }
 
   const topFrictionByLens = { ...data.topFrictionByLens };
   (Object.keys(topFrictionByLens) as SegmentationLens[]).forEach((lens) => {
     const f = topFrictionByLens[lens];
     if (!f) return;
-    const matches = matchesGlobalFilters(filters, {
-      segments: [f.segment],
-      negativePct: f.negativePct,
-      frictionScore: f.frictionScore,
-    });
-    if (!matches && strict) topFrictionByLens[lens] = null;
-    else if (f) {
-      topFrictionByLens[lens] = {
-        ...f,
-        reviewCount: scaleCount(f.reviewCount, filters.dateRange),
-        negativePct: sentimentScale(filters, f.negativePct),
-      };
-    }
+    topFrictionByLens[lens] = {
+      ...f,
+      reviewCount: scaleCount(f.reviewCount, filters.dateRange),
+      negativePct: sentimentScale(filters, f.negativePct),
+    };
   });
 
   const total = scaleCount(data.totalReviews, filters.dateRange);
@@ -130,7 +136,7 @@ export function applyOverviewFilters(
   return {
     ...data,
     totalReviews: total,
-    dominantThemes: scaledThemes,
+    dominantThemes,
     topOpportunity,
     topFrictionByLens,
     executiveSummary: {
@@ -150,36 +156,20 @@ export function applyAnalyticsFilters(
   data: AnalyticsData,
   filters: GlobalFiltersState
 ): AnalyticsData {
-  const strict = !isDefaultFilters(filters);
+  const themes = filterWithFallback(data.themes, filters, (t) => ({
+    themes: [t.theme],
+    negativePct: t.negativePct,
+  })).map((t) => ({
+    ...t,
+    theme: displayThemeName(t.theme),
+    count: scaleCount(t.count, filters.dateRange),
+    negativePct: sentimentScale(filters, t.negativePct),
+  }));
 
-  let themes = data.themes
-    .filter((t) =>
-      matchesGlobalFilters(filters, {
-        themes: [t.theme],
-        negativePct: t.negativePct,
-      })
-    )
-    .map((t) => ({
-      ...t,
-      count: scaleCount(t.count, filters.dateRange),
-      negativePct: sentimentScale(filters, t.negativePct),
-    }));
-
-  if (themes.length === 0 && !strict) {
-    themes = data.themes.map((t) => ({
-      ...t,
-      count: scaleCount(t.count, filters.dateRange),
-      negativePct: sentimentScale(filters, t.negativePct),
-    }));
-  }
-
-  let heatmap = data.heatmap.filter((cell) =>
-    matchesGlobalFilters(filters, {
-      themes: [cell.theme],
-      segments: [cell.segment],
-    })
-  );
-  if (heatmap.length === 0 && !strict) heatmap = data.heatmap;
+  const heatmap = filterWithFallback(data.heatmap, filters, (cell) => ({
+    themes: [cell.theme],
+    segments: [cell.segment],
+  }));
 
   const weeklySentiment = data.weeklySentiment.map((w) => {
     const negative = scaleCount(w.negative, filters.dateRange);
@@ -195,15 +185,13 @@ export function applyAnalyticsFilters(
     };
   });
 
-  const themeTotal = themes.reduce((s, t) => s + t.count, 0);
-
   return {
     ...data,
     totalReviews: scaleCount(data.totalReviews, filters.dateRange),
     themes,
     heatmap,
     heatmapSegments: [...new Set(heatmap.map((c) => c.segment))],
-    heatmapThemes: [...new Set(heatmap.map((c) => c.theme))],
+    heatmapThemes: [...new Set(heatmap.map((c) => displayThemeName(c.theme)))],
     weeklySentiment,
   };
 }
@@ -212,45 +200,37 @@ export function filterProfiles(
   profiles: SegmentProfile[],
   filters: GlobalFiltersState
 ): SegmentProfile[] {
-  const matched = profiles.filter((p) =>
-    matchesGlobalFilters(filters, profileFilterCtx(p))
-  );
-  if (isDefaultFilters(filters)) return profiles;
-  return matched;
+  return filterWithFallback(profiles, filters, profileFilterCtx).map((p) => ({
+    ...p,
+    topThemes: p.topThemes.map((t) => ({
+      ...t,
+      theme: displayThemeName(t.theme),
+    })),
+  }));
 }
 
 export function applyWeeklyReportFilters(
   report: MergedWeeklyReport,
   filters: GlobalFiltersState
 ): MergedWeeklyReport {
-  const strict = !isDefaultFilters(filters);
+  const topThemes = filterWithFallback(report.topThemes, filters, (t) => ({
+    themes: [t.theme],
+  })).map((t) => ({
+    ...t,
+    theme: displayThemeName(t.theme),
+    count: scaleCount(t.count, filters.dateRange),
+  }));
 
-  let topThemes = report.topThemes
-    .filter((t) => matchesGlobalFilters(filters, { themes: [t.theme] }))
-    .map((t) => ({ ...t, count: scaleCount(t.count, filters.dateRange) }));
-  if (topThemes.length === 0 && !strict) {
-    topThemes = report.topThemes.map((t) => ({
-      ...t,
-      count: scaleCount(t.count, filters.dateRange),
-    }));
-  }
+  const emergingIssues = filterWithFallback(report.emergingIssues, filters, (issue) => ({
+    themes: issue.theme ? [issue.theme] : [],
+    painPoint: issue.painPoint ?? issue.type,
+  }));
 
-  let emergingIssues = report.emergingIssues.filter((issue) =>
-    matchesGlobalFilters(filters, {
-      themes: issue.theme ? [issue.theme] : [],
-      painPoint: issue.painPoint ?? issue.type,
-    })
-  );
-  if (emergingIssues.length === 0 && !strict) emergingIssues = report.emergingIssues;
-
-  let segmentFriction = report.segmentFriction.filter((s) =>
-    matchesGlobalFilters(filters, {
-      segments: [s.segment],
-      negativePct: s.negativePct,
-      frictionScore: s.frictionScore,
-    })
-  );
-  if (segmentFriction.length === 0 && !strict) segmentFriction = report.segmentFriction;
+  const segmentFriction = filterWithFallback(report.segmentFriction, filters, (s) => ({
+    segments: [s.segment],
+    negativePct: s.negativePct,
+    frictionScore: s.frictionScore,
+  }));
 
   const total = scaleCount(report.totalReviews, filters.dateRange);
   const negPct = sentimentScale(filters, report.sentiment.negativePct);

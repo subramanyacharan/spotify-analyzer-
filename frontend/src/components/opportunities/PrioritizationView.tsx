@@ -8,8 +8,7 @@ import { sanitizeRecommendation } from "@/lib/copy/sanitize";
 import { DATA_FRESHNESS } from "@/lib/copy/terminology";
 import type { PrioritizationData, PrioritizationItem } from "@/lib/opportunities/types";
 import { TIER_STYLES } from "@/lib/opportunities/types";
-import { prioritizationFilterCtx } from "@/lib/filters/apply";
-import { matchesGlobalFilters } from "@/lib/filters/match";
+import { filterWithFallback, prioritizationFilterCtx } from "@/lib/filters/apply";
 import { useFilters } from "../filters/FilterProvider";
 import { ConfidenceBadge } from "../ui/ConfidenceBadge";
 import { FilterEmptyState } from "../ui/FilterEmptyState";
@@ -31,11 +30,15 @@ export function PrioritizationView({ data }: { data: PrioritizationData }) {
   }, [data.items]);
 
   const filtered = useMemo(() => {
-    let list = data.items.filter((item) =>
-      matchesGlobalFilters(appliedFilters, prioritizationFilterCtx(item))
-    );
-    if (tierTab !== "all") list = list.filter((i) => i.tier === tierTab);
-    if (typeFilter !== "all") list = list.filter((i) => i.type === typeFilter);
+    let list = filterWithFallback(data.items, appliedFilters, prioritizationFilterCtx);
+    if (tierTab !== "all") {
+      const tierList = list.filter((i) => i.tier === tierTab);
+      list = tierList.length ? tierList : list;
+    }
+    if (typeFilter !== "all") {
+      const typeList = list.filter((i) => i.type === typeFilter);
+      list = typeList.length ? typeList : list;
+    }
 
     list.sort((a, b) => {
       if (sortKey === "score") return b.priorityScore - a.priorityScore;

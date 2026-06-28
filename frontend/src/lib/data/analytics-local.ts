@@ -5,7 +5,7 @@ import type {
   WeeklySentiment,
 } from "../analytics/types";
 import { getWeekStart } from "../analytics/chart-theme";
-import { filterThemesForDisplay } from "../copy/theme-display";
+import { filterThemesForDisplay, canonicalThemeName } from "../copy/theme-display";
 import { readLocalOutputJson } from "./read-local-json";
 
 function buildThemesFromProblemStatement(payload: Record<string, unknown>): ThemeVolume[] {
@@ -49,7 +49,9 @@ function buildHeatmapFromSegments(
       count: number;
     }>;
     for (const theme of themes) {
-      const match = topThemes.find((t) => t.theme === theme);
+      const match = topThemes.find(
+        (t) => canonicalThemeName(t.theme) === theme
+      );
       const value = match?.count ?? 0;
       if (value > maxVal) maxVal = value;
       cells.push({ segment: seg, theme, value, intensity: 0 });

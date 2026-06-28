@@ -70,7 +70,8 @@ GET https://your-app.vercel.app/api/health
 
 - `configured: false` — missing env vars in Vercel
 - Sign up at `/signup`, then open `/overview`
-- **Export Data** (TopBar) calls authenticated `GET /api/export`
+- **Export Data** (TopBar) calls authenticated `GET /api/export` (raw JSON bundle)
+- **Export Report** (TopBar) calls authenticated `GET /api/export/report?weeks=N` and downloads a nine-section PDF — see [../DOCS/pdf-report.md](../DOCS/pdf-report.md)
 
 ### 6. Ongoing deploys
 

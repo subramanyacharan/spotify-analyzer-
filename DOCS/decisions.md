@@ -77,6 +77,15 @@ Technical decisions for the AI-Powered Review Discovery Engine, aligned with [Pr
 
 ---
 
+## ADR-009: PDF Report — Insight-Only Formatting Layer
+
+- **Context:** Stakeholders need a downloadable report from analyzer outputs without changing pipeline logic or dashboard behavior.
+- **Decision:** Client-side PDF generation (`export-document.ts` + `generate-pdf.ts`) formats existing Phase 3 JSON into nine sections: executive summary, segment ranking, segment breakdown, theme analysis, pain ranking, discovery behavior, cross-segment analysis, opportunities, and final insights summary.
+- **Rationale:** Keeps analysis and scoring in Python; report layer is presentation-only with proof-backed rankings and plain-language definitions. No product recommendations in PDF text.
+- **Status:** Accepted
+
+---
+
 ## Decision Log
 
 | # | Decision | Date | Status |
@@ -89,3 +98,4 @@ Technical decisions for the AI-Powered Review Discovery Engine, aligned with [Pr
 | ADR-006 | Behavioral segmentation (Phase 3) | 2026-06-21 | Accepted |
 | ADR-007 | Product Decision Intelligence layer | 2026-06-21 | Accepted |
 | ADR-008 | Next.js dashboard on Vercel | 2026-06-20 | Accepted |
+| ADR-009 | PDF report insight-only formatting | 2026-06-21 | Accepted |

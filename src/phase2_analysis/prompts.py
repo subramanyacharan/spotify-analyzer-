@@ -1,6 +1,8 @@
-"""Shared theme taxonomy for discovery-related review classification."""
+"""Shared theme taxonomy for review classification."""
 
-INTERNAL_THEME = "Unrelated to Discovery"
+GENERAL_APP_THEME = "General App Feedback"
+# Legacy label — still normalized when reading older pipeline rows.
+LEGACY_GENERAL_THEME = "Unrelated to Discovery"
 
 THEME_TAXONOMY = [
     "Repetitive Recommendations",
@@ -10,7 +12,7 @@ THEME_TAXONOMY = [
     "Algorithm Bias",
     "Recommendation Quality",
     "Search & Discovery UX",
-    INTERNAL_THEME,
+    GENERAL_APP_THEME,
 ]
 
 ANALYSIS_WINDOW_DAYS = 90

@@ -5,7 +5,7 @@ import type { SegmentationLens, SegmentsData } from "@/lib/analytics/types";
 import { buildChartMetrics } from "@/lib/analytics/segment-chart-metrics";
 import { DATA_FRESHNESS, LENS_DESCRIPTIONS, LENS_LABELS } from "@/lib/copy/terminology";
 import { filterProfiles } from "@/lib/filters/apply";
-import { matchesGlobalFilters } from "@/lib/filters/match";
+import { filterWithFallback } from "@/lib/filters/match";
 import { useFilters } from "../filters/FilterProvider";
 import { FilterEmptyState } from "../ui/FilterEmptyState";
 import { CohortSelector, type CohortChartView } from "./CohortSelector";
@@ -132,13 +132,11 @@ export function SegmentsView({ data }: SegmentsViewProps) {
           <SubClusterTable
             subClusters={
               lens === "behavior"
-                ? data.subClusters.filter((row) =>
-                    matchesGlobalFilters(appliedFilters, {
-                      segments: [row.name],
-                      negativePct: row.negativePct,
-                      frictionScore: row.frictionScore,
-                    })
-                  )
+                ? filterWithFallback(data.subClusters, appliedFilters, (row) => ({
+                    segments: [row.name],
+                    negativePct: row.negativePct,
+                    frictionScore: row.frictionScore,
+                  }))
                 : sorted.map((p) => ({
                     name: p.name,
                     reviewCount: p.reviewCount,

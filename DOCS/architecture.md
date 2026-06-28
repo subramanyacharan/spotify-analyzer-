@@ -143,8 +143,11 @@ Phase 3 maps Phase 2 segment labels to a behavioral taxonomy for decision-facing
 | Opportunity Ranking | Prioritized product bets with evidence |
 | Insight Prioritization | Critical / High / Monitor action matrix |
 | Weekly Reports | Emerging pain points and week-over-week changes |
+| **PDF Report Export** | Downloadable nine-section insight report from analyzer outputs (see [pdf-report.md](./pdf-report.md)) |
 
 **Frontend:** Next.js + React + Tailwind + Recharts, deployed on **Vercel**.
+
+**Export:** TopBar **Export Report** → `GET /api/export/report?weeks=N` → client-side PDF (`jspdf`). Formats existing Phase 3 JSON only; does not re-run analysis.
 
 **Auth:** Supabase Auth (required before production). Middleware protects dashboard routes; `profiles` table stores username + email; login and password reset accept username or email. SQL: `supabase/auth_profiles.sql`.
 

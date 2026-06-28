@@ -63,7 +63,7 @@ export function ExportReportDialog({ open, onClose }: ExportReportDialogProps) {
               Export Report
             </h2>
             <p className="mt-1 text-sm text-zinc-400">
-              Download a structured product research PDF with ranked segments, proof-backed insights, and recommendations.
+              Download a structured PDF report with ranked segments, themes, pain points, and analyzer findings.
             </p>
           </div>
           <button

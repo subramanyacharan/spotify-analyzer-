@@ -1,6 +1,7 @@
+import { canonicalThemeName } from "../copy/theme-display";
+
 /** Plain-language definitions for report readers (non-technical stakeholders). */
-export const SEGMENT_DEFINITIONS: Record<string, string> = {
-  "Playlist Driven":
+export const SEGMENT_DEFINITIONS: Record<string, string> = {  "Playlist Driven":
     "Users who primarily consume music through playlists rather than manual search or artist exploration.",
   "Discovery Seeker":
     "Users actively trying to find new music — they mention discovery features, new artists, or expanding taste.",
@@ -45,8 +46,7 @@ export function defineSegment(name: string): string {
 }
 
 export function defineTheme(name: string): string {
-  const display =
-    name === "Unrelated to Discovery" ? "General App Feedback" : name;
+  const display = canonicalThemeName(name);
   return (
     THEME_DEFINITIONS[display] ??
     `${display} — a recurring topic cluster extracted from grouped user feedback.`

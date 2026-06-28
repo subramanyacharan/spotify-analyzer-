@@ -105,6 +105,8 @@ Review Sources
 
 The dashboard does not run the analysis pipeline. It consumes structured outputs already stored in Supabase.
 
+**PDF export:** The TopBar **Export Report** action reads merged `weekly_insights` payloads (`insight_prioritization`, `segment_deep_dives`, `weekly_report`) and renders a nine-section PDF client-side. See [pdf-report.md](./pdf-report.md).
+
 ---
 
 ## 7. Behavioral Segmentation (Phase 3 Decision Layer)

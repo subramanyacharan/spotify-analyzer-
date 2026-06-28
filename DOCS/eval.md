@@ -85,6 +85,7 @@ Testing strategy and success criteria aligned with [Problem statement.md](./Prob
 | 4 | Filters | Date, source, theme, sentiment, five-level segmentation, cluster, opportunity tier |
 | 5 | Decision support | Highest-pain segment, highest-opportunity segment, top problems identifiable |
 | 6 | Vercel deployment | Production URL live; Supabase env vars configured; matches reference layout |
+| 7 | PDF report export | Nine-section insight PDF from analyzer outputs; proof-backed rankings; no action recommendations ([pdf-report.md](./pdf-report.md)) |
 
 ---
 

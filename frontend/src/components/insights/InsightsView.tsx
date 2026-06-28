@@ -4,8 +4,7 @@ import { useMemo, useState } from "react";
 import type { InsightsData } from "@/lib/insights/catalog";
 import type { InsightFilterGroupId } from "@/lib/insights/catalog";
 import { DATA_FRESHNESS } from "@/lib/copy/terminology";
-import { insightFilterCtx, scaleCount } from "@/lib/filters/apply";
-import { matchesGlobalFilters } from "@/lib/filters/match";
+import { insightFilterCtx, filterWithFallback, scaleCount } from "@/lib/filters/apply";
 import { useFilters } from "../filters/FilterProvider";
 import { FilterEmptyState } from "../ui/FilterEmptyState";
 import { InsightCard } from "./InsightCard";
@@ -20,10 +19,9 @@ export function InsightsView({ data }: InsightsViewProps) {
   const { appliedFilters } = useFilters();
 
   const filtered = useMemo(() => {
-    return data.topics.filter((topic) => {
-      if (topicGroup !== "all" && topic.filterGroup !== topicGroup) return false;
-      return matchesGlobalFilters(appliedFilters, insightFilterCtx(topic));
-    });
+    return filterWithFallback(data.topics, appliedFilters, insightFilterCtx).filter(
+      (topic) => topicGroup === "all" || topic.filterGroup === topicGroup
+    );
   }, [data.topics, topicGroup, appliedFilters]);
 
   const reviewsInSelection = useMemo(

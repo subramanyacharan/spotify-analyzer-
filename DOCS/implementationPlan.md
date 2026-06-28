@@ -436,10 +436,23 @@ Phase 3 engines normalize or map existing `processed_reviews.user_segment` label
   - **Required env vars** (Production + Preview): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (auth only), `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (server data — never `NEXT_PUBLIC_`).
   - Run `supabase/rls_lockdown.sql` so anon key cannot read `raw_reviews`, `processed_reviews`, `weekly_insights`, etc. directly.
   - Local JSON fallback disabled on Vercel (`VERCEL=1`); live data from Supabase only.
-  - Protected API: `GET /api/export` (authenticated JSON download); public `GET /api/health` returns `{ ok, configured, timestamp }`.
-  - Export Data button in TopBar calls `/api/export` — no credentials exposed to browser.
+  - Protected API: `GET /api/export` (authenticated JSON download); `GET /api/export/report?weeks=N` (authenticated PDF report JSON); public `GET /api/health` returns `{ ok, configured, timestamp }`.
+  - **Export Report** button in TopBar calls `/api/export/report` and downloads a nine-section PDF — see [pdf-report.md](../DOCS/pdf-report.md). No analyzer re-run; formats Phase 3 outputs only.
+  - Export Data (JSON) button calls `/api/export` — no credentials exposed to browser.
   - Build warns if env vars missing; middleware blocks dashboard on Vercel without auth config.
 - **Output:** Live dashboard URL on Vercel (production + preview environments). See `frontend/README.md` for step-by-step deploy.
+
+#### 4.10.3 PDF Report Export — **Implemented**
+
+- **Action:** Downloadable PDF report from existing analyzer outputs (no pipeline changes).
+- **Details:**
+  - TopBar **Export Report** dialog — select 1–12 weeks of merged weekly data.
+  - `GET /api/export/report?weeks=N` builds JSON via `buildExportReportDocument()`; client renders PDF with `jspdf`.
+  - Nine sections: Executive Summary, User Segment Ranking, Segment Breakdown, Theme Analysis, Pain Point Ranking, Discovery Behavior Analysis, Cross Segment Analysis, Opportunities Ranked, Final Insights Summary.
+  - Insight-only copy — rankings include proof; no product action recommendations in PDF text.
+  - Plain-language segment/theme definitions from `segment-definitions.ts`.
+- **Documentation:** [pdf-report.md](./pdf-report.md)
+- **Output:** Stakeholders can download a proof-backed PDF without re-running the analyzer.
 
 ### Phase 4 Exit Criteria
 
@@ -450,6 +463,7 @@ Phase 3 engines normalize or map existing `processed_reviews.user_segment` label
 - Teams can identify: (1) highest-pain segment at any lens level, (2) highest-opportunity segment, (3) most important problems to solve
 - No demographic segmentation UI; Business/Engagement/Behavior/Context/Pain lenses use existing data only
 - **Next.js app deployed to Vercel** with Supabase env vars configured; **Supabase Auth enabled** (`auth_profiles.sql` applied); production URL accessible to authenticated stakeholders
+- **PDF report export** produces nine-section insight PDF from Phase 3 JSON ([pdf-report.md](./pdf-report.md))
 
 ---
 
