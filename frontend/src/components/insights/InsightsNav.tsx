@@ -3,10 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const TABS = [
-  { href: "/insights", label: "User feedback" },
-  { href: "/insights/analytics", label: "Themes & trends" },
-];
+const TABS = [{ href: "/insights", label: "User feedback" }];
 
 export function InsightsNav() {
   const pathname = usePathname();
