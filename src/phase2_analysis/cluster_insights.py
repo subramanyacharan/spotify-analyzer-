@@ -49,6 +49,7 @@ load_dotenv()
 
 from src.phase1_data_pipeline.supabase_client import get_supabase_client
 from src.phase2_analysis.llm_client import get_groq_client, get_model_name
+from src.phase2_analysis.prompts import rank_themes_by_count
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -535,7 +536,7 @@ def save_weekly_insights(cluster_results: List[Dict[str, Any]]) -> bool:
 
     top_themes = [
         {"theme": theme, "mention_count": count}
-        for theme, count in theme_counts.most_common(10)
+        for theme, count in rank_themes_by_count(theme_counts, 10)
     ]
 
     payload = {

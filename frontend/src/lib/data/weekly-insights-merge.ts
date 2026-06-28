@@ -1,4 +1,5 @@
 import { getSupabaseServerClient } from "../supabase/server";
+import { analysisWindowStartIso } from "./analysis-window";
 
 export const PHASE3_THEME_KEYS = [
   "problem_statement_insights",
@@ -48,10 +49,13 @@ export async function fetchProcessedReviewCount(): Promise<number> {
   const client = getSupabaseServerClient();
   if (!client) return 0;
 
+  const cutoff = analysisWindowStartIso();
+
   try {
     const { count } = await client
-      .from("processed_reviews")
-      .select("*", { count: "exact", head: true });
+      .from("raw_reviews")
+      .select("*", { count: "exact", head: true })
+      .gte("review_date", cutoff);
     return count ?? 0;
   } catch {
     return 0;

@@ -5,6 +5,7 @@ import type {
   WeeklySentiment,
 } from "../analytics/types";
 import { getWeekStart } from "../analytics/chart-theme";
+import { filterThemesForDisplay } from "../copy/theme-display";
 import { readLocalOutputJson } from "./read-local-json";
 
 function buildThemesFromProblemStatement(payload: Record<string, unknown>): ThemeVolume[] {
@@ -17,11 +18,13 @@ function buildThemesFromProblemStatement(payload: Record<string, unknown>): Them
   const sentiment = (metrics.sentiment_breakdown ?? {}) as { negative_pct?: number };
   const globalNeg = sentiment.negative_pct ?? 22.7;
 
-  return themes.slice(0, 8).map((t, i) => ({
-    theme: t.theme,
-    count: t.count,
-    negativePct: Math.min(globalNeg + (i % 3) * 2, 45),
-  }));
+  return filterThemesForDisplay(
+    themes.slice(0, 8).map((t, i) => ({
+      theme: t.theme,
+      count: t.count,
+      negativePct: Math.min(globalNeg + (i % 3) * 2, 45),
+    }))
+  );
 }
 
 function buildHeatmapFromSegments(
@@ -29,9 +32,9 @@ function buildHeatmapFromSegments(
 ): { cells: HeatmapCell[]; segments: string[]; themes: string[] } {
   const themeSet = new Set<string>();
   profiles.forEach((p) => {
-    ((p.top_themes ?? []) as Array<{ theme: string }>).forEach((t) =>
-      themeSet.add(t.theme)
-    );
+    filterThemesForDisplay(
+      ((p.top_themes ?? []) as Array<{ theme: string }>)
+    ).forEach((t) => themeSet.add(t.theme));
   });
   const themes = Array.from(themeSet).slice(0, 8);
   const segments = profiles.map((p) => p.segment as string);

@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useFilters } from "@/components/filters/FilterProvider";
 import { DATA_FRESHNESS } from "@/lib/copy/terminology";
+import { analysisWindowLabel } from "@/lib/data/analysis-window";
 import { applyOverviewFilters } from "@/lib/filters/apply";
 import { countActiveFilters } from "@/lib/filters/match";
 import type { OverviewData } from "@/lib/types";
@@ -31,7 +32,7 @@ export function OverviewView({ data }: OverviewViewProps) {
           Executive overview
         </p>
         <p className="mt-1 text-sm text-zinc-400">
-          Discovery and recommendation trends from user reviews
+          Top themes and priorities from user reviews · {analysisWindowLabel()}
           {activeCount > 0 && (
             <span className="text-zinc-600">
               {" "}

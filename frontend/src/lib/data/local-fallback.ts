@@ -1,4 +1,6 @@
 import type { OverviewData, SegmentationLens, SegmentFriction } from "../types";
+import { prepareThemesForDisplay } from "../copy/theme-display";
+import { getCorpusMetrics } from "./corpus-metrics";
 import { readLocalOutputJson } from "./read-local-json";
 
 function topBehaviorFriction(
@@ -54,32 +56,21 @@ export async function loadOverviewFromLocal(): Promise<OverviewData | null> {
   }>;
   const behaviorTop = topBehaviorFriction(frictionScores);
 
-  const answers = (problemStatement.answers ?? []) as Array<{
-    supporting_metrics?: {
-      sentiment_breakdown?: {
-        positive: number;
-        neutral: number;
-        negative: number;
-        negative_pct: number;
-      };
-      top_themes?: Array<{ theme: string; count: number }>;
-    };
-  }>;
-
-  const discovery = answers[0]?.supporting_metrics;
-  const sentiment = discovery?.sentiment_breakdown ?? {
+  const corpus = getCorpusMetrics(problemStatement);
+  const sentiment = corpus?.sentiment_breakdown ?? {
     positive: 0,
     neutral: 0,
     negative: 0,
     negative_pct: 0,
   };
 
-  const themes =
-    discovery?.top_themes?.slice(0, 3) ??
-    ((prioritization.opportunity_rankings as Array<{ themes?: string[] }>)?.[0]
-      ?.themes?.map((t) => ({ theme: t, count: 0 })) ??
-      []);
-
+  const themes = prepareThemesForDisplay(
+    corpus?.top_themes ??
+      ((prioritization.opportunity_rankings as Array<{ themes?: string[] }>)?.[0]
+        ?.themes?.map((t) => ({ theme: t, count: 0 })) ??
+        []),
+    3
+  );
   const topPriority = prioritization.top_priority as {
     title?: string;
     tier?: string;
@@ -124,6 +115,7 @@ export async function loadOverviewFromLocal(): Promise<OverviewData | null> {
       (problemStatement.generated_at as string) ??
       new Date().toISOString(),
     totalReviews:
+      (corpus?.review_count as number) ??
       (prioritization.total_reviews_analyzed as number) ??
       (problemStatement.total_reviews_analyzed as number) ??
       0,

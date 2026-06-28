@@ -5,6 +5,7 @@ import type {
   SegmentsData,
 } from "../analytics/types";
 import { sanitizePainPoint, filterQuotes } from "../copy/sanitize";
+import { filterThemesForDisplay } from "../copy/theme-display";
 import { readLocalOutputJson } from "./read-local-json";
 
 const BUSINESS_SEGMENTS = [
@@ -45,7 +46,9 @@ function normalizeBehaviorProfile(raw: Record<string, unknown>): SegmentProfile 
     negativePct: sentiment.negative_pct ?? 0,
     frictionScore: (sentiment.negative_pct ?? 0) / 100,
     avgClusterSeverity: (raw.avg_cluster_severity as number) ?? 0,
-    topThemes: (raw.top_themes ?? []) as SegmentProfile["topThemes"],
+    topThemes: filterThemesForDisplay(
+      (raw.top_themes ?? []) as SegmentProfile["topThemes"]
+    ),
     topPainPoints: ((raw.top_pain_points ?? []) as Array<Record<string, unknown>>).map(
       (p) => ({
         painPoint: sanitizePainPoint(p.pain_point as string),

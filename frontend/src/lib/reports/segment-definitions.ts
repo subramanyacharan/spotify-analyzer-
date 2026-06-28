@@ -29,6 +29,12 @@ export const THEME_DEFINITIONS: Record<string, string> = {
     "The same artists or songs resurfacing too often in feeds and mixes.",
   "Discover Weekly Issues":
     "Problems specific to weekly personalized discovery playlists.",
+  "Algorithm Bias":
+    "Perceived favoritism toward mainstream or popular music over personal taste.",
+  "Niche Music Gap":
+    "Gaps in catalog coverage for niche, regional, or non-mainstream genres.",
+  "General App Feedback":
+    "Reviews about billing, performance, UI, or features outside core music discovery.",
 };
 
 export function defineSegment(name: string): string {
@@ -39,8 +45,10 @@ export function defineSegment(name: string): string {
 }
 
 export function defineTheme(name: string): string {
+  const display =
+    name === "Unrelated to Discovery" ? "General App Feedback" : name;
   return (
-    THEME_DEFINITIONS[name] ??
-    `${name} — a recurring topic cluster extracted from grouped user feedback.`
+    THEME_DEFINITIONS[display] ??
+    `${display} — a recurring topic cluster extracted from grouped user feedback.`
   );
 }

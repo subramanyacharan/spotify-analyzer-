@@ -1,5 +1,7 @@
 import type { OverviewData, SegmentationLens, SegmentFriction } from "../types";
 import { filterQuotes, sanitizePainPoint, sanitizeRecommendation } from "../copy/sanitize";
+import { prepareThemesForDisplay } from "../copy/theme-display";
+import { getCorpusMetrics } from "./corpus-metrics";
 import { getSupabaseServerClient } from "../supabase/server";
 import {
   fetchMergedTopThemes,
@@ -85,19 +87,8 @@ function buildFromSnapshots(
     ? [...frictionScores].sort((a, b) => b.friction_score - a.friction_score)[0]
     : null;
 
-  const answers = (problemStatement?.answers ?? []) as Array<{
-    supporting_metrics?: {
-      sentiment_breakdown?: {
-        positive: number;
-        neutral: number;
-        negative: number;
-        negative_pct: number;
-      };
-      top_themes?: Array<{ theme: string; count: number }>;
-    };
-  }>;
-  const discovery = answers[0]?.supporting_metrics;
-  const sentiment = discovery?.sentiment_breakdown ?? {
+  const corpus = getCorpusMetrics(problemStatement);
+  const sentiment = corpus?.sentiment_breakdown ?? {
     positive: 0,
     neutral: 0,
     negative: 0,
@@ -174,8 +165,11 @@ function buildFromSnapshots(
   return {
     generatedAt:
       (prioritization.generated_at as string) ?? new Date().toISOString(),
-    totalReviews: (prioritization.total_reviews_analyzed as number) ?? 0,
-    dominantThemes: discovery?.top_themes?.slice(0, 3) ?? [],
+    totalReviews:
+      (corpus?.review_count as number) ??
+      (prioritization.total_reviews_analyzed as number) ??
+      0,
+    dominantThemes: prepareThemesForDisplay(corpus?.top_themes ?? [], 3),
     sentimentTrend: {
       positive: sentiment.positive,
       neutral: sentiment.neutral,

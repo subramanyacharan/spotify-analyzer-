@@ -175,6 +175,5 @@ export function dateRangeLabel(range: string): string {
 export function filterScaleFactor(dateRange: string): number {
   if (dateRange === "last_7") return 0.12;
   if (dateRange === "last_30") return 0.35;
-  if (dateRange === "last_90") return 1;
   return 1;
 }

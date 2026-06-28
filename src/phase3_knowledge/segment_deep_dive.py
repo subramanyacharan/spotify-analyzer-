@@ -22,6 +22,8 @@ from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
+from src.phase2_analysis.prompts import rank_themes_by_count
+
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 if project_root not in sys.path:
     sys.path.append(project_root)
@@ -118,7 +120,7 @@ def _top_themes(reviews: List[ReviewRecord], limit: int = 5) -> List[Dict[str, A
     total = len(reviews) or 1
     return [
         {"theme": theme, "count": count, "pct": round(100 * count / total, 1)}
-        for theme, count in counter.most_common(limit)
+        for theme, count in rank_themes_by_count(counter, limit)
     ]
 
 

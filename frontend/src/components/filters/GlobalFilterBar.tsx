@@ -10,10 +10,9 @@ const BASE_FILTERS: { key: FilterKey; label: string; options: { value: string; l
     key: "dateRange",
     label: "Date range",
     options: [
-      { value: "all", label: "All time" },
       { value: "last_7", label: "Last 7 days" },
       { value: "last_30", label: "Last 30 days" },
-      { value: "last_90", label: "Last 90 days" },
+      { value: "last_90", label: "Last 90 days (default)" },
     ],
   },
   {
@@ -35,6 +34,9 @@ const BASE_FILTERS: { key: FilterKey; label: string; options: { value: string; l
       { value: "Repetitive Recommendations", label: "Repetitive Recommendations" },
       { value: "Search & Discovery UX", label: "Search & Discovery UX" },
       { value: "Discover Weekly Issues", label: "Discover Weekly Issues" },
+      { value: "Algorithm Bias", label: "Algorithm Bias" },
+      { value: "Niche Music Gap", label: "Niche Music Gap" },
+      { value: "General App Feedback", label: "General App Feedback" },
     ],
   },
   {

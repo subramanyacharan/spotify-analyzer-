@@ -14,6 +14,7 @@ import {
   fetchMergedTopThemes,
   normalizeTopThemes,
 } from "./weekly-insights-merge";
+import { filterThemesForDisplay } from "../copy/theme-display";
 
 function weekEndFromStart(weekStart: string): string {
   const d = new Date(weekStart);
@@ -73,7 +74,10 @@ function parseTopThemesFromPayload(topThemes: unknown): {
     negativePct: sb.negative_pct ?? 0,
   };
 
-  const themes = ((metrics.top_themes ?? []) as WeekThemeCount[]).slice(0, 8);
+  const themes = filterThemesForDisplay(
+    (metrics.top_themes ?? []) as WeekThemeCount[],
+    8
+  );
 
   const reportEmerging = (reportSections?.emerging_complaints ?? []) as WeekEmergingIssue[];
   const reportThemeShifts = (reportSections?.theme_shifts ?? []) as Array<{
@@ -323,10 +327,12 @@ function buildComputedSnapshots(
 
   return sorted.map(([weekStart, data], i) => {
     const weekNumber = startWeekNumber + i;
-    const topThemes = Array.from(data.themes.entries())
-      .map(([theme, count]) => ({ theme, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 8);
+    const topThemes = filterThemesForDisplay(
+      Array.from(data.themes.entries())
+        .map(([theme, count]) => ({ theme, count }))
+        .sort((a, b) => b.count - a.count),
+      8
+    );
 
     const scale = fallback.reviewCount > 0 && data.count > 0 ? data.count / fallback.reviewCount : 1;
 

@@ -39,7 +39,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from src.phase1_data_pipeline.supabase_client import get_supabase_client
-from src.phase2_analysis.prompts import THEME_TAXONOMY
+from src.phase2_analysis.prompts import THEME_TAXONOMY, INTERNAL_THEME
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -164,10 +164,10 @@ def _pick_themes_from_scores(
     - Include additional themes if their score is within 30% of the top score
       and the top score is meaningful (> 0.01).
     - Hard cap at top_n themes.
-    - Fall back to 'Unrelated to Discovery' only if top score is effectively 0.
+    - Fall back to INTERNAL_THEME only if top score is effectively 0.
     """
     if not scored_themes or scored_themes[0][1] < 0.001:
-        return ["Unrelated to Discovery"]
+        return [INTERNAL_THEME]
 
     top_score = scored_themes[0][1]
     threshold = top_score * 0.70  # within 30% of top
@@ -177,7 +177,7 @@ def _pick_themes_from_scores(
         if score >= threshold and len(selected) < top_n:
             selected.append(theme)
 
-    return selected or ["Unrelated to Discovery"]
+    return selected or [INTERNAL_THEME]
 
 
 # ---------------------------------------------------------------------------
@@ -213,7 +213,7 @@ def classify_cluster_zero_shot(
     (theme, score) sorted descending.
     """
     zs = _get_zs_pipeline()
-    labels = candidate_themes or [t for t in THEME_TAXONOMY if t != "Unrelated to Discovery"]
+    labels = candidate_themes or [t for t in THEME_TAXONOMY if t != INTERNAL_THEME]
 
     # Run NLI per review, then average scores across reviews for each label
     theme_score_accum: Dict[str, float] = defaultdict(float)

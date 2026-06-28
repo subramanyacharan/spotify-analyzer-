@@ -1,4 +1,5 @@
 import { defineSegment, defineTheme } from "./segment-definitions";
+import { prepareThemesForDisplay, displayThemeName, filterThemeNames } from "../copy/theme-display";
 import type { MergedWeeklyReport } from "./types";
 
 export interface ReportMetric {
@@ -224,7 +225,7 @@ export function buildExportReportDocument(
       complaintFrequencyPct,
       rankingScore: round(frictionScore, 4),
       rankingProof: "",
-      topThemes: topThemesRaw.slice(0, 3).map((t) => t.theme as string),
+      topThemes: filterThemeNames(topThemesRaw.slice(0, 3).map((t) => displayThemeName(t.theme as string))),
       topPainSummary: (topPainRaw[0]?.pain_point as string)?.slice(0, 140) ?? "—",
     };
     return seg;
@@ -242,7 +243,14 @@ export function buildExportReportDocument(
 
   const segmentBreakdowns: SegmentBreakdown[] = rankedSegments.slice(0, 6).map((seg) => {
     const profile = profileByName.get(seg.name);
-    const topThemes = ((profile?.top_themes ?? []) as Array<Record<string, unknown>>).slice(0, 4);
+    const topThemes = prepareThemesForDisplay(
+      ((profile?.top_themes ?? []) as Array<Record<string, unknown>>).map((t) => ({
+        theme: t.theme as string,
+        count: (t.count as number) ?? 0,
+        pct: (t.pct as number) ?? 0,
+      })),
+      4
+    );
     const topPains = ((profile?.top_pain_points ?? []) as Array<Record<string, unknown>>).slice(0, 3);
     const intent = (profile?.listening_intent_signals ?? {}) as Record<string, unknown>;
     const quotes = (profile?.representative_quotes ?? []) as string[];
@@ -284,10 +292,10 @@ export function buildExportReportDocument(
       ],
       rankingProof: seg.rankingProof,
       topThemes: topThemes.map((t) => ({
-        theme: t.theme as string,
-        definition: defineTheme(t.theme as string),
-        count: t.count as number,
-        pct: round(t.pct as number, 1),
+        theme: t.theme,
+        definition: defineTheme(t.theme),
+        count: t.count,
+        pct: round(t.pct, 1),
       })),
       topPains: topPains.map((p) => ({
         summary: (p.pain_point as string).slice(0, 120),
@@ -347,9 +355,9 @@ export function buildExportReportDocument(
     );
   });
 
-  const rankedThemes: RankedTheme[] = merged.topThemes.slice(0, 8).map((t, i) => ({
+  const rankedThemes: RankedTheme[] = prepareThemesForDisplay(merged.topThemes, 8).map((t, i) => ({
     rank: i + 1,
-    theme: t.theme,
+    theme: displayThemeName(t.theme),
     definition: defineTheme(t.theme),
     mentionCount: t.count,
     reviewVolumePct: pct(t.count, totalReviews),

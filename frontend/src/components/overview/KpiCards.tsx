@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useFilters } from "@/components/filters/FilterProvider";
 import { KPI_LABELS, LENS_LABELS } from "@/lib/copy/terminology";
+import { displayThemeName } from "@/lib/copy/theme-display";
 import { dateRangeLabel } from "@/lib/filters/match";
 import type { OverviewData, SegmentationLens } from "@/lib/types";
 
@@ -56,7 +57,7 @@ export function KpiCards({ data }: KpiCardsProps) {
         <KpiCard
           icon={TrendingUp}
           label={KPI_LABELS.leadingTheme}
-          value={topTheme?.theme ?? "—"}
+          value={topTheme ? displayThemeName(topTheme.theme) : "—"}
           sub={
             topTheme
               ? `${topTheme.count.toLocaleString()} mentions in selection`

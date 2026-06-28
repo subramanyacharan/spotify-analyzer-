@@ -33,6 +33,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from src.phase1_data_pipeline.supabase_client import get_supabase_client
+from src.phase2_analysis.prompts import ANALYSIS_WINDOW_DAYS, rank_themes_by_count
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -143,6 +144,14 @@ class QueryFilters:
     cluster_id: Optional[int] = None
 
 
+def default_analysis_filters() -> QueryFilters:
+    """Rolling analysis window aligned with project spec (90 days)."""
+    cutoff = (
+        datetime.now(timezone.utc) - timedelta(days=ANALYSIS_WINDOW_DAYS)
+    ).date().isoformat()
+    return QueryFilters(date_start=cutoff)
+
+
 @dataclass
 class ReviewRecord:
     id: str
@@ -250,7 +259,7 @@ def _load_raw_metadata(
 
 def load_filtered_reviews(filters: Optional[QueryFilters] = None) -> List[ReviewRecord]:
     """Load processed reviews enriched with raw metadata, applying filters."""
-    filters = filters or QueryFilters()
+    filters = filters if filters is not None else default_analysis_filters()
     client = get_supabase_client()
     if not client:
         raise RuntimeError("Could not connect to Supabase.")
@@ -361,7 +370,10 @@ def _top_themes(reviews: List[ReviewRecord], limit: int = 5) -> List[Dict[str, A
     for r in reviews:
         for t in r.themes:
             counter[t] += 1
-    return [{"theme": t, "count": c} for t, c in counter.most_common(limit)]
+    return [
+        {"theme": theme, "count": count}
+        for theme, count in rank_themes_by_count(counter, limit)
+    ]
 
 
 def _sentiment_breakdown(reviews: List[ReviewRecord]) -> Dict[str, Any]:
@@ -573,6 +585,7 @@ def answer_question(
 
 def run_all_queries(filters: Optional[QueryFilters] = None) -> Dict[str, Any]:
     """Answer all six core problem-statement questions."""
+    filters = filters if filters is not None else default_analysis_filters()
     records = load_filtered_reviews(filters)
     cluster_insights = load_cluster_insights()
 
@@ -585,7 +598,7 @@ def run_all_queries(filters: Optional[QueryFilters] = None) -> Dict[str, Any]:
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "filters": {
             k: v
-            for k, v in (filters or QueryFilters()).__dict__.items()
+            for k, v in filters.__dict__.items()
             if v is not None
         },
         "total_reviews_analyzed": len(records),

@@ -43,7 +43,9 @@ function loadStoredFilters(): GlobalFiltersState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_GLOBAL_FILTERS;
-    return { ...DEFAULT_GLOBAL_FILTERS, ...JSON.parse(raw) };
+    const parsed = { ...DEFAULT_GLOBAL_FILTERS, ...JSON.parse(raw) };
+    if (parsed.dateRange === "all") parsed.dateRange = "last_90";
+    return parsed;
   } catch {
     return DEFAULT_GLOBAL_FILTERS;
   }

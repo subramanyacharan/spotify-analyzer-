@@ -1,6 +1,7 @@
 import { computeConfidence } from "@/lib/confidence";
 import { sanitizeInsightSummary } from "@/lib/copy/sanitize";
 import { themeBarColor } from "@/lib/copy/terminology";
+import { displayThemeName, prepareThemesForDisplay } from "@/lib/copy/theme-display";
 import type { InsightAnswer } from "@/lib/insights/catalog";
 import { ConfidenceBadge } from "../ui/ConfidenceBadge";
 import { LowConfidenceDisclaimer } from "../ui/LowConfidenceDisclaimer";
@@ -52,8 +53,9 @@ export function InsightCard({ insight }: InsightCardProps) {
     hasClusterInsight: insight.relatedClusters.length > 0,
   });
 
+  const visibleThemes = prepareThemesForDisplay(insight.topThemes, 4);
   const themeTotal =
-    insight.topThemes.reduce((sum, t) => sum + t.count, 0) || 1;
+    visibleThemes.reduce((sum, t) => sum + t.count, 0) || 1;
 
   return (
     <article className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5">
@@ -103,7 +105,7 @@ export function InsightCard({ insight }: InsightCardProps) {
         />
       </div>
 
-      {insight.topThemes.length > 0 && (
+      {visibleThemes.length > 0 && (
         <div className="mt-5">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">
@@ -119,12 +121,12 @@ export function InsightCard({ insight }: InsightCardProps) {
             </div>
           </div>
           <div className="space-y-2.5">
-            {insight.topThemes.slice(0, 4).map((t) => {
+            {visibleThemes.map((t) => {
               const sharePct = (t.count / themeTotal) * 100;
               return (
                 <div key={t.theme} className="flex items-center gap-3">
-                  <span className="w-36 shrink-0 truncate text-xs text-zinc-400" title={t.theme}>
-                    {t.theme}
+                  <span className="w-36 shrink-0 truncate text-xs text-zinc-400" title={displayThemeName(t.theme)}>
+                    {displayThemeName(t.theme)}
                   </span>
                   <div className="h-2 flex-1 overflow-hidden rounded-full bg-zinc-800">
                     <div

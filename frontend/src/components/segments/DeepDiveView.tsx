@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { computeConfidence } from "@/lib/confidence";
 import { sanitizePainPoint, sanitizeRecommendation } from "@/lib/copy/sanitize";
+import { displayThemeName, prepareThemesForDisplay } from "@/lib/copy/theme-display";
 import { LENS_LABELS } from "@/lib/copy/terminology";
 import type { SegmentProfile, SegmentationLens } from "@/lib/analytics/types";
 import { profileFilterCtx } from "@/lib/filters/apply";
@@ -79,9 +80,9 @@ export function DeepDiveView({ profile, lens }: DeepDiveViewProps) {
         <section className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
           <h3 className="mb-3 text-sm font-semibold text-white">Top themes</h3>
           <ul className="space-y-2">
-            {profile.topThemes.map((t) => (
+            {prepareThemesForDisplay(profile.topThemes, 4).map((t) => (
               <li key={t.theme} className="flex justify-between text-sm">
-                <span className="text-zinc-300">{t.theme}</span>
+                <span className="text-zinc-300">{displayThemeName(t.theme)}</span>
                 <span className="text-zinc-500">
                   {t.pct.toFixed(1)}% · {t.count.toLocaleString()} mentions
                 </span>

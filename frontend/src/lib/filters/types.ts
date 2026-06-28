@@ -17,7 +17,7 @@ export interface GlobalFiltersState {
 }
 
 export const DEFAULT_GLOBAL_FILTERS: GlobalFiltersState = {
-  dateRange: "all",
+  dateRange: "last_90",
   source: "all",
   theme: "all",
   sentiment: "all",

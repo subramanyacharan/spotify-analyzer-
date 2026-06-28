@@ -1,4 +1,5 @@
 import { filterQuotes, sanitizeRecommendation } from "../copy/sanitize";
+import { filterThemeNames } from "../copy/theme-display";
 import type { OpportunityItem, OpportunitiesData } from "../opportunities/types";
 import { readLocalOutputJson } from "./read-local-json";
 
@@ -14,7 +15,7 @@ function normalizeOpportunity(raw: Record<string, unknown>): OpportunityItem {
     painPoint: sanitizeRecommendation(raw.pain_point as string),
     productOpportunity: sanitizeRecommendation(raw.product_opportunity as string),
     featureRequest: sanitizeRecommendation(raw.feature_request as string),
-    themes: (raw.themes ?? []) as string[],
+    themes: filterThemeNames((raw.themes ?? []) as string[]),
     reviewCount: raw.review_count as number,
     scores: {
       frequency: scores.frequency ?? 0,
