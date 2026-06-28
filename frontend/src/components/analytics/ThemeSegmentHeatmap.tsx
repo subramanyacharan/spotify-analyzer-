@@ -1,6 +1,8 @@
 "use client";
 
+import { useMemo } from "react";
 import type { HeatmapCell } from "@/lib/analytics/types";
+import { formatHeatmapCount } from "@/lib/data/analytics-heatmap";
 
 interface ThemeSegmentHeatmapProps {
   cells: HeatmapCell[];
@@ -13,6 +15,16 @@ export function ThemeSegmentHeatmap({
   segments,
   themes,
 }: ThemeSegmentHeatmapProps) {
+  const { peakValue, cellMap } = useMemo(() => {
+    let peak = 0;
+    const map = new Map<string, HeatmapCell>();
+    for (const cell of cells) {
+      map.set(`${cell.theme}::${cell.segment}`, cell);
+      if (cell.value > peak) peak = cell.value;
+    }
+    return { peakValue: peak, cellMap: map };
+  }, [cells]);
+
   if (!segments.length || !themes.length) {
     return (
       <div className="flex h-48 items-center justify-center text-sm text-zinc-500">
@@ -21,12 +33,14 @@ export function ThemeSegmentHeatmap({
     );
   }
 
-  const getCell = (segment: string, theme: string) =>
-    cells.find((c) => c.segment === segment && c.theme === theme);
+  const segmentLabel = (seg: string) => {
+    const short = seg.split(" ")[0];
+    return short.length > 8 ? `${short.slice(0, 7)}…` : short;
+  };
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[640px] border-collapse text-xs">
+      <table className="w-full min-w-[720px] border-collapse text-xs">
         <thead>
           <tr>
             <th className="sticky left-0 z-10 bg-zinc-900/95 p-2 text-left text-zinc-500">
@@ -35,10 +49,10 @@ export function ThemeSegmentHeatmap({
             {segments.map((seg) => (
               <th
                 key={seg}
-                className="max-w-[88px] truncate p-2 text-center text-zinc-500"
+                className="min-w-[72px] p-2 text-center text-zinc-500"
                 title={seg}
               >
-                {seg.split(" ")[0]}
+                {segmentLabel(seg)}
               </th>
             ))}
           </tr>
@@ -47,32 +61,39 @@ export function ThemeSegmentHeatmap({
           {themes.map((theme) => (
             <tr key={theme} className="border-t border-zinc-800/80">
               <td
-                className="sticky left-0 z-10 max-w-[140px] truncate bg-zinc-900/95 p-2 font-medium text-zinc-300"
+                className="sticky left-0 z-10 max-w-[160px] truncate bg-zinc-900/95 p-2 font-medium text-zinc-300"
                 title={theme}
               >
                 {theme}
               </td>
               {segments.map((seg) => {
-                const cell = getCell(seg, theme);
+                const cell = cellMap.get(`${theme}::${seg}`);
+                const value = cell?.value ?? 0;
                 const intensity = cell?.intensity ?? 0;
+                const isPeak = peakValue > 0 && value === peakValue;
+
                 return (
                   <td key={`${theme}-${seg}`} className="p-1">
                     <div
-                      className="flex h-8 items-center justify-center rounded text-[10px] text-zinc-300"
+                      className={`flex h-9 items-center justify-center rounded text-[11px] tabular-nums ${
+                        isPeak
+                          ? "font-bold text-white ring-2 ring-[#1db954] ring-offset-1 ring-offset-zinc-900"
+                          : value > 0
+                            ? "font-medium text-zinc-200"
+                            : "text-zinc-600"
+                      }`}
                       style={{
-                        background: `rgba(29, 185, 84, ${Math.max(intensity * 0.85, 0.04)})`,
+                        background: isPeak
+                          ? "rgba(29, 185, 84, 0.95)"
+                          : value > 0
+                            ? `rgba(29, 185, 84, ${Math.max(intensity * 0.82, 0.12)})`
+                            : "rgba(39, 39, 42, 0.55)",
                       }}
-                      title={
-                        cell?.value
-                          ? `${theme} · ${seg}: ${cell.value.toLocaleString()} mentions`
-                          : "No signal"
-                      }
+                      title={`${theme} · ${seg}: ${value.toLocaleString()} review mentions${
+                        isPeak ? " (highest)" : ""
+                      }`}
                     >
-                      {cell?.value
-                        ? cell.value > 999
-                          ? `${Math.round(cell.value / 1000)}k`
-                          : cell.value
-                        : "—"}
+                      {formatHeatmapCount(value)}
                     </div>
                   </td>
                 );

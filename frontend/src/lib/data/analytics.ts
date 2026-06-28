@@ -125,7 +125,7 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
         );
         if (weekly.points.length) base.weeklySentiment = weekly.points;
         const enriched = await enrichAnalyticsFromSupabase(client, base);
-        return enriched ?? base;
+        return enriched;
       }
     } catch {
       /* fall through */

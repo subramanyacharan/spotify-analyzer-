@@ -1,6 +1,5 @@
 import type {
   AnalyticsData,
-  HeatmapCell,
   ThemeVolume,
   WeeklySentiment,
 } from "../analytics/types";
@@ -10,49 +9,23 @@ import {
   PROJECT_THEME_TAXONOMY,
   displayThemeName,
 } from "../copy/theme-display";
+import {
+  type HeatmapMatrix,
+  bumpMatrixCell,
+  buildHeatmapFromProblemAnswers,
+  emptyHeatmapMatrix,
+  matrixToHeatmapCells,
+  mergeHeatmapMatricesMax,
+} from "./analytics-heatmap";
 import { resolveCorpusReviewCount } from "./corpus-metrics";
 import { readLocalOutputJson } from "./read-local-json";
 
-const BEHAVIORAL_SEGMENTS = [
-  "Discovery Seeker",
-  "Habit Listener",
-  "Heavy Listener",
-  "Playlist Driven",
-  "Niche Listener",
-  "Casual Listener",
-] as const;
-
 type ThemeCountMap = Map<string, number>;
-type HeatmapMatrix = Map<string, Map<string, number>>;
-
-function emptyMatrix(): HeatmapMatrix {
-  return new Map();
-}
-
-function bumpMatrix(matrix: HeatmapMatrix, theme: string, segment: string, delta: number) {
-  if (!delta || delta <= 0) return;
-  const name = displayThemeName(theme);
-  const seg = segment?.trim();
-  if (!name || !seg) return;
-  const row = matrix.get(name) ?? new Map<string, number>();
-  row.set(seg, (row.get(seg) ?? 0) + delta);
-  matrix.set(name, row);
-}
 
 function bumpCounts(counts: ThemeCountMap, theme: string, delta: number) {
   if (!delta || delta <= 0) return;
   const name = displayThemeName(theme);
   counts.set(name, (counts.get(name) ?? 0) + delta);
-}
-
-function matrixActiveCells(matrix: HeatmapMatrix): number {
-  let n = 0;
-  for (const row of matrix.values()) {
-    for (const v of row.values()) {
-      if (v > 0) n++;
-    }
-  }
-  return n;
 }
 
 function countsWithSignal(counts: ThemeCountMap, excludeGeneral = true): number {
@@ -152,7 +125,7 @@ function buildThemeCountsFromOpportunities(
 function buildHeatmapFromClusterOverlap(
   profiles: Array<Record<string, unknown>>
 ): HeatmapMatrix {
-  const matrix = emptyMatrix();
+  const matrix = emptyHeatmapMatrix();
   for (const profile of profiles) {
     const segment = profile.segment as string;
     const overlaps = (profile.cluster_overlap ?? []) as Array<{
@@ -161,7 +134,7 @@ function buildHeatmapFromClusterOverlap(
     }>;
     for (const cluster of overlaps) {
       for (const theme of cluster.themes ?? []) {
-        bumpMatrix(matrix, theme, segment, cluster.review_count ?? 0);
+        bumpMatrixCell(matrix, theme, segment, cluster.review_count ?? 0);
       }
     }
   }
@@ -171,12 +144,12 @@ function buildHeatmapFromClusterOverlap(
 function buildHeatmapFromTopThemes(
   profiles: Array<Record<string, unknown>>
 ): HeatmapMatrix {
-  const matrix = emptyMatrix();
+  const matrix = emptyHeatmapMatrix();
   for (const profile of profiles) {
     const segment = profile.segment as string;
     const topThemes = (profile.top_themes ?? []) as Array<{ theme: string; count: number }>;
     for (const t of topThemes) {
-      bumpMatrix(matrix, t.theme, segment, t.count ?? 0);
+      bumpMatrixCell(matrix, t.theme, segment, t.count ?? 0);
     }
   }
   return matrix;
@@ -185,7 +158,7 @@ function buildHeatmapFromTopThemes(
 function buildHeatmapFromOpportunities(
   opportunities: Array<Record<string, unknown>>
 ): HeatmapMatrix {
-  const matrix = emptyMatrix();
+  const matrix = emptyHeatmapMatrix();
   for (const opp of opportunities) {
     const evidence = (opp.evidence ?? {}) as Record<string, unknown>;
     const themeBreakdown = (evidence.theme_breakdown ?? []) as Array<{
@@ -202,69 +175,34 @@ function buildHeatmapFromOpportunities(
     for (const tb of themeBreakdown) {
       for (const sb of segBreakdown) {
         const share = (sb.count ?? 0) / totalSeg;
-        bumpMatrix(matrix, tb.theme, sb.segment, (tb.count ?? 0) * share);
+        bumpMatrixCell(matrix, tb.theme, sb.segment, (tb.count ?? 0) * share);
       }
     }
   }
   return matrix;
 }
 
-function pickHeatmapMatrix(
+function buildCombinedHeatmapMatrix(
+  answers: Array<Record<string, unknown>>,
   profiles: Array<Record<string, unknown>>,
   opportunities: Array<Record<string, unknown>>
 ): HeatmapMatrix {
-  const fromOverlap = buildHeatmapFromClusterOverlap(profiles);
-  const fromOpportunities = buildHeatmapFromOpportunities(opportunities);
-  const fromTopThemes = buildHeatmapFromTopThemes(profiles);
-
-  const overlapCells = matrixActiveCells(fromOverlap);
-  const oppCells = matrixActiveCells(fromOpportunities);
-  const topCells = matrixActiveCells(fromTopThemes);
-
-  if (overlapCells >= 2 && overlapCells >= oppCells) return fromOverlap;
-  if (oppCells >= 2) return fromOpportunities;
-  if (overlapCells > 0) return fromOverlap;
-  if (topCells > 0) return fromTopThemes;
-  return fromOpportunities;
+  return mergeHeatmapMatricesMax(
+    buildHeatmapFromClusterOverlap(profiles),
+    buildHeatmapFromOpportunities(opportunities),
+    buildHeatmapFromTopThemes(profiles),
+    buildHeatmapFromProblemAnswers(answers)
+  );
 }
 
-function matrixToHeatmap(
-  matrix: HeatmapMatrix,
-  segmentOrder: string[]
-): { cells: HeatmapCell[]; segments: string[]; themes: string[] } {
-  const themes = PROJECT_THEME_TAXONOMY.map((t) => displayThemeName(t));
-  const segments =
-    segmentOrder.length > 0
-      ? segmentOrder.filter((s) =>
-          [...matrix.values()].some((row) => (row.get(s) ?? 0) > 0)
-        )
-      : BEHAVIORAL_SEGMENTS.slice();
-
-  const orderedSegments =
-    segments.length > 0
-      ? [
-          ...BEHAVIORAL_SEGMENTS.filter((s) => segments.includes(s)),
-          ...segments.filter((s) => !BEHAVIORAL_SEGMENTS.includes(s as (typeof BEHAVIORAL_SEGMENTS)[number])),
-        ]
-      : BEHAVIORAL_SEGMENTS.slice();
-
-  const cells: HeatmapCell[] = [];
-  let maxVal = 1;
-
-  for (const theme of themes) {
-    const row = matrix.get(theme) ?? new Map<string, number>();
-    for (const segment of orderedSegments) {
-      const value = Math.round(row.get(segment) ?? 0);
-      if (value > maxVal) maxVal = value;
-      cells.push({ segment, theme, value, intensity: 0 });
-    }
+function buildThemeCountsFromHeatmap(matrix: HeatmapMatrix): ThemeCountMap {
+  const counts: ThemeCountMap = new Map();
+  for (const [theme, row] of matrix) {
+    let sum = 0;
+    for (const value of row.values()) sum += value;
+    if (sum > 0) counts.set(theme, Math.round(sum));
   }
-
-  cells.forEach((c) => {
-    c.intensity = maxVal > 0 ? c.value / maxVal : 0;
-  });
-
-  return { cells, segments: orderedSegments, themes };
+  return counts;
 }
 
 function countsToThemeVolumes(
@@ -292,7 +230,10 @@ function pickThemeCounts(
     fromOverlap,
     fromOpportunities,
     fromAnswers,
-    fromTopThemes
+    fromTopThemes,
+    buildThemeCountsFromHeatmap(
+      buildCombinedHeatmapMatrix(answers, profiles, opportunities)
+    )
   );
 
   const discoveryThemes = countsWithSignal(merged);
@@ -369,12 +310,8 @@ export function parseAnalyticsPayload(
   const themeCounts = pickThemeCounts(answers, profiles, oppList);
   const themes = countsToThemeVolumes(themeCounts, sentiment.negative_pct);
 
-  const segmentOrder = profiles.map((p) => p.segment as string);
-  const heatmapMatrix = pickHeatmapMatrix(profiles, oppList);
-  const { cells, segments, themes: heatThemes } = matrixToHeatmap(
-    heatmapMatrix,
-    segmentOrder
-  );
+  const heatmapMatrix = buildCombinedHeatmapMatrix(answers, profiles, oppList);
+  const { cells, segments, themes: heatThemes } = matrixToHeatmapCells(heatmapMatrix);
 
   const weeklySentiment =
     weeklySource === "unavailable" ? [] : buildWeeklyFromCorpus(sentiment);
