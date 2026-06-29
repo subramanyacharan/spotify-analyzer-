@@ -22,9 +22,9 @@ export async function downloadReportPdf(
   pdf.scorecards(report.executiveSummary.scorecards, 3);
   pdf.subheading("Key evidence");
   pdf.bullets(report.executiveSummary.proofPoints);
-  pdf.body(
-    `Data confidence: ${report.meta.confidenceNote} All rankings use existing analyzer scores — friction score (segments), impact score (pain points), and composite score (opportunities).`
-  );
+  if (report.meta.confidenceNote) {
+    pdf.body(`Data confidence: ${report.meta.confidenceNote}`);
+  }
 
   // 2. User Segment Ranking
   pdf.section(
@@ -154,9 +154,6 @@ export async function downloadReportPdf(
         { label: "Priority level", value: pain.tier },
       ]
     );
-    if (pain.painPoint && pain.painPoint !== pain.label) {
-      pdf.body(`Full analyzer text: ${pain.painPoint.slice(0, 220)}`, 2);
-    }
   }
 
   // 6. Discovery Behavior Analysis

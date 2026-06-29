@@ -344,7 +344,7 @@ Phase 3 engines normalize or map existing `processed_reviews.user_segment` label
 - **Status:** The dedicated Weekly Reports dashboard route was **removed**. Legacy URLs `/reports` and `/weekly-reports` redirect to `/overview`.
 - **Still delivered via:**
   - Phase 5 pipeline writing `weekly_insights` and `historical_trends`
-  - TopBar **Export Report** → `GET /api/export/report?weeks=N` → nine-section PDF ([pdf-report.md](./pdf-report.md))
+  - TopBar **Export Report** → `GET /api/export/report` → nine-section PDF ([pdf-report.md](./pdf-report.md))
   - Emerging issues surfaced in **Opportunities → Action plan** (`/opportunities/actions`) from Phase 3.4 prioritization
 - **Output:** Weekly intelligence via PDF export and pipeline storage — not a separate dashboard screen.
 
@@ -438,7 +438,7 @@ Phase 3 engines normalize or map existing `processed_reviews.user_segment` label
   - **Required env vars** (Production + Preview): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (auth only), `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (server data — never `NEXT_PUBLIC_`).
   - Run `supabase/rls_lockdown.sql` so anon key cannot read `raw_reviews`, `processed_reviews`, `weekly_insights`, etc. directly.
   - Local JSON fallback disabled on Vercel (`VERCEL=1`); live data from Supabase only.
-  - Protected API: `GET /api/export` (authenticated JSON bundle — **no TopBar button**; available for integrations); `GET /api/export/report?weeks=N` (authenticated PDF report JSON); public `GET /api/health` returns `{ ok, configured, timestamp }`.
+  - Protected API: `GET /api/export` (authenticated JSON bundle — **no TopBar button**; available for integrations); `GET /api/export/report` (authenticated PDF report JSON, 90-day window); public `GET /api/health` returns `{ ok, configured, timestamp }`.
   - **Export Report** button in TopBar calls `/api/export/report` and downloads a nine-section PDF — see [pdf-report.md](../DOCS/pdf-report.md). No analyzer re-run; formats Phase 3 outputs only.
   - Build warns if env vars missing; middleware blocks dashboard on Vercel without auth config.
 - **Output:** Live dashboard URL on Vercel (production + preview environments). See `frontend/README.md` for step-by-step deploy.
@@ -447,8 +447,8 @@ Phase 3 engines normalize or map existing `processed_reviews.user_segment` label
 
 - **Action:** Downloadable PDF report from existing analyzer outputs (no pipeline changes).
 - **Details:**
-  - TopBar **Export Report** dialog — select 1–12 weeks of merged weekly data.
-  - `GET /api/export/report?weeks=N` builds JSON via `buildExportReportDocument()`; client renders PDF with `jspdf`.
+  - TopBar **Export Report** — one click downloads the 90-day PDF (no week picker).
+  - `GET /api/export/report` builds JSON via `buildExportReportDocument()`; client renders PDF with `jspdf`.
   - Nine sections: Executive Summary, User Segment Ranking, Segment Breakdown, Theme Analysis, Pain Point Ranking, Discovery Behavior Analysis, Cross Segment Analysis, Opportunities Ranked, Final Insights Summary.
   - Insight-only copy — rankings include proof; no product action recommendations in PDF text.
   - Plain-language segment/theme definitions from `segment-definitions.ts`.

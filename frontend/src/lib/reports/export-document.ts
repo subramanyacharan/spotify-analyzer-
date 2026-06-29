@@ -4,7 +4,7 @@ import {
   displayThemeName,
   filterThemeNames,
 } from "../copy/theme-display";
-import { sanitizeInsightSummary } from "../copy/sanitize";
+import { replaceLegacyThemeText } from "../copy/theme-display";
 import { resolveCorpusReviewCount } from "../data/corpus-metrics";
 import type { MergedWeeklyReport } from "./types";
 
@@ -109,7 +109,7 @@ export interface ExportReportDocument {
     subtitle: string;
     generatedAt: string;
     periodLabel: string;
-    weekCount: number;
+    analysisWindowDays: number;
     totalReviews: number;
     confidenceLevel: string;
     confidenceNote: string;
@@ -143,21 +143,17 @@ function round(n: number, d = 2): number {
   return Math.round(n * m) / m;
 }
 
-/** Strip recommendation-style phrasing from analyzer text used in insight-only report sections. */
-function insightOnly(text: string): string {
+/** Preserve analyzer wording; only normalize legacy theme labels. */
+function analyzerText(text: string): string {
   if (!text?.trim()) return "";
-  const cleaned = sanitizeInsightSummary(text);
-  const sentences = cleaned.split(/(?<=[.!?])\s+/);
-  const kept = sentences.filter((s) => {
-    const lower = s.toLowerCase();
-    return (
-      !/\b(should|could improve|recommend|suggest|fix|ship|prioritize|next step|action:|team could)\b/.test(
-        lower
-      ) && s.trim().length > 12
-    );
-  });
-  return (kept.length ? kept : [cleaned]).join(" ").trim();
+  return replaceLegacyThemeText(text.trim());
 }
+
+export type ExportReportOptions = {
+  totalReviews?: number;
+  periodLabel?: string;
+  analysisWindowDays?: number;
+};
 
 function shortPainLabel(painPoint: string): string {
   const lower = painPoint.toLowerCase();
@@ -356,15 +352,19 @@ export function buildExportReportDocument(
   merged: MergedWeeklyReport,
   prioritization: Record<string, unknown> | null,
   weeklyReport: Record<string, unknown> | null,
-  segmentDeepDives: Record<string, unknown> | null
+  segmentDeepDives: Record<string, unknown> | null,
+  options: ExportReportOptions = {}
 ): ExportReportDocument {
+  const analysisWindowDays = options.analysisWindowDays ?? 90;
   const totalReviews =
-    resolveCorpusReviewCount({
-      prioritization,
-      segmentDeepDives,
-      weeklyReport,
-      fallback: merged.totalReviews,
-    }) || merged.totalReviews;
+    (options.totalReviews ??
+      resolveCorpusReviewCount({
+        prioritization,
+        segmentDeepDives,
+        weeklyReport,
+        fallback: merged.totalReviews,
+      })) ||
+    merged.totalReviews;
 
   const frictionScores = (
     (prioritization?.segment_friction_scores ?? []) as Array<Record<string, unknown>>
@@ -405,7 +405,7 @@ export function buildExportReportDocument(
       rankingScore: round(frictionScore, 4),
       rankingProof: "",
       topThemes: filterThemeNames(topThemesRaw.slice(0, 3).map((t) => t.theme as string)),
-      topPainSummary: insightOnly((topPainRaw[0]?.pain_point as string) ?? "").slice(0, 160) || "—",
+      topPainSummary: analyzerText((topPainRaw[0]?.pain_point as string) ?? "").slice(0, 160) || "—",
     };
   });
 
@@ -485,7 +485,7 @@ export function buildExportReportDocument(
         };
       }),
       topPains: topPains.map((p) => ({
-        summary: insightOnly((p.pain_point as string).slice(0, 140)),
+        summary: analyzerText((p.pain_point as string).slice(0, 140)),
         count: p.count as number,
         pct: round(p.pct as number, 1),
       })),
@@ -555,7 +555,7 @@ export function buildExportReportDocument(
     return {
       rank: i + 1,
       label: shortPainLabel(painPoint),
-      painPoint: insightOnly(painPoint),
+      painPoint: analyzerText(painPoint),
       reviewCount,
       complaintFrequencyPct: pct(reviewCount, totalReviews),
       painScore: round(painScore, 1),
@@ -614,7 +614,7 @@ export function buildExportReportDocument(
 
     return {
       rank: (o.rank as number) ?? i + 1,
-      name: insightOnly((o.pain_point as string) ?? "").slice(0, 160) || "Opportunity cluster",
+      name: analyzerText((o.pain_point as string) ?? "").slice(0, 160) || "Opportunity cluster",
       impactScore: round(composite * 100, 2),
       priorityLevel: (o.tier as string) ?? "Monitor",
       supportingMetrics: [
@@ -677,28 +677,26 @@ export function buildExportReportDocument(
     );
   }
   if (typeof recAnswer?.finding_summary === "string") {
-    const summary = insightOnly(recAnswer.finding_summary);
+    const summary = analyzerText(recAnswer.finding_summary);
     if (summary) proofPoints.push(summary.slice(0, 240));
   }
   if (typeof discoveryAnswer?.finding_summary === "string") {
-    const summary = insightOnly(discoveryAnswer.finding_summary);
+    const summary = analyzerText(discoveryAnswer.finding_summary);
     if (summary) proofPoints.push(summary.slice(0, 240));
   }
 
   const headline =
-    insightOnly((execFromReport?.headline as string) ?? "") ||
-    `Review analysis across ${totalReviews.toLocaleString()} reviews in the selected period.`;
+    analyzerText((execFromReport?.headline as string) ?? "") ||
+    `Review analysis across ${totalReviews.toLocaleString()} reviews (${analysisWindowDays}-day window).`;
 
-  const narrativeParts = [
-    insightOnly((execFromReport?.narrative as string) ?? ""),
-    ...proofPoints.slice(0, 3),
-  ].filter(Boolean);
-  const narrative = narrativeParts.join(" ") || headline;
+  const narrative =
+    analyzerText((execFromReport?.narrative as string) ?? "") || headline;
 
   const periodLabel =
-    merged.weekLabels.length > 1
+    options.periodLabel ??
+    (merged.weekLabels.length > 1
       ? `${merged.weekLabels[0]} — ${merged.weekLabels[merged.weekLabels.length - 1]}`
-      : merged.weekLabels[0] ?? "Latest period";
+      : merged.weekLabels[0] ?? `Last ${analysisWindowDays} days`);
 
   const confidenceFactors = merged.confidenceFactors?.join("; ") ?? "";
 
@@ -749,12 +747,12 @@ export function buildExportReportDocument(
       subtitle: "Analyzer findings · Segments, themes, pain points, and opportunities",
       generatedAt: new Date().toISOString(),
       periodLabel,
-      weekCount: merged.weekCount,
+      analysisWindowDays,
       totalReviews,
       confidenceLevel: merged.confidenceLevel,
       confidenceNote:
         confidenceFactors ||
-        `Confidence ${merged.confidenceLevel} based on ${totalReviews.toLocaleString()} reviews in the selected period.`,
+        `Confidence ${merged.confidenceLevel} based on ${totalReviews.toLocaleString()} reviews in the ${analysisWindowDays}-day analysis window.`,
     },
     executiveSummary: {
       headline,
@@ -762,7 +760,7 @@ export function buildExportReportDocument(
       proofPoints: proofPoints.slice(0, 6),
       scorecards: [
         { label: "Reviews analyzed", value: totalReviews.toLocaleString() },
-        { label: "Weeks in scope", value: String(merged.weekCount) },
+        { label: "Analysis window", value: `${analysisWindowDays} days` },
         { label: "Negative sentiment", value: `${merged.sentiment.negativePct.toFixed(1)}%` },
         { label: "Top segment", value: rankedSegments[0]?.name ?? "—" },
         {

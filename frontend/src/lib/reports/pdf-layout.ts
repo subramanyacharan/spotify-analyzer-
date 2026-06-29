@@ -80,7 +80,7 @@ export class PdfBuilder {
     this.y += 7;
     doc.setFont("helvetica", "normal");
     doc.text(
-      `${report.meta.totalReviews.toLocaleString()} reviews · ${report.meta.weekCount} week(s) · Confidence: ${report.meta.confidenceLevel}`,
+      `${report.meta.totalReviews.toLocaleString()} reviews · ${report.meta.analysisWindowDays}-day window · Confidence: ${report.meta.confidenceLevel}`,
       PDF.margin,
       this.y
     );

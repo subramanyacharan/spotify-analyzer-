@@ -9,9 +9,9 @@ The dashboard **Export Report** button (TopBar) generates a downloadable PDF fro
 | `insight_prioritization.json` / Supabase `top_themes.insight_prioritization` | Segment friction scores, pain points, opportunity rankings |
 | `segment_deep_dives.json` / Supabase `top_themes.segment_deep_dives` | Segment profiles, themes, pain points, listening intent, cross-segment comparison |
 | `weekly_report.json` / merged weekly snapshots | Executive summary text, problem-statement findings, sentiment |
-| Merged weekly catalog | Period label, theme counts, confidence metadata — consumed by **PDF export API only** (no in-app Reports screen) |
+| Merged weekly catalog | Theme counts and confidence metadata — consumed by **PDF export API only** (no in-app Reports screen) |
 
-**API:** Authenticated `GET /api/export/report?weeks=N` (1–12) returns JSON consumed client-side by `downloadReportPdf()`. Requires a signed-in session (`requireApiUser`).
+**API:** Authenticated `GET /api/export/report` returns JSON consumed client-side by `downloadReportPdf()`. Requires a signed-in session (`requireApiUser`). No query parameters — the report always covers the **90-day analysis window** anchored to the latest weekly pipeline run.
 
 **Implementation files:**
 
@@ -37,6 +37,7 @@ The dashboard **Export Report** button (TopBar) generates a downloadable PDF fro
 - **Insight-only** — No “should do”, “can improve”, or product recommendation language in the PDF.
 - **Proof-backed** — Every ranking includes a “why this rank” explanation comparing scores and volumes.
 - **Plain English** — Segment and theme definitions from `segment-definitions.ts`; technical terms explained inline.
+- **Analyzer fidelity** — Report text uses stored analyzer outputs verbatim (legacy theme labels normalized only).
 - **Simple layout** — Clean headings, tables, and scorecards; no charts or heavy styling.
 
 ## Theme naming
@@ -45,4 +46,4 @@ Legacy theme label `Unrelated to Discovery` displays as **General App Feedback**
 
 ## Analysis window
 
-Report metrics reflect the analyzer’s 90-day analysis window and the selected number of weekly snapshots (`weeks` query parameter).
+Report metrics always reflect the **90-day analysis window** `[anchor − 90 days, anchor]`, where the anchor is the latest weekly pipeline run. Review count uses `fetchCanonicalCorpusReviewCount()` (date-filtered `raw_reviews` count). Weekly snapshots within the window are merged for sentiment and theme rollups.

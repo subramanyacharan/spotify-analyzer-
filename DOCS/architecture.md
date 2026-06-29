@@ -148,7 +148,7 @@ Phase 3 maps Phase 2 segment labels to a behavioral taxonomy for decision-facing
 
 **Frontend:** Next.js + React + Tailwind + Recharts, deployed on **Vercel**.
 
-**Export:** TopBar **Export Report** → `GET /api/export/report?weeks=N` → client-side PDF (`jspdf`). Formats existing Phase 3 JSON only; does not re-run analysis.
+**Export:** TopBar **Export Report** → `GET /api/export/report` → client-side PDF (`jspdf`). Always covers the 90-day analysis window; formats existing Phase 3 JSON only; does not re-run analysis.
 
 **Auth:** Supabase Auth (required before production). Middleware protects dashboard routes; `profiles` table stores username + email; login and password reset accept username or email. SQL: `supabase/auth_profiles.sql`.
 
