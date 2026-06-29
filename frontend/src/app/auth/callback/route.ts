@@ -1,10 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { normalizePublicSiteUrl } from "@/lib/auth/site-url";
 
 function resolveRedirectOrigin(requestOrigin: string): string {
   const configured = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
-  return configured || requestOrigin;
+  const origin = configured || requestOrigin;
+  return normalizePublicSiteUrl(origin);
 }
 
 export async function GET(request: Request) {

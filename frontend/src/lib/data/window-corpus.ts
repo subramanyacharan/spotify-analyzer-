@@ -43,6 +43,17 @@ const HIGH_FRICTION_SEGMENTS = new Set([
 const REC_FATIGUE_TEXT =
   /\b(recommend|suggest|algorithm|discover weekly|daily mix|repetitive|boring)\b/i;
 
+const PAGE_SIZE = 5000;
+const PARALLEL_PAGES = 6;
+/** Abort full-corpus load if Supabase is too slow — pages fall back to snapshot counts. */
+const CORPUS_FETCH_TIMEOUT_MS = 18_000;
+const MEMORY_CORPUS_TTL_MS = 5 * 60 * 1000;
+
+const memoryCorpusCache = new Map<string, { at: number; corpus: WindowCorpus }>();
+
+const WINDOW_REVIEW_SELECT =
+  "user_segment, cleaned_text, themes, sentiment_label, sentiment_score, cluster_id, pain_points, raw_reviews!inner(review_date)";
+
 export type WindowReviewRow = {
   userSegment: string;
   cleanedText: string;
@@ -117,6 +128,84 @@ async function fetchClusterSeverities(): Promise<Map<number, number>> {
     /* optional */
   }
   return map;
+}
+
+function mapRowToWindowReview(row: Record<string, unknown>): WindowReviewRow {
+  const themes = parseReviewThemes(row.themes).map((t) => displayThemeName(t));
+  const cleanedText = (row.cleaned_text as string) ?? "";
+  const userSegment = (row.user_segment as string) ?? "";
+  return {
+    userSegment,
+    cleanedText,
+    themes,
+    sentimentLabel: (row.sentiment_label as string) ?? "unknown",
+    sentimentScore: row.sentiment_score != null ? Number(row.sentiment_score) : null,
+    clusterId: row.cluster_id != null ? Number(row.cluster_id) : null,
+    painPoints: row.pain_points,
+    behavioralSegment: normalizeBehavioralSegment(userSegment, cleanedText, themes),
+  };
+}
+
+async function fetchWindowReviewPage(
+  windowStart: string,
+  windowEnd: string,
+  offset: number
+): Promise<WindowReviewRow[]> {
+  const client = getSupabaseServerClient();
+  if (!client) return [];
+
+  const { data, error } = await client
+    .from("processed_reviews")
+    .select(WINDOW_REVIEW_SELECT)
+    .gte("raw_reviews.review_date", windowStart)
+    .lte("raw_reviews.review_date", windowEnd)
+    .range(offset, offset + PAGE_SIZE - 1);
+
+  if (error || !data?.length) return [];
+  return data.map((row) => mapRowToWindowReview(row as Record<string, unknown>));
+}
+
+async function fetchAllWindowReviews(
+  windowStart: string,
+  windowEnd: string
+): Promise<WindowReviewRow[]> {
+  const client = getSupabaseServerClient();
+  if (!client) return [];
+
+  const { count, error: countError } = await client
+    .from("processed_reviews")
+    .select("id, raw_reviews!inner(review_date)", { count: "exact", head: true })
+    .gte("raw_reviews.review_date", windowStart)
+    .lte("raw_reviews.review_date", windowEnd);
+
+  if (countError || !count) return [];
+
+  const pageCount = Math.ceil(count / PAGE_SIZE);
+  const reviews: WindowReviewRow[] = [];
+
+  for (let batchStart = 0; batchStart < pageCount; batchStart += PARALLEL_PAGES) {
+    const batchEnd = Math.min(batchStart + PARALLEL_PAGES, pageCount);
+    const pages = await Promise.all(
+      Array.from({ length: batchEnd - batchStart }, (_, i) => {
+        const pageIndex = batchStart + i;
+        return fetchWindowReviewPage(windowStart, windowEnd, pageIndex * PAGE_SIZE);
+      })
+    );
+    for (const page of pages) {
+      reviews.push(...page);
+    }
+  }
+
+  return reviews;
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  return Promise.race([
+    promise,
+    new Promise<null>((resolve) => {
+      setTimeout(() => resolve(null), ms);
+    }),
+  ]);
 }
 
 function computeSegmentStats(
@@ -216,51 +305,24 @@ function computeRecommendationFatigueRank(
 }
 
 async function fetchWindowCorpusAtAnchor(anchor: Date): Promise<WindowCorpus | null> {
+  const cacheKey = anchor.toISOString();
+  const cached = memoryCorpusCache.get(cacheKey);
+  if (cached && Date.now() - cached.at < MEMORY_CORPUS_TTL_MS) {
+    return cached.corpus;
+  }
+
   const client = getSupabaseServerClient();
   if (!client) return null;
 
   const windowStart = analysisWindowStartFromAnchor(anchor);
   const windowEnd = analysisWindowEndFromAnchor(anchor);
-  const severityByCluster = await fetchClusterSeverities();
 
-  const reviews: WindowReviewRow[] = [];
-  let offset = 0;
-  const PAGE = 1000;
+  const [severityByCluster, reviews] = await Promise.all([
+    fetchClusterSeverities(),
+    withTimeout(fetchAllWindowReviews(windowStart, windowEnd), CORPUS_FETCH_TIMEOUT_MS),
+  ]);
 
-  while (true) {
-    const { data, error } = await client
-      .from("processed_reviews")
-      .select(
-        "user_segment, cleaned_text, themes, sentiment_label, sentiment_score, cluster_id, pain_points, raw_reviews!inner(review_date)"
-      )
-      .gte("raw_reviews.review_date", windowStart)
-      .lte("raw_reviews.review_date", windowEnd)
-      .range(offset, offset + PAGE - 1);
-
-    if (error || !data?.length) break;
-
-    for (const row of data) {
-      const themes = parseReviewThemes(row.themes).map((t) => displayThemeName(t));
-      const cleanedText = (row.cleaned_text as string) ?? "";
-      const userSegment = (row.user_segment as string) ?? "";
-      reviews.push({
-        userSegment,
-        cleanedText,
-        themes,
-        sentimentLabel: (row.sentiment_label as string) ?? "unknown",
-        sentimentScore:
-          row.sentiment_score != null ? Number(row.sentiment_score) : null,
-        clusterId: row.cluster_id != null ? Number(row.cluster_id) : null,
-        painPoints: row.pain_points,
-        behavioralSegment: normalizeBehavioralSegment(userSegment, cleanedText, themes),
-      });
-    }
-
-    if (data.length < PAGE) break;
-    offset += PAGE;
-  }
-
-  if (!reviews.length) return null;
+  if (!reviews?.length) return null;
 
   const byBehavior = new Map<string, WindowReviewRow[]>();
   const byCluster = new Map<number, WindowReviewRow[]>();
@@ -285,7 +347,7 @@ async function fetchWindowCorpusAtAnchor(anchor: Date): Promise<WindowCorpus | n
   const negative = reviews.filter((r) => r.sentimentLabel === "negative").length;
   const total = reviews.length || 1;
 
-  return {
+  const corpus: WindowCorpus = {
     anchor,
     windowStart,
     windowEnd,
@@ -304,6 +366,9 @@ async function fetchWindowCorpusAtAnchor(anchor: Date): Promise<WindowCorpus | n
     clusterSeverity: severityByCluster,
     recommendationFatigueRank: computeRecommendationFatigueRank(reviews),
   };
+
+  memoryCorpusCache.set(cacheKey, { at: Date.now(), corpus });
+  return corpus;
 }
 
 const loadWindowCorpusForAnchor = cache(async (anchorIso: string): Promise<WindowCorpus | null> => {

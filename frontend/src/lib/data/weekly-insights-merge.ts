@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { getSupabaseServerClient } from "../supabase/server";
 import {
   analysisWindowEndFromAnchor,
@@ -23,8 +24,7 @@ export function normalizeTopThemes(raw: unknown): Record<string, unknown> {
   return { ...(raw as Record<string, unknown>) };
 }
 
-/** Merge top_themes keys from all weekly_insights rows (newest first). */
-export async function fetchMergedTopThemes(): Promise<Record<string, unknown>> {
+async function loadMergedTopThemesFromDb(): Promise<Record<string, unknown>> {
   const client = getSupabaseServerClient();
   if (!client) return {};
 
@@ -32,7 +32,8 @@ export async function fetchMergedTopThemes(): Promise<Record<string, unknown>> {
     const { data: rows } = await client
       .from("weekly_insights")
       .select("top_themes, created_at")
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(24);
 
     const merged: Record<string, unknown> = {};
     for (const row of rows ?? []) {
@@ -50,6 +51,17 @@ export async function fetchMergedTopThemes(): Promise<Record<string, unknown>> {
   } catch {
     return {};
   }
+}
+
+const getCachedMergedTopThemes = unstable_cache(
+  loadMergedTopThemesFromDb,
+  ["merged-top-themes"],
+  { revalidate: 300 }
+);
+
+/** Merge top_themes keys from recent weekly_insights rows (newest first). */
+export async function fetchMergedTopThemes(): Promise<Record<string, unknown>> {
+  return getCachedMergedTopThemes();
 }
 
 function parseAnchor(value: unknown): Date | null {

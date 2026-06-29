@@ -5,7 +5,7 @@ import {
   isGuestOnlyPath,
   isProtectedApiPath,
   isProtectedPath,
-  isPublicPath,
+  isPublicApiPath,
 } from "@/lib/auth/routes";
 import { isVercel } from "@/lib/deploy/deployment";
 
@@ -58,6 +58,11 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
+  // Skip Supabase round-trip on routes that never need a session check.
+  if (isPublicApiPath(pathname) || pathname.startsWith("/auth/")) {
+    return supabaseResponse;
+  }
+
   const supabase = createServerClient(url, key, {
     cookies: {
       getAll() {
@@ -83,10 +88,6 @@ export async function updateSession(request: NextRequest) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = user ? "/overview" : "/login";
     return NextResponse.redirect(redirectUrl);
-  }
-
-  if (isPublicPath(pathname)) {
-    return supabaseResponse;
   }
 
   if (requiresAuth && !user) {
