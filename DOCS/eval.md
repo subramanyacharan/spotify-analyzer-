@@ -81,8 +81,8 @@ Testing strategy and success criteria aligned with [Problem statement.md](./Prob
 |---|-----------|--------|
 | 1 | Executive overview | KPIs render from Phase 2/3 data |
 | 2 | Problem statement view | Six questions displayed with drill-down |
-| 3 | Visualizations | Trend, theme, segment, opportunity charts present |
-| 4 | Filters | Date, source, theme, sentiment, five-level segmentation, cluster, opportunity tier |
+| 3 | Visualizations | Trend, theme, segment, opportunity charts present (`/insights/analytics` for theme/sentiment heatmap) |
+| 4 | Filters | **Partial:** per-view filters on Segments and Opportunities; global multi-level filter bar not implemented |
 | 5 | Decision support | Highest-pain segment, highest-opportunity segment, top problems identifiable |
 | 6 | Vercel deployment | Production URL live; Supabase env vars configured; matches reference layout |
 | 7 | PDF report export | Nine-section insight PDF from analyzer outputs; proof-backed rankings; no action recommendations ([pdf-report.md](./pdf-report.md)) |

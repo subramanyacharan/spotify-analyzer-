@@ -71,7 +71,7 @@ Technical decisions for the AI-Powered Review Discovery Engine, aligned with [Pr
 ## ADR-008: Next.js Dashboard on Vercel
 
 - **Context:** Product and growth teams need an interactive dashboard matching the [reference UI](./reference.png) — sidebar navigation, five-level segmentation filters, segment matrix, and comparison cards. Streamlit cannot replicate this custom product analytics layout.
-- **Decision:** **Next.js** (App Router) + React + Tailwind + Recharts for Phase 4; deploy to **Vercel** with Git-connected CI/CD. Data via read-only `@supabase/supabase-js` (anon key). Python pipeline (Phases 1–3, 5) remains separate from frontend hosting.
+- **Decision:** **Next.js** (App Router) + React + Tailwind + Recharts for Phase 4; deploy to **Vercel** with Git-connected CI/CD. **Auth** uses the Supabase **anon** key in the browser; **server-side data reads** use the **service role** key (`SUPABASE_SERVICE_ROLE_KEY`) via `getSupabaseServerClient()`. Python pipeline (Phases 1–3, 5) remains separate from frontend hosting.
 - **Rationale:** Matches reference mockup fidelity; free Vercel tier; native Next.js support; preview deploys for demos; Supabase already in stack.
 - **Status:** Accepted (supersedes Streamlit-only ADR-008)
 

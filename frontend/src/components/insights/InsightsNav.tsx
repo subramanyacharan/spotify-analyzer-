@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const TABS = [{ href: "/insights", label: "User feedback" }];
+const TABS = [
+  { href: "/insights", label: "User feedback" },
+  { href: "/insights/analytics", label: "Themes & trends" },
+];
 
 export function InsightsNav() {
   const pathname = usePathname();
@@ -11,7 +14,10 @@ export function InsightsNav() {
   return (
     <nav className="flex gap-1 border-b border-zinc-800 px-6 pt-4">
       {TABS.map(({ href, label }) => {
-        const active = pathname === href;
+        const active =
+          href === "/insights"
+            ? pathname === "/insights"
+            : pathname === href || pathname.startsWith(`${href}/`);
         return (
           <Link
             key={href}

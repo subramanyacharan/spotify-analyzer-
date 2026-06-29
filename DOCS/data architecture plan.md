@@ -88,8 +88,8 @@ Review Sources
     → Hybrid Analysis (Phase 2): embeddings in ChromaDB → themes, sentiment, segments, clusters → Supabase
     → Insight Intelligence (Phase 3): problem answers, segment profiles, opportunity scores, prioritization
     → Supabase (weekly_insights, historical_trends)
-    → Next.js Dashboard on Vercel (Phase 4) — read-only fetch via @supabase/supabase-js
-    → Weekly Reports & Pipeline Automation (Phase 5)
+    → Next.js Dashboard on Vercel (Phase 4) — server-side Supabase reads + optional 90-day window corpus overlay
+    → Weekly pipeline automation + PDF export (Phase 5)
 ```
 
 ---
@@ -100,7 +100,7 @@ Review Sources
 |-----------|------------|------|
 | **Frontend** | Next.js + React + Tailwind + Recharts | UI matching [reference.png](./reference.png) |
 | **Hosting** | **Vercel** | Production + preview deploys; Git CI/CD |
-| **API / data** | Supabase (existing schema) | Read-only queries; SQL views/RPC for aggregates |
+| **API / data** | Supabase (existing schema) | Server-side queries via service role; Phase 3 JSON from `weekly_insights`; live 90-day metrics via `window-corpus.ts` |
 | **Pipeline** | Python (Phases 1–3, 5) | Writes insights to Supabase; separate from Vercel |
 
 The dashboard does not run the analysis pipeline. It consumes structured outputs already stored in Supabase.

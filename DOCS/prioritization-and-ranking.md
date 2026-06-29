@@ -11,7 +11,7 @@ It is intended for product reviewers, thesis evaluators, and engineers who need 
 | Principle | What it means |
 |-----------|----------------|
 | **Evidence-backed only** | Rankings use review text, themes, sentiment, cluster insights, and behavioral segment labels from Phase 2. No inferred demographics (age, student/professional, etc.). |
-| **Batch, not real-time** | Scores are computed during the weekly Python pipeline and stored in JSON + `weekly_insights`. The dashboard reads pre-computed results. |
+| **Batch pipeline, live dashboard enrichment** | Scores are computed during the weekly Python pipeline and stored in JSON + `weekly_insights`. At request time, the Next.js dashboard may **recompute** counts and rankings from the 90-day review window when `getWindowCorpus()` succeeds (see §10). |
 | **90-day analysis window** | Phase 3 engines filter reviews to a rolling **90-day window** (see ADR-004 in `decisions.md`). The dashboard corpus count is anchored to the **last weekly pipeline run date**. |
 | **No per-review LLM in Phase 3** | Ranking uses aggregates and cluster-level LLM outputs from Phase 2.5 — not thousands of individual LLM calls. |
 | **Multiple ranking lenses** | Different screens answer different product questions, so they use **different scoring formulas** (see §7). This is intentional, not a bug. |
@@ -300,15 +300,23 @@ Example from a typical run:
 | Recommendation fatigue / header | Playlist Driven | Largest absolute complaint volume |
 | Review volume | Playlist Driven | Most reviews in corpus |
 
-### Snapshot vs live corpus count
+### Snapshot vs live 90-day window
 
-Phase 3 JSON stores `total_reviews_analyzed` from the pipeline run. The live dashboard **overrides** the displayed corpus count with a Supabase query:
+Phase 3 JSON stores `total_reviews_analyzed` from the pipeline run. The live dashboard uses a two-layer model:
 
-```
-review_date ∈ [last_weekly_run − 90 days, last_weekly_run]
-```
+1. **Pipeline snapshot (base)** — Phase 3 JSON in `weekly_insights.top_themes` provides structure: pain points, cluster IDs, quotes, tier labels, and segment profile metadata.
+2. **Window corpus (live overlay)** — `getWindowCorpus()` in `window-corpus.ts` loads `processed_reviews` joined with `raw_reviews` where `review_date ∈ [anchor − 90 days, anchor]`. `apply-window-corpus.ts` then overrides:
+   - Corpus count and segment card review counts
+   - Friction scores and recommendation-fatigue ranking
+   - Opportunity composite scores and ranks
+   - Prioritization matrix order and evidence counts
+   - Overview sentiment, dominant themes, analytics heatmap
 
-Insight metrics (themes, friction, opportunities) still come from the Phase 3 snapshot for that run.
+**Anchor date:** `resolveAnalysisAnchorDate()` uses the latest weekly pipeline `generated_at` / `weekly_insights.created_at`, not the browser clock.
+
+**Fallback:** If the corpus fetch times out (~18s) or Supabase is unavailable, loaders keep snapshot metrics and set `totalReviews` via `fetchCanonicalCorpusReviewCount()` (date-filtered `raw_reviews` count).
+
+**Note:** `fetchProcessedReviewCount()` counts **`raw_reviews`** by `review_date`, not `processed_reviews` rows.
 
 ---
 
@@ -330,7 +338,7 @@ After each weekly run, Phase 3.4 writes:
 
 Stored locally at `data/outputs/insight_prioritization.json` and merged into Supabase `weekly_insights.top_themes.insight_prioritization`.
 
-The Next.js dashboard reads these via `fetchMergedTopThemes()` (`frontend/src/lib/data/weekly-insights-merge.ts`).
+The Next.js dashboard reads these via `fetchMergedTopThemes()` (`frontend/src/lib/data/weekly-insights-merge.ts`) and may overlay live 90-day metrics via `window-corpus.ts` + `apply-window-corpus.ts`.
 
 ---
 

@@ -72,7 +72,7 @@ graph TD
         E1[Executive Overview]
         E2[Theme & Sentiment Analytics]
         E3[Segment & Opportunity Views]
-        E4[Weekly Reports]
+        E5[PDF Report Export]
     end
 
     subgraph "Phase 5: Automation"
@@ -89,10 +89,10 @@ graph TD
     C1 --> S2
     C1 --> C2 & C3 & C4 --> C5 --> S1
     S1 --> D1 & D2 & D3 & D4 --> S1
-    S1 --> E1 & E2 & E3 & E4
-    D1 & D2 & D3 & D4 --> E1 & E2 & E3 & E4
-    E1 & E2 & E3 & E4 --> V1
-    E1 & E2 & E3 & E4 --> F1
+    S1 --> E1 & E2 & E3 & E5
+    D1 & D2 & D3 & D4 --> E1 & E2 & E3 & E5
+    E1 & E2 & E3 & E5 --> V1
+    E1 & E2 & E3 --> F1
     F1 --> F2
 ```
 
@@ -137,13 +137,14 @@ Phase 3 maps Phase 2 segment labels to a behavioral taxonomy for decision-facing
 | View | Purpose |
 |------|---------|
 | Executive Overview | KPIs, top friction segment, top opportunity |
-| Problem Statement Insights | Six core questions with metrics and quotes |
-| Theme & Sentiment Analytics | Distribution and trend charts |
-| Segment Deep-Dives | Five-level segmentation comparison (see [reference.png](./reference.png)) |
-| Opportunity Ranking | Prioritized product bets with evidence |
-| Insight Prioritization | Critical / High / Monitor action matrix |
-| Weekly Reports | Emerging pain points and week-over-week changes |
-| **PDF Report Export** | Downloadable nine-section insight report from analyzer outputs (see [pdf-report.md](./pdf-report.md)) |
+| Problem Statement Insights | Six core questions with metrics and quotes (`/insights`) |
+| Theme & Sentiment Analytics | Distribution, trend charts, heatmap (`/insights/analytics`) |
+| Segment Deep-Dives | Five-level segmentation comparison (`/segments`, `/deep-dive`) |
+| Opportunity Ranking | Prioritized product bets with evidence (`/opportunities`) |
+| Insight Prioritization | Critical / High / Monitor action matrix (`/opportunities/actions`) |
+| **PDF Report Export** | Downloadable nine-section report from TopBar (no in-app Weekly Reports screen) |
+
+**Removed from UI:** The dedicated Weekly Reports dashboard route (`/reports`, `/weekly-reports`) was removed; legacy URLs redirect to `/overview`. Weekly snapshot data still powers **PDF export** via `GET /api/export/report`.
 
 **Frontend:** Next.js + React + Tailwind + Recharts, deployed on **Vercel**.
 
@@ -151,9 +152,11 @@ Phase 3 maps Phase 2 segment labels to a behavioral taxonomy for decision-facing
 
 **Auth:** Supabase Auth (required before production). Middleware protects dashboard routes; `profiles` table stores username + email; login and password reset accept username or email. SQL: `supabase/auth_profiles.sql`.
 
-**Data:** Read-only Supabase access via `@supabase/supabase-js`; Phase 3 JSON from `weekly_insights.top_themes`.
+**Data:** Server-side reads use the Supabase **service role** key (`frontend/src/lib/supabase/server.ts`). The browser **anon** key is auth-only. Phase 3 JSON comes from `weekly_insights.top_themes` via `fetchMergedTopThemes()`.
 
-**Filters:** date range, source, theme, sentiment, five-level segmentation (Business, Engagement, Behavior, Context, Pain), cluster, opportunity tier.
+**90-day window (live enrichment):** When Supabase is available, the dashboard loads reviews in `[last_weekly_run − 90 days, last_weekly_run]` through `getWindowCorpus()` and recomputes counts, friction, opportunities, and rankings via `apply-window-corpus.ts`. On timeout (~18s) or offline mode, views fall back to Phase 3 snapshot payloads plus the canonical corpus count.
+
+**Per-view filters:** Segments and Opportunities support local comparison filters. A global multi-level filter bar is **not** mounted in the current UI.
 
 ### 4.5 Phase 5 — Weekly Reporting & Automation
 
@@ -185,7 +188,7 @@ sequenceDiagram
     P5->>SB: Store weekly_insights
     User->>Auth: Sign in (username or email)
     Auth->>P4: Session cookie (middleware)
-    SB->>P4: Next.js fetches read-only data (authenticated)
+    SB->>P4: Next.js fetches data via service role (authenticated)
 ```
 
 ---

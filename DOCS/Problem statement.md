@@ -96,6 +96,8 @@ The system is successful if it can:
 - ✅ Segment users by behavior and challenges
 - ✅ Surface actionable product opportunities for the Growth Team
 
+Delivered through the Growth Intelligence dashboard (Overview, Insights, Segments, Opportunities) and downloadable PDF report export.
+
 ---
 
 ## One-Line Summary

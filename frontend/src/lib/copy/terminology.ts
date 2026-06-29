@@ -1,6 +1,6 @@
 import type { SegmentationLens } from "@/lib/types";
 
-/** Shared labels — keep Overview, Segments, Filters, and Reports aligned. */
+/** Shared labels — keep Overview and Segments lens tabs aligned. */
 export const LENS_LABELS: Record<SegmentationLens, string> = {
   business: "User type",
   engagement: "Engagement level",

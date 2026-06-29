@@ -20,11 +20,6 @@ export function analysisWindowStartFromAnchor(anchor: Date): string {
   return toUtcDateIso(d);
 }
 
-/** @deprecated Prefer analysisWindowStartFromAnchor with the weekly run anchor. */
-export function analysisWindowStartIso(): string {
-  return analysisWindowStartFromAnchor(new Date());
-}
-
 export function analysisWindowLabel(anchor?: string | Date): string {
   if (!anchor) return "Last 90 days";
   const d = typeof anchor === "string" ? new Date(anchor) : anchor;

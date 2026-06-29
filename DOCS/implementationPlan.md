@@ -266,7 +266,9 @@ Phase 3 engines normalize or map existing `processed_reviews.user_segment` label
 
 **Objective:** Build an interactive frontend dashboard for product and growth teams that converts review intelligence into clear product priorities — grounded only in supported behavioral and product data.
 
-**Dashboard scope (must deliver):** Problem Statement Insights, Segment Deep-Dive views, Opportunity Scoring, Weekly Reports, **five-level segmentation lenses** (Business, Engagement, Behavior, Context, Pain), **multi-level cross-filtering**, and **confidence scoring** on all insight cards — without modifying Phase 1–3 pipelines or Supabase schema.
+**Dashboard scope (delivered):** Problem Statement Insights, Segment Deep-Dive views, Opportunity Scoring, Insight Prioritization, **five-level segmentation lenses** (Business, Engagement, Behavior, Context, Pain), **confidence scoring** on insight cards, **PDF report export**, and **90-day window corpus enrichment** on live Supabase reads.
+
+**Not in current UI:** Dedicated Weekly Reports screen (removed; data used for PDF export only). Global multi-level filter bar (planned in §4.8; not wired).
 
 **Data Sources (read-only):**
 
@@ -280,7 +282,7 @@ Phase 3 engines normalize or map existing `processed_reviews.user_segment` label
   - KPI cards: total reviews in window, dominant themes, overall sentiment trend, top segment by friction (selectable lens: Business / Engagement / Behavior / Context / Pain), top opportunity score.
   - One-paragraph AI summary of the week's most important finding (from Phase 3 prioritization, grounded in quotes) with confidence badge.
   - Quick links to problem-statement insights and highest-priority opportunities.
-  - Global multi-level filter bar (see §4.8) accessible from overview.
+  - Per-view segmentation lens selector on Overview KPI cards (global filter bar — §4.8 — not implemented).
 - **Output:** Executive overview page for leadership and growth stakeholders.
 
 ### 4.2 Problem Statement Insights View
@@ -288,7 +290,7 @@ Phase 3 engines normalize or map existing `processed_reviews.user_segment` label
 - **Action:** Surface answers to the six core discovery questions in an explorable UI.
 - **Details:**
   - Display each core question with metrics, trend sparkline, top themes, representative quotes, and **confidence badge** (see §4.9).
-  - Drill-down by any of the five segmentation lenses (Business, Engagement, Behavior, Context, Pain), source, and theme via global filters (§4.8).
+  - Drill-down by segmentation lens tabs on Segments (`/segments`, `/deep-dive`).
 - **Output:** Problem-statement insights section tied to Phase 3.1 query engine.
 
 ### 4.3 Theme & Sentiment Analytics
@@ -337,15 +339,14 @@ Phase 3 engines normalize or map existing `processed_reviews.user_segment` label
   - Confidence badge on each row (see §4.9).
 - **Output:** Prioritization dashboard section powered by `insight_prioritization` snapshot.
 
-### 4.7 Weekly Reports & Emerging Pain Points
+### 4.7 Weekly Reports & Emerging Pain Points — **PDF export only (in-app screen removed)**
 
-- **Action:** Display generated weekly reports and emerging issue alerts.
-- **Details:**
-  - Weekly change reports: theme shifts, sentiment deltas, new pain points vs. prior week.
-  - Emerging pain points panel (spikes flagged by Phase 3.4 / `historical_trends`).
-  - Archive of past `weekly_insights` reports from Supabase.
-  - Report viewer includes five-level segment breakdowns and confidence annotations.
-- **Output:** Weekly reports and emerging-issues section.
+- **Status:** The dedicated Weekly Reports dashboard route was **removed**. Legacy URLs `/reports` and `/weekly-reports` redirect to `/overview`.
+- **Still delivered via:**
+  - Phase 5 pipeline writing `weekly_insights` and `historical_trends`
+  - TopBar **Export Report** → `GET /api/export/report?weeks=N` → nine-section PDF ([pdf-report.md](./pdf-report.md))
+  - Emerging issues surfaced in **Opportunities → Action plan** (`/opportunities/actions`) from Phase 3.4 prioritization
+- **Output:** Weekly intelligence via PDF export and pipeline storage — not a separate dashboard screen.
 
 ### Required Visualizations
 
@@ -360,10 +361,10 @@ Phase 3 engines normalize or map existing `processed_reviews.user_segment` label
 | Weekly change reports     | Week-over-week shifts in complaints and themes    |
 
 
-### 4.8 Multi-Level Filtering
+### 4.8 Multi-Level Filtering — **Not implemented (planned)**
 
-- **Action:** Global filter bar applied consistently across all dashboard views (4.1–4.7).
-- **Details:**
+- **Status:** Global filter bar is **not mounted** in the dashboard. Segments and Opportunities use **local per-view** comparison controls only.
+- **Planned scope (when built):**
   - **Base filters:** date range, source, theme, sentiment, cluster, opportunity tier.
   - **Five-level segmentation filters** (combinable — multi-level AND logic):
     - **Business** — `user_segment` (Phase 2 labels)
@@ -389,14 +390,14 @@ Phase 3 engines normalize or map existing `processed_reviews.user_segment` label
   - Output labels: **High / Medium / Low** confidence with tooltip explaining contributing factors.
   - Low-confidence slices show a disclaimer: “Limited evidence — interpret with caution.”
   - Exclude demographic-based confidence (no age/student/parent inference).
-- **Output:** Confidence-scored insights across Problem Statement, Deep-Dives, Opportunities, Prioritization, and Weekly Reports.
+- **Output:** Confidence-scored insights across Problem Statement, Deep-Dives, Opportunities, and Prioritization.
 
 ### Dashboard Technology & Deployment
 
 - **UI reference:** [`reference.png`](./reference.png) — sidebar navigation, five-level segmentation filters, segment matrix, comparison cards, sub-cluster table.
 - **Frontend stack:** **Next.js** (App Router) + React + Tailwind CSS + Recharts (or ECharts).
 - **Deployment platform:** **Vercel** — production hosting for the Next.js dashboard (Git-connected CI/CD, preview deploys per branch).
-- **Data access:** `@supabase/supabase-js` — read-only queries against existing Supabase tables and Phase 3 JSON in `weekly_insights.top_themes`. Use Supabase SQL views/RPC for aggregated filter slices; do not load full 50k+ rows client-side.
+- **Data access:** Server-side Supabase reads via **service role** (`getSupabaseServerClient()`). Phase 3 JSON from `weekly_insights.top_themes`. Live 90-day metrics recomputed in `window-corpus.ts` + `apply-window-corpus.ts` when Supabase is available.
 - **Environment variables (Vercel):** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (auth only). Server data reads: `SUPABASE_SERVICE_ROLE_KEY` only — never expose service role or use anon key for server reads. Run `supabase/rls_lockdown.sql` to block direct anon access to pipeline tables.
 - **Auth (required before deploy):** Supabase Auth — sign up, login (username or email), logout, forgot password, protected dashboard routes. See **§4.10** and `supabase/auth_profiles.sql`.
 - **Python pipeline (unchanged):** Phases 1–3 and Phase 5 orchestration remain Python scripts; they write to Supabase. The Vercel dashboard reads the latest data without re-running analysis.
@@ -414,7 +415,8 @@ Phase 3 engines normalize or map existing `processed_reviews.user_segment` label
   - **Logout** — `signOut` + redirect to `/login`
   - **Forgot password** — username or email → resolve email → `resetPasswordForEmail` → `/auth/callback` → `/reset-password`
 - **Route protection:** Next.js proxy (`frontend/src/proxy.ts`) refreshes session cookies and redirects unauthenticated users from protected routes to `/login`:
-  - `/overview`, `/insights`, `/segments`, `/deep-dive`, `/opportunities`, `/reports` (alias `/weekly-reports`, `/dashboard` → overview)
+  - `/overview`, `/insights`, `/insights/analytics`, `/segments`, `/deep-dive`, `/opportunities`, `/opportunities/actions`
+  - Legacy redirects: `/reports`, `/weekly-reports`, `/dashboard` → `/overview`
 - **Frontend auth files:**
   - `@supabase/ssr` browser client (`lib/supabase/client.ts`) + middleware session refresh (`lib/supabase/middleware.ts`)
   - Session provider (`components/auth/AuthProvider.tsx`) + sidebar user/logout (`components/auth/UserSection.tsx`)
@@ -436,9 +438,8 @@ Phase 3 engines normalize or map existing `processed_reviews.user_segment` label
   - **Required env vars** (Production + Preview): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (auth only), `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (server data — never `NEXT_PUBLIC_`).
   - Run `supabase/rls_lockdown.sql` so anon key cannot read `raw_reviews`, `processed_reviews`, `weekly_insights`, etc. directly.
   - Local JSON fallback disabled on Vercel (`VERCEL=1`); live data from Supabase only.
-  - Protected API: `GET /api/export` (authenticated JSON download); `GET /api/export/report?weeks=N` (authenticated PDF report JSON); public `GET /api/health` returns `{ ok, configured, timestamp }`.
+  - Protected API: `GET /api/export` (authenticated JSON bundle — **no TopBar button**; available for integrations); `GET /api/export/report?weeks=N` (authenticated PDF report JSON); public `GET /api/health` returns `{ ok, configured, timestamp }`.
   - **Export Report** button in TopBar calls `/api/export/report` and downloads a nine-section PDF — see [pdf-report.md](../DOCS/pdf-report.md). No analyzer re-run; formats Phase 3 outputs only.
-  - Export Data (JSON) button calls `/api/export` — no credentials exposed to browser.
   - Build warns if env vars missing; middleware blocks dashboard on Vercel without auth config.
 - **Output:** Live dashboard URL on Vercel (production + preview environments). See `frontend/README.md` for step-by-step deploy.
 
@@ -456,9 +457,9 @@ Phase 3 engines normalize or map existing `processed_reviews.user_segment` label
 
 ### Phase 4 Exit Criteria
 
-- Dashboard loads executive overview, problem insights, themes, sentiment, five-level segment deep-dives, opportunities, prioritization matrix, and weekly reports without errors
-- All required visualizations render with real Phase 2/3 data
-- **Multi-level filters** work across all five segmentation levels plus base filters on every view
+- Dashboard loads executive overview, problem insights, themes/sentiment analytics, five-level segment deep-dives, opportunities, prioritization matrix, and PDF export without errors
+- All required visualizations render with real Phase 2/3 data (with live 90-day overlay when corpus load succeeds)
+- **Multi-level filters:** not implemented globally; per-view filters on Segments and Opportunities only
 - **Confidence badges** display on problem-statement answers, segment profiles, opportunities, and prioritization rows
 - Teams can identify: (1) highest-pain segment at any lens level, (2) highest-opportunity segment, (3) most important problems to solve
 - No demographic segmentation UI; Business/Engagement/Behavior/Context/Pain lenses use existing data only
@@ -590,11 +591,10 @@ gantt
     Problem Statement & Confidence       :p4b, after p4a, 3d
     Five-Level Segment Deep-Dives        :p4c, after p4b, 4d
     Opportunity & Prioritization Views   :p4d, after p4c, 3d
-    Weekly Reports Dashboard             :p4e, after p4d, 3d
-    Vercel Deploy & Supabase Integration :p4f, after p4e, 2d
+    PDF Report Export & Vercel Deploy    :p4e, after p4d, 3d
 
     section Phase 5
-    Automated Weekly Reports             :p5a, after p4f, 3d
+    Automated Weekly Reports             :p5a, after p4e, 3d
     Pipeline Orchestration           :p5b, after p5a, 3d
     Vercel Ops & Documentation       :p5c, after p5b, 3d
 ```

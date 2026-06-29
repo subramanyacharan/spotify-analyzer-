@@ -9,9 +9,9 @@ The dashboard **Export Report** button (TopBar) generates a downloadable PDF fro
 | `insight_prioritization.json` / Supabase `top_themes.insight_prioritization` | Segment friction scores, pain points, opportunity rankings |
 | `segment_deep_dives.json` / Supabase `top_themes.segment_deep_dives` | Segment profiles, themes, pain points, listening intent, cross-segment comparison |
 | `weekly_report.json` / merged weekly snapshots | Executive summary text, problem-statement findings, sentiment |
-| Merged weekly catalog | Period label, theme counts, confidence metadata |
+| Merged weekly catalog | Period label, theme counts, confidence metadata — consumed by **PDF export API only** (no in-app Reports screen) |
 
-**API:** Authenticated `GET /api/export/report?weeks=N` (1–12) returns JSON consumed client-side by `downloadReportPdf()`.
+**API:** Authenticated `GET /api/export/report?weeks=N` (1–12) returns JSON consumed client-side by `downloadReportPdf()`. Requires a signed-in session (`requireApiUser`).
 
 **Implementation files:**
 
