@@ -1,6 +1,6 @@
 import type { PrioritizationData } from "../opportunities/types";
 import { getSupabaseServerClient } from "../supabase/server";
-import { fetchMergedTopThemes, pickPayload } from "./weekly-insights-merge";
+import { fetchMergedTopThemes, fetchCanonicalCorpusReviewCount, pickPayload } from "./weekly-insights-merge";
 import {
   loadPrioritizationFromLocal,
   parsePrioritizationPayload,
@@ -14,7 +14,9 @@ export async function getPrioritizationData(): Promise<PrioritizationData> {
       const merged = await fetchMergedTopThemes();
       const payload = pickPayload(merged, "insight_prioritization");
       if (payload?.prioritization_matrix) {
-        return parsePrioritizationPayload(payload, "supabase");
+        const data = parsePrioritizationPayload(payload, "supabase");
+        data.totalReviews = await fetchCanonicalCorpusReviewCount({ prioritization: payload });
+        return data;
       }
     } catch {
       /* fall through */

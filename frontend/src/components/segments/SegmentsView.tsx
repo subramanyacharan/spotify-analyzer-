@@ -72,7 +72,7 @@ export function SegmentsView({ data }: SegmentsViewProps) {
         </p>
         <h2 className="mt-1 text-lg font-semibold text-white">Compare audience cohorts</h2>
         <p className="mt-1 text-sm text-zinc-400">
-          {corpusReviewCaption(data.totalReviews)} · Highest friction:{" "}
+          {corpusReviewCaption(data.totalReviews, data.generatedAt)} · Highest friction:{" "}
           <span className="text-[#1db954]">{data.highestFrictionSegment}</span>
         </p>
       </div>

@@ -1,6 +1,7 @@
 import type { OverviewData, SegmentationLens, SegmentFriction } from "../types";
 import { prepareThemesForDisplay } from "../copy/theme-display";
-import { getCorpusMetrics, resolveCorpusReviewCount } from "./corpus-metrics";import { readLocalOutputJson } from "./read-local-json";
+import { getCorpusMetrics, resolveCorpusReviewCount } from "./corpus-metrics";
+import { readLocalOutputJson } from "./read-local-json";
 
 function topBehaviorFriction(
   scores: Array<{

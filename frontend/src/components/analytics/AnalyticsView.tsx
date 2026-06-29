@@ -23,7 +23,7 @@ export function AnalyticsView({ data }: AnalyticsViewProps) {
           What themes drive friction
         </h2>
         <p className="mt-1 text-sm text-zinc-400">
-          {corpusReviewCaption(data.totalReviews)} ·{" "}
+          {corpusReviewCaption(data.totalReviews, data.generatedAt)} ·{" "}
           {data.weeklySource === "historical_trends"
             ? "Trends from historical_trends"
             : data.weeklySource === "review_sample"

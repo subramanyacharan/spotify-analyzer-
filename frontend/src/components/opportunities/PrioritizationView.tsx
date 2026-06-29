@@ -57,7 +57,7 @@ export function PrioritizationView({ data }: { data: PrioritizationData }) {
         </p>
         <h2 className="mt-1 text-lg font-semibold text-white">What to do this week</h2>
         <p className="mt-1 text-sm text-zinc-400">
-          {corpusReviewCaption(data.totalReviews)} · Unified matrix from pain points, segment
+          {corpusReviewCaption(data.totalReviews, data.generatedAt)} · Unified matrix from pain points, segment
           friction, and opportunities
         </p>
       </div>

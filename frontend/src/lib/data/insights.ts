@@ -1,6 +1,6 @@
 import type { InsightsData } from "../insights/catalog";
 import { getSupabaseServerClient } from "../supabase/server";
-import { fetchMergedTopThemes, pickPayload } from "./weekly-insights-merge";
+import { fetchMergedTopThemes, fetchCanonicalCorpusReviewCount, pickPayload } from "./weekly-insights-merge";
 import { loadInsightsFromLocal, parseInsightsPayload } from "./insights-local";
 
 export async function getInsightsData(): Promise<InsightsData> {
@@ -12,7 +12,12 @@ export async function getInsightsData(): Promise<InsightsData> {
       const payload = pickPayload(merged, "problem_statement_insights");
       const prioritization = pickPayload(merged, "insight_prioritization");
       if (payload?.answers) {
-        return parseInsightsPayload(payload, "supabase", prioritization);
+        const data = parseInsightsPayload(payload, "supabase", prioritization);
+        data.totalReviews = await fetchCanonicalCorpusReviewCount({
+          problemStatement: payload,
+          prioritization,
+        });
+        return data;
       }
     } catch {
       /* fall through */

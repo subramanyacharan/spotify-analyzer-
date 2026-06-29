@@ -1,6 +1,6 @@
 import type { SegmentsData } from "../analytics/types";
 import { getSupabaseServerClient } from "../supabase/server";
-import { fetchMergedTopThemes, pickPayload } from "./weekly-insights-merge";
+import { fetchMergedTopThemes, fetchCanonicalCorpusReviewCount, pickPayload } from "./weekly-insights-merge";
 import { loadSegmentsFromLocal, parseSegmentsPayload } from "./segments-local";
 
 export async function getSegmentsData(): Promise<SegmentsData> {
@@ -13,7 +13,12 @@ export async function getSegmentsData(): Promise<SegmentsData> {
       const prioritization = pickPayload(merged, "insight_prioritization");
 
       if (segmentDeepDives?.segment_profiles) {
-        return parseSegmentsPayload(segmentDeepDives, prioritization ?? null, "supabase");
+        const data = parseSegmentsPayload(segmentDeepDives, prioritization ?? null, "supabase");
+        data.totalReviews = await fetchCanonicalCorpusReviewCount({
+          segmentDeepDives,
+          prioritization,
+        });
+        return data;
       }
     } catch {
       /* fall through */

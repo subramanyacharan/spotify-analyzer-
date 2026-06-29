@@ -14,11 +14,7 @@ import type {
 } from "../reports/types";
 import { getSupabaseServerClient } from "../supabase/server";
 import { readLocalOutputJson } from "./read-local-json";
-import {
-  fetchMergedTopThemes,
-  fetchProcessedReviewCount,
-  normalizeTopThemes,
-} from "./weekly-insights-merge";
+import { fetchMergedTopThemes, fetchProcessedReviewCount, normalizeTopThemes, pickPayload, resolveAnalysisAnchorDate } from "./weekly-insights-merge";
 import { filterThemesForDisplay } from "../copy/theme-display";
 import { resolveCorpusReviewCount } from "./corpus-metrics";
 
@@ -462,7 +458,13 @@ export async function getWeeklyReportsCatalog(): Promise<WeeklyReportsCatalog> {
   const client = getSupabaseServerClient();
   const supabaseWeeks: WeekSnapshot[] = [];
   const mergedGlobal = client ? await fetchMergedTopThemes() : {};
-  const corpusReviewCount = client ? await fetchProcessedReviewCount() : 0;
+  const anchor = client
+    ? await resolveAnalysisAnchorDate({
+        prioritization: pickPayload(mergedGlobal, "insight_prioritization"),
+        problemStatement: pickPayload(mergedGlobal, "problem_statement_insights"),
+      })
+    : new Date();
+  const corpusReviewCount = client ? await fetchProcessedReviewCount(anchor) : 0;
 
   if (client) {
     try {

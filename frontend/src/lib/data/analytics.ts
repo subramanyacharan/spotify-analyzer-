@@ -1,7 +1,7 @@
 import type { AnalyticsData, WeeklySentiment } from "../analytics/types";
 import { getWeekStart } from "../analytics/chart-theme";
 import { getSupabaseServerClient } from "../supabase/server";
-import { fetchMergedTopThemes, pickPayload } from "./weekly-insights-merge";
+import { fetchMergedTopThemes, fetchCanonicalCorpusReviewCount, pickPayload } from "./weekly-insights-merge";
 import { enrichAnalyticsFromSupabase } from "./analytics-supabase";
 import { loadAnalyticsFromLocal, parseAnalyticsPayload } from "./analytics-local";
 
@@ -125,6 +125,12 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
         );
         if (weekly.points.length) base.weeklySentiment = weekly.points;
         const enriched = await enrichAnalyticsFromSupabase(client, base);
+        enriched.totalReviews = await fetchCanonicalCorpusReviewCount({
+          problemStatement,
+          segmentDeepDives,
+          prioritization,
+          opportunities,
+        });
         return enriched;
       }
     } catch {

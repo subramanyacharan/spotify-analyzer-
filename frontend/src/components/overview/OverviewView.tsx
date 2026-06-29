@@ -19,7 +19,7 @@ export function OverviewView({ data }: OverviewViewProps) {
           Executive overview
         </p>
         <p className="mt-1 text-sm text-zinc-400">
-          Top themes and priorities from user reviews · {analysisWindowLabel()}
+          Top themes and priorities from user reviews · {analysisWindowLabel(data.generatedAt)}
         </p>
         <p className="mt-1 text-[10px] text-zinc-600">
           {DATA_FRESHNESS(data.dataSource, data.generatedAt)}

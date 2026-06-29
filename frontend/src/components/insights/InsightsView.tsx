@@ -33,7 +33,7 @@ export function InsightsView({ data }: InsightsViewProps) {
           What users are telling us
         </h2>
         <p className="mt-1 text-sm text-zinc-400">
-          {corpusReviewCaption(reviewsInSelection)} · Updated{" "}
+          {corpusReviewCaption(reviewsInSelection, data.generatedAt)} · Updated{" "}
           {new Date(data.generatedAt).toLocaleDateString(undefined, { dateStyle: "medium" })}
         </p>
       </div>

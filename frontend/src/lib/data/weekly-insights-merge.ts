@@ -1,9 +1,13 @@
 import { getSupabaseServerClient } from "../supabase/server";
-import { analysisWindowStartIso } from "./analysis-window";
+import {
+  analysisWindowEndFromAnchor,
+  analysisWindowStartFromAnchor,
+} from "./analysis-window";
 import {
   resolveCorpusReviewCount,
   type CorpusPayloadSources,
 } from "./corpus-metrics";
+
 export const PHASE3_THEME_KEYS = [
   "problem_statement_insights",
   "segment_deep_dives",
@@ -48,17 +52,60 @@ export async function fetchMergedTopThemes(): Promise<Record<string, unknown>> {
   }
 }
 
-export async function fetchProcessedReviewCount(): Promise<number> {
+function parseAnchor(value: unknown): Date | null {
+  if (!value || typeof value !== "string") return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** Anchor the 90-day window to the latest weekly pipeline run, not the browser clock. */
+export async function resolveAnalysisAnchorDate(
+  sources: CorpusPayloadSources = {}
+): Promise<Date> {
+  const fromPayload =
+    parseAnchor(sources.prioritization?.generated_at) ??
+    parseAnchor(sources.problemStatement?.generated_at) ??
+    parseAnchor(sources.segmentDeepDives?.generated_at) ??
+    parseAnchor(sources.opportunities?.generated_at) ??
+    parseAnchor(sources.weeklyReport?.generated_at);
+
+  if (fromPayload) return fromPayload;
+
+  const client = getSupabaseServerClient();
+  if (client) {
+    try {
+      const { data } = await client
+        .from("weekly_insights")
+        .select("created_at")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const fromRow = parseAnchor(data?.created_at);
+      if (fromRow) return fromRow;
+    } catch {
+      /* fall through */
+    }
+  }
+
+  return new Date();
+}
+
+/** Count raw_reviews whose review_date falls in [anchor − 90 days, anchor]. */
+export async function fetchProcessedReviewCount(
+  anchor: Date = new Date()
+): Promise<number> {
   const client = getSupabaseServerClient();
   if (!client) return 0;
 
-  const cutoff = analysisWindowStartIso();
+  const start = analysisWindowStartFromAnchor(anchor);
+  const end = analysisWindowEndFromAnchor(anchor);
 
   try {
     const { count } = await client
       .from("raw_reviews")
       .select("*", { count: "exact", head: true })
-      .gte("review_date", cutoff);
+      .gte("review_date", start)
+      .lte("review_date", end);
     return count ?? 0;
   } catch {
     return 0;
@@ -74,11 +121,19 @@ export function pickPayload(
   return value as Record<string, unknown>;
 }
 
-/** Server-side fallback when Phase 3 payloads omit total_reviews_analyzed. */
+/**
+ * Authoritative 90-day corpus count for live dashboards.
+ * Prefers a date-filtered Supabase query anchored to the last weekly run;
+ * falls back to Phase 3 snapshot totals for offline/local mode.
+ */
 export async function fetchCanonicalCorpusReviewCount(
   sources: CorpusPayloadSources = {}
 ): Promise<number> {
-  const fromPayloads = resolveCorpusReviewCount(sources);
-  if (fromPayloads > 0) return fromPayloads;
-  return fetchProcessedReviewCount();
+  const client = getSupabaseServerClient();
+  if (client) {
+    const anchor = await resolveAnalysisAnchorDate(sources);
+    const fromDb = await fetchProcessedReviewCount(anchor);
+    if (fromDb > 0) return fromDb;
+  }
+  return resolveCorpusReviewCount(sources);
 }

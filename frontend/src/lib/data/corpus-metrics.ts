@@ -43,7 +43,7 @@ export function getCorpusMetrics(problemStatement: Record<string, unknown> | nul
   return getCorpusAnswer(problemStatement)?.supporting_metrics ?? null;
 }
 
-/** Single canonical review count for the 90-day analysis window — used on every dashboard screen. */
+/** Snapshot-only review count from Phase 3 JSON — used for local/offline fallback. Live dashboards use fetchCanonicalCorpusReviewCount. */
 export function resolveCorpusReviewCount(sources: CorpusPayloadSources): number {
   const candidates = [
     sources.prioritization?.total_reviews_analyzed,

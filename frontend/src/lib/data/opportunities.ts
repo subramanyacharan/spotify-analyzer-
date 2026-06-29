@@ -1,6 +1,6 @@
 import type { OpportunitiesData } from "../opportunities/types";
 import { getSupabaseServerClient } from "../supabase/server";
-import { fetchMergedTopThemes, pickPayload } from "./weekly-insights-merge";
+import { fetchMergedTopThemes, fetchCanonicalCorpusReviewCount, pickPayload } from "./weekly-insights-merge";
 import { loadOpportunitiesFromLocal, parseOpportunitiesPayload } from "./opportunities-local";
 
 export async function getOpportunitiesData(): Promise<OpportunitiesData> {
@@ -12,7 +12,12 @@ export async function getOpportunitiesData(): Promise<OpportunitiesData> {
       const payload = pickPayload(merged, "opportunity_scores");
       const prioritization = pickPayload(merged, "insight_prioritization");
       if (payload?.opportunities) {
-        return parseOpportunitiesPayload(payload, "supabase", prioritization);
+        const data = parseOpportunitiesPayload(payload, "supabase", prioritization);
+        data.totalReviews = await fetchCanonicalCorpusReviewCount({
+          opportunities: payload,
+          prioritization,
+        });
+        return data;
       }
     } catch {
       /* fall through */

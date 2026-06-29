@@ -73,7 +73,7 @@ export function OpportunityRankingView({ data }: { data: OpportunitiesData }) {
         </p>
         <h2 className="mt-1 text-lg font-semibold text-white">Where to invest next</h2>
         <p className="mt-1 text-sm text-zinc-400">
-          {data.scoringFormula} · {corpusReviewCaption(data.totalReviews)}
+          {data.scoringFormula} · {corpusReviewCaption(data.totalReviews, data.generatedAt)}
         </p>
       </div>
 
