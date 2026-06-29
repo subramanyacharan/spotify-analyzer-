@@ -36,9 +36,9 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (pathname === "/weekly-reports") {
+  if (pathname === "/weekly-reports" || pathname === "/reports") {
     const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = "/reports";
+    redirectUrl.pathname = "/overview";
     return NextResponse.redirect(redirectUrl);
   }
 

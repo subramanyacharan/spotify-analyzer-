@@ -6,8 +6,6 @@ export const PROTECTED_ROUTE_PREFIXES = [
   "/segments",
   "/deep-dive",
   "/opportunities",
-  "/reports",
-  "/weekly-reports",
 ] as const;
 
 /** Auth UI routes (login, signup, password flows) */

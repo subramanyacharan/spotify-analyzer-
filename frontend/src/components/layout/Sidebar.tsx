@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
-  FileText,
   Layers,
   LayoutDashboard,
   Lightbulb,
@@ -19,7 +18,6 @@ const NAV = [
   { href: "/segments", label: "Segments", icon: Users },
   { href: "/deep-dive", label: "Deep Dive", icon: Layers },
   { href: "/opportunities", label: "Opportunities", icon: Target },
-  { href: "/reports", label: "Reports", icon: FileText },
 ];
 
 export function Sidebar() {
