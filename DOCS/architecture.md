@@ -154,7 +154,7 @@ Phase 3 maps Phase 2 segment labels to a behavioral taxonomy for decision-facing
 
 **Data:** Server-side reads use the Supabase **service role** key (`frontend/src/lib/supabase/server.ts`). The browser **anon** key is auth-only. Phase 3 JSON comes from `weekly_insights.top_themes` via `fetchMergedTopThemes()`.
 
-**90-day window (live enrichment):** When Supabase is available, the dashboard loads reviews in `[last_weekly_run − 90 days, last_weekly_run]` through `getWindowCorpus()` and recomputes counts, friction, opportunities, and rankings via `apply-window-corpus.ts`. On timeout (~18s) or offline mode, views fall back to Phase 3 snapshot payloads plus the canonical corpus count.
+**90-day window (live enrichment):** When Supabase is available, the dashboard aggregates reviews in `[last_weekly_run − 90 days, last_weekly_run]` through `getWindowCorpus()` — a **single-pass** scan that omits `cleaned_text`, keeps only cluster/segment aggregates in memory, and caches results for 30 minutes. `apply-window-corpus.ts` overlays counts, friction, opportunities, and rankings on Phase 3 snapshots. On timeout (~12s) or offline mode, views fall back to snapshot payloads plus the canonical corpus count.
 
 **Per-view filters:** Segments and Opportunities support local comparison filters. A global multi-level filter bar is **not** mounted in the current UI.
 

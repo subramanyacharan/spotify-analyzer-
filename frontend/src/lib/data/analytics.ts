@@ -140,17 +140,22 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
           opportunities,
         };
         const anchor = await resolveAnalysisAnchorDate(sources);
-        const weekly = await fetchWeeklyFromReviews(anchor);
         const base = parseAnalyticsPayload(
           problemStatement,
           segmentDeepDives ?? null,
           "supabase",
-          weekly.source,
+          "historical_trends",
           prioritization,
           opportunities
         );
-        if (weekly.points.length) base.weeklySentiment = weekly.points;
-        const corpus = await getWindowCorpus(sources);
+        const [weekly, corpus] = await Promise.all([
+          fetchWeeklyFromReviews(anchor),
+          getWindowCorpus(sources),
+        ]);
+        if (weekly.points.length) {
+          base.weeklySentiment = weekly.points;
+          base.weeklySource = weekly.source;
+        }
         if (corpus) {
           applyWindowCorpusToAnalytics(base, corpus);
           return base;

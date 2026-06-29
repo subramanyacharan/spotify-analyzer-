@@ -305,7 +305,7 @@ Example from a typical run:
 Phase 3 JSON stores `total_reviews_analyzed` from the pipeline run. The live dashboard uses a two-layer model:
 
 1. **Pipeline snapshot (base)** — Phase 3 JSON in `weekly_insights.top_themes` provides structure: pain points, cluster IDs, quotes, tier labels, and segment profile metadata.
-2. **Window corpus (live overlay)** — `getWindowCorpus()` in `window-corpus.ts` loads `processed_reviews` joined with `raw_reviews` where `review_date ∈ [anchor − 90 days, anchor]`. `apply-window-corpus.ts` then overrides:
+2. **Window corpus (live overlay)** — `getWindowCorpus()` in `window-corpus.ts` performs a **single-pass aggregation** over `processed_reviews` joined with `raw_reviews` where `review_date ∈ [anchor − 90 days, anchor]`. It selects a lite column set (no `cleaned_text`), paginates 8k rows × 8 parallel pages, and builds precomputed maps: segment stats, insight topic breakdowns, cluster buckets, heatmap matrix, and dominant themes. Results are cached in memory for 30 minutes. `apply-window-corpus.ts` then overrides:
    - Corpus count and segment card review counts
    - Friction scores and recommendation-fatigue ranking
    - Opportunity composite scores and ranks
@@ -314,7 +314,7 @@ Phase 3 JSON stores `total_reviews_analyzed` from the pipeline run. The live das
 
 **Anchor date:** `resolveAnalysisAnchorDate()` uses the latest weekly pipeline `generated_at` / `weekly_insights.created_at`, not the browser clock.
 
-**Fallback:** If the corpus fetch times out (~18s) or Supabase is unavailable, loaders keep snapshot metrics and set `totalReviews` via `fetchCanonicalCorpusReviewCount()` (date-filtered `raw_reviews` count).
+**Fallback:** If the corpus fetch times out (~12s) or Supabase is unavailable, loaders keep snapshot metrics and set `totalReviews` via `fetchCanonicalCorpusReviewCount()` (date-filtered `raw_reviews` count).
 
 **Note:** `fetchProcessedReviewCount()` counts **`raw_reviews`** by `review_date`, not `processed_reviews` rows.
 

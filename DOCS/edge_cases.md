@@ -73,9 +73,9 @@ Potential failure modes across the AI-Powered Review Discovery Engine. Aligned w
 - **Filter combinations** returning zero rows without user feedback
 - **Missing Vercel env vars** — build succeeds but runtime Supabase calls fail (blank pages)
 - **Supabase RLS misconfiguration** — anon key blocked from read-only tables
-- **Vercel serverless timeout** on unbounded aggregate queries — mitigated by parallel pagination, 18s corpus timeout with snapshot fallback, and 5-minute in-memory corpus cache
+- **Vercel serverless timeout** on unbounded aggregate queries — mitigated by single-pass lite aggregation, parallel pagination (8k × 8), 12s corpus timeout with snapshot fallback, 30-minute in-memory corpus cache, and 10-minute `unstable_cache` on merged Phase 3 themes
 - **Live vs snapshot ranking drift** — window corpus may re-sort opportunities/prioritization relative to Phase 3 JSON until next pipeline run
-- **Corpus fetch timeout** — dashboard falls back to Phase 3 snapshot counts if `getWindowCorpus()` exceeds ~18s
+- **Corpus fetch timeout** — dashboard falls back to Phase 3 snapshot counts if `getWindowCorpus()` exceeds ~12s
 - **CORS / key exposure** — service-role key accidentally bundled in Next.js client code
 
 ---

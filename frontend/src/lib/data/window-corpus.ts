@@ -7,12 +7,15 @@ import {
   analysisWindowEndFromAnchor,
   analysisWindowStartFromAnchor,
 } from "./analysis-window";
-import {
-  resolveAnalysisAnchorDate,
-} from "./weekly-insights-merge";
+import { resolveAnalysisAnchorDate } from "./weekly-insights-merge";
 import type { CorpusPayloadSources } from "./corpus-metrics";
 import { getSupabaseServerClient } from "../supabase/server";
 import { displayThemeName } from "../copy/theme-display";
+import {
+  bumpMatrixCell,
+  emptyHeatmapMatrix,
+  type HeatmapMatrix,
+} from "./analytics-heatmap";
 
 export const BEHAVIORAL_SEGMENTS = [
   "Discovery Seeker",
@@ -40,29 +43,21 @@ const HIGH_FRICTION_SEGMENTS = new Set([
   "Discovery Seeker",
 ]);
 
-const REC_FATIGUE_TEXT =
-  /\b(recommend|suggest|algorithm|discover weekly|daily mix|repetitive|boring)\b/i;
+const PAGE_SIZE = 8000;
+const PARALLEL_PAGES = 8;
+const CORPUS_FETCH_TIMEOUT_MS = 12_000;
+const MEMORY_CORPUS_TTL_MS = 30 * 60 * 1000;
 
-const PAGE_SIZE = 5000;
-const PARALLEL_PAGES = 6;
-/** Abort full-corpus load if Supabase is too slow — pages fall back to snapshot counts. */
-const CORPUS_FETCH_TIMEOUT_MS = 18_000;
-const MEMORY_CORPUS_TTL_MS = 5 * 60 * 1000;
+/** Compact select — omits cleaned_text (~80% payload reduction). */
+const WINDOW_LITE_SELECT =
+  "user_segment, themes, sentiment_label, sentiment_score, cluster_id, pain_points, raw_reviews!inner(review_date)";
 
 const memoryCorpusCache = new Map<string, { at: number; corpus: WindowCorpus }>();
 
-const WINDOW_REVIEW_SELECT =
-  "user_segment, cleaned_text, themes, sentiment_label, sentiment_score, cluster_id, pain_points, raw_reviews!inner(review_date)";
-
-export type WindowReviewRow = {
-  userSegment: string;
-  cleanedText: string;
-  themes: string[];
+export type WindowReviewLite = {
+  behavioralSegment: string;
   sentimentLabel: string;
   sentimentScore: number | null;
-  clusterId: number | null;
-  painPoints: unknown;
-  behavioralSegment: string;
 };
 
 export type SegmentWindowStats = {
@@ -73,6 +68,18 @@ export type SegmentWindowStats = {
   painPointDensity: number;
   discoveryThemePct: number;
   avgClusterSeverity: number | null;
+  topClusters: { clusterId: number; reviewCount: number }[];
+};
+
+export type InsightTopicStats = {
+  reviewCount: number;
+  segmentBreakdown: { segment: string; count: number; pct: number }[];
+  sentiment: {
+    positive: number;
+    neutral: number;
+    negative: number;
+    negativePct: number;
+  };
 };
 
 export type WindowCorpus = {
@@ -80,10 +87,7 @@ export type WindowCorpus = {
   windowStart: string;
   windowEnd: string;
   totalReviews: number;
-  reviews: WindowReviewRow[];
-  byBehavior: Map<string, WindowReviewRow[]>;
-  byCluster: Map<number, WindowReviewRow[]>;
-  byPhase2: Map<string, WindowReviewRow[]>;
+  byCluster: Map<number, WindowReviewLite[]>;
   segmentStats: SegmentWindowStats[];
   sentiment: {
     positive: number;
@@ -93,308 +97,32 @@ export type WindowCorpus = {
   };
   clusterSeverity: Map<number, number>;
   recommendationFatigueRank: Array<{ segment: string; score: number; reviewCount: number }>;
+  insightTopics: Record<string, InsightTopicStats>;
+  dominantThemes: { theme: string; count: number }[];
+  heatmapMatrix: HeatmapMatrix;
+  phase2Stats: Map<
+    string,
+    { reviewCount: number; negativePct: number; frictionScore: number }
+  >;
 };
 
-function isDiscoveryTheme(theme: string): boolean {
-  const t = theme.toLowerCase();
-  return DISCOVERY_THEME_KEYWORDS.some((kw) => t.includes(kw));
-}
+type SegmentAccum = {
+  count: number;
+  negative: number;
+  withPain: number;
+  discoveryHits: number;
+  severities: number[];
+  clusterCounts: Map<number, number>;
+  fatigueScore: number;
+};
 
-function extractPainPoint(painPoints: unknown): string | null {
-  if (!painPoints) return null;
-  if (Array.isArray(painPoints)) {
-    for (const item of painPoints) {
-      if (typeof item === "object" && item && "pain_point" in item) {
-        const pp = (item as { pain_point?: string }).pain_point;
-        if (pp) return String(pp);
-      }
-      if (typeof item === "string" && item.trim()) return item;
-    }
-  }
-  return null;
-}
-
-async function fetchClusterSeverities(): Promise<Map<number, number>> {
-  const client = getSupabaseServerClient();
-  const map = new Map<number, number>();
-  if (!client) return map;
-
-  try {
-    const { data } = await client.from("cluster_insights").select("cluster_id, severity");
-    for (const row of data ?? []) {
-      map.set(row.cluster_id as number, Number(row.severity ?? 3));
-    }
-  } catch {
-    /* optional */
-  }
-  return map;
-}
-
-function mapRowToWindowReview(row: Record<string, unknown>): WindowReviewRow {
-  const themes = parseReviewThemes(row.themes).map((t) => displayThemeName(t));
-  const cleanedText = (row.cleaned_text as string) ?? "";
-  const userSegment = (row.user_segment as string) ?? "";
-  return {
-    userSegment,
-    cleanedText,
-    themes,
-    sentimentLabel: (row.sentiment_label as string) ?? "unknown",
-    sentimentScore: row.sentiment_score != null ? Number(row.sentiment_score) : null,
-    clusterId: row.cluster_id != null ? Number(row.cluster_id) : null,
-    painPoints: row.pain_points,
-    behavioralSegment: normalizeBehavioralSegment(userSegment, cleanedText, themes),
-  };
-}
-
-async function fetchWindowReviewPage(
-  windowStart: string,
-  windowEnd: string,
-  offset: number
-): Promise<WindowReviewRow[]> {
-  const client = getSupabaseServerClient();
-  if (!client) return [];
-
-  const { data, error } = await client
-    .from("processed_reviews")
-    .select(WINDOW_REVIEW_SELECT)
-    .gte("raw_reviews.review_date", windowStart)
-    .lte("raw_reviews.review_date", windowEnd)
-    .range(offset, offset + PAGE_SIZE - 1);
-
-  if (error || !data?.length) return [];
-  return data.map((row) => mapRowToWindowReview(row as Record<string, unknown>));
-}
-
-async function fetchAllWindowReviews(
-  windowStart: string,
-  windowEnd: string
-): Promise<WindowReviewRow[]> {
-  const client = getSupabaseServerClient();
-  if (!client) return [];
-
-  const { count, error: countError } = await client
-    .from("processed_reviews")
-    .select("id, raw_reviews!inner(review_date)", { count: "exact", head: true })
-    .gte("raw_reviews.review_date", windowStart)
-    .lte("raw_reviews.review_date", windowEnd);
-
-  if (countError || !count) return [];
-
-  const pageCount = Math.ceil(count / PAGE_SIZE);
-  const reviews: WindowReviewRow[] = [];
-
-  for (let batchStart = 0; batchStart < pageCount; batchStart += PARALLEL_PAGES) {
-    const batchEnd = Math.min(batchStart + PARALLEL_PAGES, pageCount);
-    const pages = await Promise.all(
-      Array.from({ length: batchEnd - batchStart }, (_, i) => {
-        const pageIndex = batchStart + i;
-        return fetchWindowReviewPage(windowStart, windowEnd, pageIndex * PAGE_SIZE);
-      })
-    );
-    for (const page of pages) {
-      reviews.push(...page);
-    }
-  }
-
-  return reviews;
-}
-
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
-  return Promise.race([
-    promise,
-    new Promise<null>((resolve) => {
-      setTimeout(() => resolve(null), ms);
-    }),
-  ]);
-}
-
-function computeSegmentStats(
-  reviews: WindowReviewRow[],
-  severityByCluster: Map<number, number>
-): SegmentWindowStats[] {
-  const stats: SegmentWindowStats[] = [];
-
-  for (const segment of BEHAVIORAL_SEGMENTS) {
-    const segReviews = reviews.filter((r) => r.behavioralSegment === segment);
-    const n = segReviews.length;
-    if (n === 0) {
-      stats.push({
-        segment,
-        reviewCount: 0,
-        negativePct: 0,
-        frictionScore: 0,
-        painPointDensity: 0,
-        discoveryThemePct: 0,
-        avgClusterSeverity: null,
-      });
-      continue;
-    }
-
-    const negative = segReviews.filter((r) => r.sentimentLabel === "negative").length;
-    const negativePct = (100 * negative) / n;
-    const withPain = segReviews.filter((r) => extractPainPoint(r.painPoints)).length;
-    const painPointDensity = withPain / n;
-    const discoveryHits = segReviews.filter((r) =>
-      r.themes.some((t) => isDiscoveryTheme(t))
-    ).length;
-    const discoveryThemePct = (100 * discoveryHits) / n;
-
-    const severities = segReviews
-      .map((r) => (r.clusterId != null ? severityByCluster.get(r.clusterId) : undefined))
-      .filter((s): s is number => s != null);
-    const avgClusterSeverity =
-      severities.length > 0
-        ? Math.round((severities.reduce((a, b) => a + b, 0) / severities.length) * 100) / 100
-        : null;
-
-    let friction =
-      0.35 * (negativePct / 100) +
-      0.3 * painPointDensity +
-      0.35 * (discoveryThemePct / 100);
-    if (avgClusterSeverity != null) {
-      friction = Math.min(1, friction * (avgClusterSeverity / 5));
-    }
-
-    stats.push({
-      segment,
-      reviewCount: n,
-      negativePct: Math.round(negativePct * 10) / 10,
-      frictionScore: Math.round(friction * 10000) / 10000,
-      painPointDensity: Math.round(painPointDensity * 1000) / 1000,
-      discoveryThemePct: Math.round(discoveryThemePct * 10) / 10,
-      avgClusterSeverity,
-    });
-  }
-
-  return stats.sort((a, b) => b.frictionScore - a.frictionScore);
-}
-
-function computeRecommendationFatigueRank(
-  reviews: WindowReviewRow[]
-): Array<{ segment: string; score: number; reviewCount: number }> {
-  const scores = new Map<string, number>();
-
-  for (const segment of BEHAVIORAL_SEGMENTS) {
-    const segReviews = reviews.filter((r) => r.behavioralSegment === segment);
-    let score = 0;
-    for (const r of segReviews) {
-      const themeHit = r.themes.some((t) => {
-        const tl = t.toLowerCase();
-        return (
-          tl.includes("repetitive") ||
-          tl.includes("playlist fatigue") ||
-          tl.includes("recommendation")
-        );
-      });
-      const textHit = REC_FATIGUE_TEXT.test(r.cleanedText);
-      if (!themeHit && !textHit) continue;
-      score += 1;
-      if (r.sentimentLabel === "negative") score += 1.5;
-      if (r.sentimentScore != null && r.sentimentScore <= 2) score += 0.5;
-    }
-    scores.set(segment, score);
-  }
-
-  return BEHAVIORAL_SEGMENTS.map((segment) => ({
-    segment,
-    score: scores.get(segment) ?? 0,
-    reviewCount: reviews.filter((r) => r.behavioralSegment === segment).length,
-  }))
-    .filter((r) => r.reviewCount > 0)
-    .sort((a, b) => b.score - a.score);
-}
-
-async function fetchWindowCorpusAtAnchor(anchor: Date): Promise<WindowCorpus | null> {
-  const cacheKey = anchor.toISOString();
-  const cached = memoryCorpusCache.get(cacheKey);
-  if (cached && Date.now() - cached.at < MEMORY_CORPUS_TTL_MS) {
-    return cached.corpus;
-  }
-
-  const client = getSupabaseServerClient();
-  if (!client) return null;
-
-  const windowStart = analysisWindowStartFromAnchor(anchor);
-  const windowEnd = analysisWindowEndFromAnchor(anchor);
-
-  const [severityByCluster, reviews] = await Promise.all([
-    fetchClusterSeverities(),
-    withTimeout(fetchAllWindowReviews(windowStart, windowEnd), CORPUS_FETCH_TIMEOUT_MS),
-  ]);
-
-  if (!reviews?.length) return null;
-
-  const byBehavior = new Map<string, WindowReviewRow[]>();
-  const byCluster = new Map<number, WindowReviewRow[]>();
-  const byPhase2 = new Map<string, WindowReviewRow[]>();
-
-  for (const r of reviews) {
-    if (!byBehavior.has(r.behavioralSegment)) byBehavior.set(r.behavioralSegment, []);
-    byBehavior.get(r.behavioralSegment)!.push(r);
-
-    if (r.clusterId != null) {
-      if (!byCluster.has(r.clusterId)) byCluster.set(r.clusterId, []);
-      byCluster.get(r.clusterId)!.push(r);
-    }
-
-    const p2 = r.userSegment || "Casual Listener";
-    if (!byPhase2.has(p2)) byPhase2.set(p2, []);
-    byPhase2.get(p2)!.push(r);
-  }
-
-  const positive = reviews.filter((r) => r.sentimentLabel === "positive").length;
-  const neutral = reviews.filter((r) => r.sentimentLabel === "neutral").length;
-  const negative = reviews.filter((r) => r.sentimentLabel === "negative").length;
-  const total = reviews.length || 1;
-
-  const corpus: WindowCorpus = {
-    anchor,
-    windowStart,
-    windowEnd,
-    totalReviews: reviews.length,
-    reviews,
-    byBehavior,
-    byCluster,
-    byPhase2,
-    segmentStats: computeSegmentStats(reviews, severityByCluster),
-    sentiment: {
-      positive,
-      neutral,
-      negative,
-      negativePct: Math.round((100 * negative) / total * 10) / 10,
-    },
-    clusterSeverity: severityByCluster,
-    recommendationFatigueRank: computeRecommendationFatigueRank(reviews),
-  };
-
-  memoryCorpusCache.set(cacheKey, { at: Date.now(), corpus });
-  return corpus;
-}
-
-const loadWindowCorpusForAnchor = cache(async (anchorIso: string): Promise<WindowCorpus | null> => {
-  const anchor = new Date(anchorIso);
-  if (Number.isNaN(anchor.getTime())) return null;
-  return fetchWindowCorpusAtAnchor(anchor);
-});
-
-/** Load all processed reviews in the 90-day window anchored to the last weekly run. */
-export async function getWindowCorpus(
-  sources: CorpusPayloadSources = {}
-): Promise<WindowCorpus | null> {
-  const anchor = await resolveAnalysisAnchorDate(sources);
-  return loadWindowCorpusForAnchor(anchor.toISOString());
-}
-
-export function segmentBreakdownFromCorpus(corpus: WindowCorpus) {
-  const total = corpus.totalReviews || 1;
-  return BEHAVIORAL_SEGMENTS.map((segment) => ({
-    segment,
-    count: corpus.byBehavior.get(segment)?.length ?? 0,
-    pct: Math.round((100 * (corpus.byBehavior.get(segment)?.length ?? 0)) / total * 10) / 10,
-  }))
-    .filter((r) => r.count > 0)
-    .sort((a, b) => b.count - a.count);
-}
+type TopicAccum = {
+  count: number;
+  positive: number;
+  neutral: number;
+  negative: number;
+  bySegment: Map<string, number>;
+};
 
 const INSIGHT_QUESTION_FILTERS: Record<
   string,
@@ -453,48 +181,442 @@ const INSIGHT_QUESTION_FILTERS: Record<
   },
 };
 
-function matchesQuestion(
-  review: WindowReviewRow,
+function isDiscoveryTheme(theme: string): boolean {
+  const t = theme.toLowerCase();
+  return DISCOVERY_THEME_KEYWORDS.some((kw) => t.includes(kw));
+}
+
+function extractPainPoint(painPoints: unknown): string | null {
+  if (!painPoints) return null;
+  if (Array.isArray(painPoints)) {
+    for (const item of painPoints) {
+      if (typeof item === "object" && item && "pain_point" in item) {
+        const pp = (item as { pain_point?: string }).pain_point;
+        if (pp) return String(pp);
+      }
+      if (typeof item === "string" && item.trim()) return item;
+    }
+  }
+  return null;
+}
+
+function matchesTopic(
+  themes: string[],
+  painText: string,
   themeKeywords: string[],
   textKeywords: string[]
 ): boolean {
   if (!themeKeywords.length && !textKeywords.length) return true;
-  const haystack =
-    review.themes.join(" ").toLowerCase() + " " + review.cleanedText.toLowerCase();
+  const haystack = themes.join(" ").toLowerCase() + " " + painText.toLowerCase();
   if (themeKeywords.some((kw) => haystack.includes(kw.toLowerCase()))) return true;
-  if (textKeywords.some((kw) => haystack.includes(kw.toLowerCase()))) return true;
   return false;
 }
 
-export function filterReviewsForInsightTopic(
-  corpus: WindowCorpus,
-  topicId: string
-): WindowReviewRow[] {
-  const filters = INSIGHT_QUESTION_FILTERS[topicId];
-  if (!filters) return corpus.reviews;
-  return corpus.reviews.filter((r) =>
-    matchesQuestion(r, filters.themeKeywords, filters.textKeywords)
-  );
+function painTextFromRow(painPoints: unknown): string {
+  const pp = extractPainPoint(painPoints);
+  if (pp) return pp;
+  if (Array.isArray(painPoints)) {
+    return painPoints.filter((x) => typeof x === "string").join(" ");
+  }
+  return "";
 }
 
-export function insightTopicBreakdown(corpus: WindowCorpus, topicId: string) {
-  const subset = filterReviewsForInsightTopic(corpus, topicId);
-  const total = subset.length || 1;
-  const counts = new Map<string, number>();
-  for (const r of subset) {
-    counts.set(r.behavioralSegment, (counts.get(r.behavioralSegment) ?? 0) + 1);
+async function fetchClusterSeverities(): Promise<Map<number, number>> {
+  const client = getSupabaseServerClient();
+  const map = new Map<number, number>();
+  if (!client) return map;
+
+  try {
+    const { data } = await client.from("cluster_insights").select("cluster_id, severity");
+    for (const row of data ?? []) {
+      map.set(row.cluster_id as number, Number(row.severity ?? 3));
+    }
+  } catch {
+    /* optional */
   }
-  return [...counts.entries()]
-    .map(([segment, count]) => ({
+  return map;
+}
+
+type ParsedRow = {
+  userSegment: string;
+  themes: string[];
+  sentimentLabel: string;
+  sentimentScore: number | null;
+  clusterId: number | null;
+  painPoints: unknown;
+  behavioralSegment: string;
+  lite: WindowReviewLite;
+};
+
+function parseRow(row: Record<string, unknown>): ParsedRow {
+  const themes = parseReviewThemes(row.themes).map((t) => displayThemeName(t));
+  const userSegment = (row.user_segment as string) ?? "";
+  const behavioralSegment = normalizeBehavioralSegment(userSegment, "", themes);
+  const sentimentLabel = (row.sentiment_label as string) ?? "unknown";
+  const sentimentScore =
+    row.sentiment_score != null ? Number(row.sentiment_score) : null;
+  const clusterId = row.cluster_id != null ? Number(row.cluster_id) : null;
+
+  return {
+    userSegment,
+    themes,
+    sentimentLabel,
+    sentimentScore,
+    clusterId,
+    painPoints: row.pain_points,
+    behavioralSegment,
+    lite: { behavioralSegment, sentimentLabel, sentimentScore },
+  };
+}
+
+function ingestRow(
+  row: ParsedRow,
+  severityByCluster: Map<number, number>,
+  segmentAcc: Map<string, SegmentAccum>,
+  phase2Acc: Map<string, { count: number; negative: number }>,
+  topicAcc: Map<string, TopicAccum>,
+  byCluster: Map<number, WindowReviewLite[]>,
+  themeCounts: Map<string, number>,
+  heatmap: HeatmapMatrix
+) {
+  const seg = row.behavioralSegment;
+  const acc = segmentAcc.get(seg) ?? {
+    count: 0,
+    negative: 0,
+    withPain: 0,
+    discoveryHits: 0,
+    severities: [],
+    clusterCounts: new Map<number, number>(),
+    fatigueScore: 0,
+  };
+  acc.count++;
+  if (row.sentimentLabel === "negative") acc.negative++;
+  if (extractPainPoint(row.painPoints)) acc.withPain++;
+  if (row.themes.some((t) => isDiscoveryTheme(t))) acc.discoveryHits++;
+  if (row.clusterId != null) {
+    acc.severities.push(severityByCluster.get(row.clusterId) ?? 3);
+    acc.clusterCounts.set(row.clusterId, (acc.clusterCounts.get(row.clusterId) ?? 0) + 1);
+    if (!byCluster.has(row.clusterId)) byCluster.set(row.clusterId, []);
+    byCluster.get(row.clusterId)!.push(row.lite);
+  }
+
+  const themeHit = row.themes.some((t) => {
+    const tl = t.toLowerCase();
+    return (
+      tl.includes("repetitive") ||
+      tl.includes("playlist fatigue") ||
+      tl.includes("recommendation")
+    );
+  });
+  if (themeHit) {
+    acc.fatigueScore += 1;
+    if (row.sentimentLabel === "negative") acc.fatigueScore += 1.5;
+    if (row.sentimentScore != null && row.sentimentScore <= 2) acc.fatigueScore += 0.5;
+  }
+  segmentAcc.set(seg, acc);
+
+  const p2 = row.userSegment || "Casual Listener";
+  const p2a = phase2Acc.get(p2) ?? { count: 0, negative: 0 };
+  p2a.count++;
+  if (row.sentimentLabel === "negative") p2a.negative++;
+  phase2Acc.set(p2, p2a);
+
+  const painText = painTextFromRow(row.painPoints);
+  for (const [topicId, filters] of Object.entries(INSIGHT_QUESTION_FILTERS)) {
+    if (!matchesTopic(row.themes, painText, filters.themeKeywords, filters.textKeywords)) {
+      continue;
+    }
+    const ta = topicAcc.get(topicId) ?? {
+      count: 0,
+      positive: 0,
+      neutral: 0,
+      negative: 0,
+      bySegment: new Map<string, number>(),
+    };
+    ta.count++;
+    if (row.sentimentLabel === "positive") ta.positive++;
+    else if (row.sentimentLabel === "negative") ta.negative++;
+    else ta.neutral++;
+    ta.bySegment.set(seg, (ta.bySegment.get(seg) ?? 0) + 1);
+    topicAcc.set(topicId, ta);
+  }
+
+  const displayThemes = row.themes.length
+    ? row.themes
+    : [displayThemeName("General app experience")];
+  for (const theme of displayThemes) {
+    bumpMatrixCell(heatmap, theme, seg, 1);
+    themeCounts.set(theme, (themeCounts.get(theme) ?? 0) + 1);
+  }
+}
+
+function finalizeSegmentStats(
+  segmentAcc: Map<string, SegmentAccum>,
+  severityByCluster: Map<number, number>
+): SegmentWindowStats[] {
+  const stats: SegmentWindowStats[] = [];
+
+  for (const segment of BEHAVIORAL_SEGMENTS) {
+    const acc = segmentAcc.get(segment);
+    if (!acc || acc.count === 0) {
+      stats.push({
+        segment,
+        reviewCount: 0,
+        negativePct: 0,
+        frictionScore: 0,
+        painPointDensity: 0,
+        discoveryThemePct: 0,
+        avgClusterSeverity: null,
+        topClusters: [],
+      });
+      continue;
+    }
+
+    const n = acc.count;
+    const negativePct = (100 * acc.negative) / n;
+    const painPointDensity = acc.withPain / n;
+    const discoveryThemePct = (100 * acc.discoveryHits) / n;
+    const avgClusterSeverity =
+      acc.severities.length > 0
+        ? Math.round((acc.severities.reduce((a, b) => a + b, 0) / acc.severities.length) * 100) /
+          100
+        : null;
+
+    let friction =
+      0.35 * (negativePct / 100) +
+      0.3 * painPointDensity +
+      0.35 * (discoveryThemePct / 100);
+    if (avgClusterSeverity != null) {
+      friction = Math.min(1, friction * (avgClusterSeverity / 5));
+    }
+
+    stats.push({
       segment,
-      count,
-      pct: Math.round((100 * count) / total * 10) / 10,
-    }))
-    .sort((a, b) => b.count - a.count);
+      reviewCount: n,
+      negativePct: Math.round(negativePct * 10) / 10,
+      frictionScore: Math.round(friction * 10000) / 10000,
+      painPointDensity: Math.round(painPointDensity * 1000) / 1000,
+      discoveryThemePct: Math.round(discoveryThemePct * 10) / 10,
+      avgClusterSeverity,
+      topClusters: [...acc.clusterCounts.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([clusterId, reviewCount]) => ({ clusterId, reviewCount })),
+    });
+  }
+
+  return stats.sort((a, b) => b.frictionScore - a.frictionScore);
+}
+
+function finalizeInsightTopics(topicAcc: Map<string, TopicAccum>): Record<string, InsightTopicStats> {
+  const out: Record<string, InsightTopicStats> = {};
+  for (const [topicId, ta] of topicAcc) {
+    const total = ta.count || 1;
+    const segmentBreakdown = [...ta.bySegment.entries()]
+      .map(([segment, count]) => ({
+        segment,
+        count,
+        pct: Math.round((100 * count) / total * 10) / 10,
+      }))
+      .sort((a, b) => b.count - a.count);
+    out[topicId] = {
+      reviewCount: ta.count,
+      segmentBreakdown,
+      sentiment: {
+        positive: ta.positive,
+        neutral: ta.neutral,
+        negative: ta.negative,
+        negativePct: Math.round((100 * ta.negative) / total * 10) / 10,
+      },
+    };
+  }
+  return out;
+}
+
+function finalizeFatigueRank(segmentAcc: Map<string, SegmentAccum>) {
+  return BEHAVIORAL_SEGMENTS.map((segment) => ({
+    segment,
+    score: segmentAcc.get(segment)?.fatigueScore ?? 0,
+    reviewCount: segmentAcc.get(segment)?.count ?? 0,
+  }))
+    .filter((r) => r.reviewCount > 0)
+    .sort((a, b) => b.score - a.score);
+}
+
+async function fetchWindowPage(
+  windowStart: string,
+  windowEnd: string,
+  offset: number
+): Promise<ParsedRow[]> {
+  const client = getSupabaseServerClient();
+  if (!client) return [];
+
+  const { data, error } = await client
+    .from("processed_reviews")
+    .select(WINDOW_LITE_SELECT)
+    .gte("raw_reviews.review_date", windowStart)
+    .lte("raw_reviews.review_date", windowEnd)
+    .range(offset, offset + PAGE_SIZE - 1);
+
+  if (error || !data?.length) return [];
+  return data.map((row) => parseRow(row as Record<string, unknown>));
+}
+
+async function aggregateWindowCorpus(
+  windowStart: string,
+  windowEnd: string
+): Promise<Omit<
+  WindowCorpus,
+  "anchor" | "windowStart" | "windowEnd"
+> | null> {
+  const client = getSupabaseServerClient();
+  if (!client) return null;
+
+  const [{ count, error: countError }, severityByCluster] = await Promise.all([
+    client
+      .from("processed_reviews")
+      .select("id, raw_reviews!inner(review_date)", { count: "exact", head: true })
+      .gte("raw_reviews.review_date", windowStart)
+      .lte("raw_reviews.review_date", windowEnd),
+    fetchClusterSeverities(),
+  ]);
+
+  if (countError || !count) return null;
+
+  const segmentAcc = new Map<string, SegmentAccum>();
+  const phase2Acc = new Map<string, { count: number; negative: number }>();
+  const topicAcc = new Map<string, TopicAccum>();
+  const byCluster = new Map<number, WindowReviewLite[]>();
+  const themeCounts = new Map<string, number>();
+  const heatmap = emptyHeatmapMatrix();
+
+  let positive = 0;
+  let neutral = 0;
+  let negative = 0;
+  let total = 0;
+
+  const pageCount = Math.ceil(count / PAGE_SIZE);
+  for (let batchStart = 0; batchStart < pageCount; batchStart += PARALLEL_PAGES) {
+    const batchEnd = Math.min(batchStart + PARALLEL_PAGES, pageCount);
+    const pages = await Promise.all(
+      Array.from({ length: batchEnd - batchStart }, (_, i) => {
+        const pageIndex = batchStart + i;
+        return fetchWindowPage(windowStart, windowEnd, pageIndex * PAGE_SIZE);
+      })
+    );
+
+    for (const page of pages) {
+      for (const row of page) {
+        total++;
+        if (row.sentimentLabel === "positive") positive++;
+        else if (row.sentimentLabel === "negative") negative++;
+        else neutral++;
+        ingestRow(
+          row,
+          severityByCluster,
+          segmentAcc,
+          phase2Acc,
+          topicAcc,
+          byCluster,
+          themeCounts,
+          heatmap
+        );
+      }
+    }
+  }
+
+  if (total === 0) return null;
+
+  const phase2Stats = new Map<
+    string,
+    { reviewCount: number; negativePct: number; frictionScore: number }
+  >();
+  for (const [name, acc] of phase2Acc) {
+    const negativePct = acc.count ? (100 * acc.negative) / acc.count : 0;
+    phase2Stats.set(name, {
+      reviewCount: acc.count,
+      negativePct,
+      frictionScore: negativePct / 100,
+    });
+  }
+
+  const dominantThemes = [...themeCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([theme, themeCount]) => ({ theme, count: themeCount }));
+
+  return {
+    totalReviews: total,
+    byCluster,
+    segmentStats: finalizeSegmentStats(segmentAcc, severityByCluster),
+    sentiment: {
+      positive,
+      neutral,
+      negative,
+      negativePct: Math.round((100 * negative) / (total || 1) * 10) / 10,
+    },
+    clusterSeverity: severityByCluster,
+    recommendationFatigueRank: finalizeFatigueRank(segmentAcc),
+    insightTopics: finalizeInsightTopics(topicAcc),
+    dominantThemes,
+    heatmapMatrix: heatmap,
+    phase2Stats,
+  };
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  return Promise.race([
+    promise,
+    new Promise<null>((resolve) => {
+      setTimeout(() => resolve(null), ms);
+    }),
+  ]);
+}
+
+async function fetchWindowCorpusAtAnchor(anchor: Date): Promise<WindowCorpus | null> {
+  const cacheKey = anchor.toISOString();
+  const cached = memoryCorpusCache.get(cacheKey);
+  if (cached && Date.now() - cached.at < MEMORY_CORPUS_TTL_MS) {
+    return cached.corpus;
+  }
+
+  const windowStart = analysisWindowStartFromAnchor(anchor);
+  const windowEnd = analysisWindowEndFromAnchor(anchor);
+
+  const aggregated = await withTimeout(
+    aggregateWindowCorpus(windowStart, windowEnd),
+    CORPUS_FETCH_TIMEOUT_MS
+  );
+
+  if (!aggregated) return null;
+
+  const corpus: WindowCorpus = {
+    anchor,
+    windowStart,
+    windowEnd,
+    ...aggregated,
+  };
+
+  memoryCorpusCache.set(cacheKey, { at: Date.now(), corpus });
+  return corpus;
+}
+
+const loadWindowCorpusForAnchor = cache(async (anchorIso: string): Promise<WindowCorpus | null> => {
+  const anchor = new Date(anchorIso);
+  if (Number.isNaN(anchor.getTime())) return null;
+  return fetchWindowCorpusAtAnchor(anchor);
+});
+
+/** Load aggregated 90-day window metrics (single-pass, no full review text in memory). */
+export async function getWindowCorpus(
+  sources: CorpusPayloadSources = {}
+): Promise<WindowCorpus | null> {
+  const anchor = await resolveAnalysisAnchorDate(sources);
+  return loadWindowCorpusForAnchor(anchor.toISOString());
 }
 
 export function computeOpportunityScoreFromReviews(
-  reviews: WindowReviewRow[],
+  reviews: WindowReviewLite[],
   maxCount: number,
   severity: number
 ) {

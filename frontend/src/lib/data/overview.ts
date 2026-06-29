@@ -32,33 +32,34 @@ async function fetchBusinessFriction(anchor?: Date): Promise<SegmentFriction | n
   const resolvedAnchor = anchor ?? (await resolveAnalysisAnchorDate());
   const windowStart = analysisWindowStartFromAnchor(resolvedAnchor);
   const windowEnd = analysisWindowEndFromAnchor(resolvedAnchor);
-  const results: SegmentFriction[] = [];
+  const results: SegmentFriction[] = await Promise.all(
+    BUSINESS_SEGMENTS.map(async (segment) => {
+      const [{ count: total }, { count: negative }] = await Promise.all([
+        client
+          .from("processed_reviews")
+          .select("id, raw_reviews!inner(review_date)", { count: "exact", head: true })
+          .eq("user_segment", segment)
+          .gte("raw_reviews.review_date", windowStart)
+          .lte("raw_reviews.review_date", windowEnd),
+        client
+          .from("processed_reviews")
+          .select("id, raw_reviews!inner(review_date)", { count: "exact", head: true })
+          .eq("user_segment", segment)
+          .eq("sentiment_label", "negative")
+          .gte("raw_reviews.review_date", windowStart)
+          .lte("raw_reviews.review_date", windowEnd),
+      ]);
 
-  for (const segment of BUSINESS_SEGMENTS) {
-    const { count: total } = await client
-      .from("processed_reviews")
-      .select("*, raw_reviews!inner(review_date)", { count: "exact", head: true })
-      .eq("user_segment", segment)
-      .gte("raw_reviews.review_date", windowStart)
-      .lte("raw_reviews.review_date", windowEnd);
-
-    const { count: negative } = await client
-      .from("processed_reviews")
-      .select("*, raw_reviews!inner(review_date)", { count: "exact", head: true })
-      .eq("user_segment", segment)
-      .eq("sentiment_label", "negative")
-      .gte("raw_reviews.review_date", windowStart)
-      .lte("raw_reviews.review_date", windowEnd);
-
-    if (!total || total === 0) continue;
-    const negativePct = ((negative ?? 0) / total) * 100;
-    results.push({
-      segment,
-      reviewCount: total,
-      frictionScore: negativePct / 100,
-      negativePct,
-    });
-  }
+      if (!total || total === 0) return null;
+      const negativePct = ((negative ?? 0) / total) * 100;
+      return {
+        segment,
+        reviewCount: total,
+        frictionScore: negativePct / 100,
+        negativePct,
+      };
+    })
+  ).then((rows) => rows.filter((r): r is SegmentFriction => r != null));
 
   if (!results.length) return null;
   return [...results].sort((a, b) => b.frictionScore - a.frictionScore)[0];

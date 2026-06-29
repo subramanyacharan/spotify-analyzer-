@@ -100,7 +100,7 @@ Review Sources
 |-----------|------------|------|
 | **Frontend** | Next.js + React + Tailwind + Recharts | UI matching [reference.png](./reference.png) |
 | **Hosting** | **Vercel** | Production + preview deploys; Git CI/CD |
-| **API / data** | Supabase (existing schema) | Server-side queries via service role; Phase 3 JSON from `weekly_insights`; live 90-day metrics via `window-corpus.ts` |
+| **API / data** | Supabase (existing schema) | Server-side queries via service role; Phase 3 JSON from `weekly_insights`; live 90-day single-pass aggregation via `window-corpus.ts` (lite select, 30-min cache) |
 | **Pipeline** | Python (Phases 1–3, 5) | Writes insights to Supabase; separate from Vercel |
 
 The dashboard does not run the analysis pipeline. It consumes structured outputs already stored in Supabase.

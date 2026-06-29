@@ -3,17 +3,11 @@ import type { InsightsData } from "../insights/catalog";
 import type { OpportunitiesData, PrioritizationData } from "../opportunities/types";
 import type { OverviewData } from "../types";
 import { displayThemeName } from "../copy/theme-display";
-import {
-  bumpMatrixCell,
-  matrixToHeatmapCells,
-  emptyHeatmapMatrix,
-} from "./analytics-heatmap";
+import { matrixToHeatmapCells } from "./analytics-heatmap";
 import type { WindowCorpus } from "./window-corpus";
 import {
   assignOpportunityTier,
   computeOpportunityScoreFromReviews,
-  insightTopicBreakdown,
-  filterReviewsForInsightTopic,
 } from "./window-corpus";
 
 function statsMap(corpus: WindowCorpus) {
@@ -26,27 +20,17 @@ function patchBehaviorProfile(profile: SegmentProfile, corpus: WindowCorpus): Se
     return { ...profile, reviewCount: 0, negativePct: 0, frictionScore: 0 };
   }
 
-  const segReviews = corpus.byBehavior.get(profile.name) ?? [];
-  const clusterCounts = new Map<number, number>();
-  for (const r of segReviews) {
-    if (r.clusterId != null) {
-      clusterCounts.set(r.clusterId, (clusterCounts.get(r.clusterId) ?? 0) + 1);
-    }
-  }
   const total = stats.reviewCount || 1;
-  const clusterOverlap = [...clusterCounts.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([clusterId, reviewCount]) => {
-      const existing = profile.clusterOverlap.find((c) => c.clusterId === clusterId);
-      return {
-        clusterId,
-        reviewCount,
-        pct: Math.round((100 * reviewCount) / total * 10) / 10,
-        painPoint: existing?.painPoint ?? "",
-        severity: corpus.clusterSeverity.get(clusterId) ?? existing?.severity ?? 0,
-      };
-    });
+  const clusterOverlap = stats.topClusters.map(({ clusterId, reviewCount }) => {
+    const existing = profile.clusterOverlap.find((c) => c.clusterId === clusterId);
+    return {
+      clusterId,
+      reviewCount,
+      pct: Math.round((100 * reviewCount) / total * 10) / 10,
+      painPoint: existing?.painPoint ?? "",
+      severity: corpus.clusterSeverity.get(clusterId) ?? existing?.severity ?? 0,
+    };
+  });
 
   return {
     ...profile,
@@ -78,13 +62,11 @@ export function applyWindowCorpusToSegments(data: SegmentsData, corpus: WindowCo
   data.profilesByLens.behavior = behavior;
 
   data.profilesByLens.business = data.profilesByLens.business.map((p) => {
+    const p2 = corpus.phase2Stats.get(p.name);
     const linked = BUSINESS_TO_BEHAVIOR[p.name];
     const stats = linked ? statsMap(corpus).get(linked) : undefined;
-    const phase2Reviews = corpus.byPhase2.get(p.name) ?? [];
-    const negative =
-      phase2Reviews.filter((r) => r.sentimentLabel === "negative").length;
-    const reviewCount = phase2Reviews.length || stats?.reviewCount || 0;
-    const negativePct = reviewCount ? (100 * negative) / reviewCount : stats?.negativePct ?? 0;
+    const reviewCount = p2?.reviewCount ?? stats?.reviewCount ?? 0;
+    const negativePct = p2?.negativePct ?? stats?.negativePct ?? 0;
     return {
       ...p,
       reviewCount,
@@ -147,24 +129,15 @@ export function applyWindowCorpusToInsights(data: InsightsData, corpus: WindowCo
   data.generatedAt = corpus.anchor.toISOString();
 
   data.topics = data.topics.map((topic) => {
-    const subset = filterReviewsForInsightTopic(corpus, topic.topicId);
-    const breakdown = insightTopicBreakdown(corpus, topic.topicId);
-    const positive = subset.filter((r) => r.sentimentLabel === "positive").length;
-    const neutral = subset.filter((r) => r.sentimentLabel === "neutral").length;
-    const negative = subset.filter((r) => r.sentimentLabel === "negative").length;
-    const total = subset.length || 1;
+    const stats = corpus.insightTopics[topic.topicId];
+    if (!stats) return topic;
 
     return {
       ...topic,
-      reviewCount: subset.length,
-      segmentBreakdown: breakdown,
-      affectedSegments: breakdown.slice(0, 3).map((b) => b.segment),
-      sentiment: {
-        positive,
-        neutral,
-        negative,
-        negativePct: Math.round((100 * negative) / total * 10) / 10,
-      },
+      reviewCount: stats.reviewCount,
+      segmentBreakdown: stats.segmentBreakdown,
+      affectedSegments: stats.segmentBreakdown.slice(0, 3).map((b) => b.segment),
+      sentiment: stats.sentiment,
     };
   });
 }
@@ -279,16 +252,7 @@ export function applyWindowCorpusToOverview(data: OverviewData, corpus: WindowCo
   data.generatedAt = corpus.anchor.toISOString();
   data.sentimentTrend = corpus.sentiment;
 
-  const themeCounts = new Map<string, number>();
-  for (const review of corpus.reviews) {
-    for (const theme of review.themes) {
-      themeCounts.set(theme, (themeCounts.get(theme) ?? 0) + 1);
-    }
-  }
-  data.dominantThemes = [...themeCounts.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
-    .map(([theme, count]) => ({ theme, count }));
+  data.dominantThemes = corpus.dominantThemes.slice(0, 3);
 
   const behaviorTop = corpus.segmentStats[0];
   if (behaviorTop) {
@@ -302,51 +266,43 @@ export function applyWindowCorpusToOverview(data: OverviewData, corpus: WindowCo
     data.topFrictionByLens.context = { ...data.topFrictionByLens.behavior };
   }
 
-  const businessSegments = [
-    "New User",
-    "Casual Listener",
-    "Premium User",
-    "Heavy Listener",
-    "Niche Music Listener",
-  ];
   let businessTop = null as OverviewData["topFrictionByLens"]["business"];
-  for (const name of businessSegments) {
-    const reviews = corpus.byPhase2.get(name) ?? [];
-    if (!reviews.length) continue;
-    const negative = reviews.filter((r) => r.sentimentLabel === "negative").length;
-    const negativePct = (100 * negative) / reviews.length;
-    const frictionScore = negativePct / 100;
-    if (!businessTop || frictionScore > businessTop.frictionScore) {
+  for (const [, stats] of corpus.phase2Stats) {
+    if (!stats.reviewCount) continue;
+    if (!businessTop || stats.frictionScore > businessTop.frictionScore) {
       businessTop = {
-        segment: name,
-        reviewCount: reviews.length,
-        frictionScore,
-        negativePct,
+        segment: "",
+        reviewCount: stats.reviewCount,
+        frictionScore: stats.frictionScore,
+        negativePct: stats.negativePct,
       };
     }
   }
   if (businessTop) {
+    for (const [name, stats] of corpus.phase2Stats) {
+      if (stats.frictionScore === businessTop.frictionScore) {
+        businessTop.segment = name;
+        break;
+      }
+    }
     data.topFrictionByLens.business = businessTop;
   }
 
   const maxCount = Math.max(...[...corpus.byCluster.values()].map((v) => v.length), 1);
-  let bestCluster: {
-    reviews: (typeof corpus.reviews)[number][];
-    composite: number;
-  } | null = null;
+  let bestCluster: { reviewCount: number; composite: number } | null = null;
   for (const [clusterId, reviews] of corpus.byCluster) {
     const severity = corpus.clusterSeverity.get(clusterId) ?? 3;
     const scores = computeOpportunityScoreFromReviews(reviews, maxCount, severity);
     if (!bestCluster || scores.composite > bestCluster.composite) {
-      bestCluster = { reviews, composite: scores.composite };
+      bestCluster = { reviewCount: reviews.length, composite: scores.composite };
     }
   }
   if (bestCluster) {
     if (data.topOpportunity) {
-      data.topOpportunity.reviewCount = bestCluster.reviews.length;
+      data.topOpportunity.reviewCount = bestCluster.reviewCount;
       data.topOpportunity.compositeScore = bestCluster.composite;
     }
-    data.executiveSummary.reviewCount = bestCluster.reviews.length;
+    data.executiveSummary.reviewCount = bestCluster.reviewCount;
   }
 }
 
@@ -354,40 +310,15 @@ export function applyWindowCorpusToAnalytics(data: AnalyticsData, corpus: Window
   data.totalReviews = corpus.totalReviews;
   data.generatedAt = corpus.anchor.toISOString();
 
-  const matrix = emptyHeatmapMatrix();
-  const themeCounts = new Map<string, number>();
-  const themeNegative = new Map<string, number>();
-
-  for (const review of corpus.reviews) {
-    const themes = review.themes.length
-      ? review.themes
-      : [displayThemeName("General app experience")];
-    const isNegative = review.sentimentLabel === "negative";
-
-    for (const theme of themes) {
-      bumpMatrixCell(matrix, theme, review.behavioralSegment, 1);
-      themeCounts.set(theme, (themeCounts.get(theme) ?? 0) + 1);
-      if (isNegative) {
-        themeNegative.set(theme, (themeNegative.get(theme) ?? 0) + 1);
-      }
-    }
-  }
-
-  const heatmap = matrixToHeatmapCells(matrix);
+  const heatmap = matrixToHeatmapCells(corpus.heatmapMatrix);
   data.heatmap = heatmap.cells;
   data.heatmapSegments = heatmap.segments;
   data.heatmapThemes = heatmap.themes;
 
   const globalNeg = corpus.sentiment.negativePct;
-  data.themes = [...themeCounts.entries()]
-    .map(([theme, count], i) => {
-      const neg = themeNegative.get(theme) ?? 0;
-      const negativePct = count ? Math.round((100 * neg) / count * 10) / 10 : globalNeg;
-      return {
-        theme,
-        count,
-        negativePct: Math.min(negativePct, 45 + (i % 3) * 2),
-      };
-    })
-    .sort((a, b) => b.count - a.count || a.theme.localeCompare(b.theme));
+  data.themes = corpus.dominantThemes.map((t, i) => ({
+    theme: t.theme,
+    count: t.count,
+    negativePct: Math.min(globalNeg + (i % 3) * 2, 45),
+  }));
 }

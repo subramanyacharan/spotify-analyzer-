@@ -56,7 +56,7 @@ async function loadMergedTopThemesFromDb(): Promise<Record<string, unknown>> {
 const getCachedMergedTopThemes = unstable_cache(
   loadMergedTopThemesFromDb,
   ["merged-top-themes"],
-  { revalidate: 300 }
+  { revalidate: 600 }
 );
 
 /** Merge top_themes keys from recent weekly_insights rows (newest first). */
