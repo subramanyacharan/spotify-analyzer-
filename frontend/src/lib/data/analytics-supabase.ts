@@ -78,8 +78,14 @@ function applyMatrixToAnalytics(
   };
 }
 
+export type AnalysisWindowBounds = {
+  windowStart: string;
+  windowEnd: string;
+};
+
 async function aggregateFromClusterInsights(
-  client: SupabaseClient
+  client: SupabaseClient,
+  bounds?: AnalysisWindowBounds
 ): Promise<HeatmapMatrix | null> {
   const { data: clusters, error } = await client
     .from("cluster_insights")
@@ -98,11 +104,18 @@ async function aggregateFromClusterInsights(
     let offset = 0;
 
     while (true) {
-      const { data: rows, error: rowError } = await client
+      let query = client
         .from("processed_reviews")
-        .select("user_segment, cleaned_text, themes")
-        .eq("cluster_id", clusterId)
-        .range(offset, offset + PAGE - 1);
+        .select("user_segment, cleaned_text, themes, raw_reviews!inner(review_date)")
+        .eq("cluster_id", clusterId);
+
+      if (bounds) {
+        query = query
+          .gte("raw_reviews.review_date", bounds.windowStart)
+          .lte("raw_reviews.review_date", bounds.windowEnd);
+      }
+
+      const { data: rows, error: rowError } = await query.range(offset, offset + PAGE - 1);
 
       if (rowError || !rows?.length) break;
 
@@ -141,17 +154,25 @@ async function aggregateFromClusterInsights(
 }
 
 async function aggregateFromProcessedReviews(
-  client: SupabaseClient
+  client: SupabaseClient,
+  bounds?: AnalysisWindowBounds
 ): Promise<HeatmapMatrix | null> {
   const matrix = emptyHeatmapMatrix();
   let offset = 0;
   let fetched = 0;
 
   while (offset < MAX_REVIEWS) {
-    const { data, error } = await client
+    let query = client
       .from("processed_reviews")
-      .select("themes, user_segment, cleaned_text")
-      .range(offset, offset + PAGE - 1);
+      .select("themes, user_segment, cleaned_text, raw_reviews!inner(review_date)");
+
+    if (bounds) {
+      query = query
+        .gte("raw_reviews.review_date", bounds.windowStart)
+        .lte("raw_reviews.review_date", bounds.windowEnd);
+    }
+
+    const { data, error } = await query.range(offset, offset + PAGE - 1);
 
     if (error || !data?.length) break;
 
@@ -179,11 +200,20 @@ async function aggregateFromProcessedReviews(
 }
 
 async function aggregateFromHistoricalTrends(
-  client: SupabaseClient
+  client: SupabaseClient,
+  bounds?: AnalysisWindowBounds
 ): Promise<HeatmapMatrix | null> {
-  const { data, error } = await client
+  let query = client
     .from("historical_trends")
-    .select("theme, mention_count, segment_breakdown");
+    .select("theme, mention_count, segment_breakdown, week_start");
+
+  if (bounds) {
+    query = query
+      .gte("week_start", bounds.windowStart)
+      .lte("week_start", bounds.windowEnd);
+  }
+
+  const { data, error } = await query;
 
   if (error || !data?.length) return null;
 
@@ -221,7 +251,8 @@ async function aggregateFromHistoricalTrends(
 /** Merge live Supabase review data into analytics heatmap + theme charts. */
 export async function enrichAnalyticsFromSupabase(
   client: SupabaseClient,
-  base: AnalyticsData
+  base: AnalyticsData,
+  bounds?: AnalysisWindowBounds
 ): Promise<AnalyticsData> {
   const globalNeg =
     base.themes.find((t) => t.count > 0)?.negativePct ??
@@ -230,13 +261,13 @@ export async function enrichAnalyticsFromSupabase(
 
   let matrix = heatmapCellsToMatrix(base.heatmap);
 
-  const fromClusters = await aggregateFromClusterInsights(client);
+  const fromClusters = await aggregateFromClusterInsights(client, bounds);
   if (fromClusters) mergeHeatmapMatrixMax(matrix, fromClusters);
 
-  const fromReviews = await aggregateFromProcessedReviews(client);
+  const fromReviews = await aggregateFromProcessedReviews(client, bounds);
   if (fromReviews) mergeHeatmapMatrixMax(matrix, fromReviews);
 
-  const fromTrends = await aggregateFromHistoricalTrends(client);
+  const fromTrends = await aggregateFromHistoricalTrends(client, bounds);
   if (fromTrends) mergeHeatmapMatrixMax(matrix, fromTrends);
 
   const needsThemes = discoveryThemeCount(base.themes) < 2;

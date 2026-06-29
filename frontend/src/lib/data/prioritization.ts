@@ -1,6 +1,8 @@
 import type { PrioritizationData } from "../opportunities/types";
 import { getSupabaseServerClient } from "../supabase/server";
+import { applyWindowCorpusToPrioritization } from "./apply-window-corpus";
 import { fetchMergedTopThemes, fetchCanonicalCorpusReviewCount, pickPayload } from "./weekly-insights-merge";
+import { getWindowCorpus } from "./window-corpus";
 import {
   loadPrioritizationFromLocal,
   parsePrioritizationPayload,
@@ -14,8 +16,14 @@ export async function getPrioritizationData(): Promise<PrioritizationData> {
       const merged = await fetchMergedTopThemes();
       const payload = pickPayload(merged, "insight_prioritization");
       if (payload?.prioritization_matrix) {
+        const sources = { prioritization: payload };
         const data = parsePrioritizationPayload(payload, "supabase");
-        data.totalReviews = await fetchCanonicalCorpusReviewCount({ prioritization: payload });
+        const corpus = await getWindowCorpus(sources);
+        if (corpus) {
+          applyWindowCorpusToPrioritization(data, corpus);
+        } else {
+          data.totalReviews = await fetchCanonicalCorpusReviewCount(sources);
+        }
         return data;
       }
     } catch {

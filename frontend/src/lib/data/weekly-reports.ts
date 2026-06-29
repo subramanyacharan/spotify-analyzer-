@@ -2,7 +2,8 @@ import { getWeekStart } from "../analytics/chart-theme";
 import { allowLocalDataFallback } from "@/lib/deploy/deployment";
 import {
   ANALYSIS_WINDOW_WEEKS,
-  analysisWindowStartIso,
+  analysisWindowEndFromAnchor,
+  analysisWindowStartFromAnchor,
 } from "./analysis-window";
 import type {
   WeekEmergingIssue,
@@ -164,8 +165,8 @@ function snapshotFromSupabaseRow(
   };
 }
 
-function isWithinAnalysisWindow(weekStart: string): boolean {
-  return weekStart >= analysisWindowStartIso();
+function isWithinAnalysisWindow(weekStart: string, windowStart: string, windowEnd: string): boolean {
+  return weekStart >= windowStart && weekStart <= windowEnd;
 }
 
 function overlayComputedWeek(
@@ -194,7 +195,9 @@ function overlayComputedWeek(
   };
 }
 
-async function fetchComputedWeeksFromReviews(): Promise<
+async function fetchComputedWeeksFromReviews(
+  anchor: Date
+): Promise<
   Map<string, { sentiment: WeekSentiment; themes: Map<string, number>; count: number }>
 > {
   const client = getSupabaseServerClient();
@@ -202,7 +205,8 @@ async function fetchComputedWeeksFromReviews(): Promise<
     string,
     { pos: number; neu: number; neg: number; themes: Map<string, number>; count: number }
   >();
-  const cutoff = analysisWindowStartIso();
+  const windowStart = analysisWindowStartFromAnchor(anchor);
+  const windowEnd = analysisWindowEndFromAnchor(anchor);
 
   if (!client) return new Map();
 
@@ -212,7 +216,9 @@ async function fetchComputedWeeksFromReviews(): Promise<
   while (true) {
     const { data } = await client
       .from("processed_reviews")
-      .select("sentiment_label, themes, raw_reviews(review_date)")
+      .select("sentiment_label, themes, raw_reviews!inner(review_date)")
+      .gte("raw_reviews.review_date", windowStart)
+      .lte("raw_reviews.review_date", windowEnd)
       .range(offset, offset + PAGE - 1);
 
     if (!data?.length) break;
@@ -220,10 +226,10 @@ async function fetchComputedWeeksFromReviews(): Promise<
     for (const row of data) {
       const raw = row.raw_reviews as { review_date?: string } | null;
       const dateStr = raw?.review_date;
-      if (!dateStr || dateStr.slice(0, 10) < cutoff) continue;
+      if (!dateStr) continue;
 
       const weekStart = getWeekStart(new Date(dateStr));
-      if (!isWithinAnalysisWindow(weekStart)) continue;
+      if (!isWithinAnalysisWindow(weekStart, windowStart, windowEnd)) continue;
 
       const bucket = buckets.get(weekStart) ?? {
         pos: 0,
@@ -464,21 +470,23 @@ export async function getWeeklyReportsCatalog(): Promise<WeeklyReportsCatalog> {
         problemStatement: pickPayload(mergedGlobal, "problem_statement_insights"),
       })
     : new Date();
+  const windowStart = analysisWindowStartFromAnchor(anchor);
+  const windowEnd = analysisWindowEndFromAnchor(anchor);
   const corpusReviewCount = client ? await fetchProcessedReviewCount(anchor) : 0;
 
   if (client) {
     try {
-      const cutoff = analysisWindowStartIso();
       const { data: rows } = await client
         .from("weekly_insights")
         .select("week_start, week_end, top_themes, pulse_report_md, created_at")
-        .gte("week_start", cutoff)
+        .gte("week_start", windowStart)
+        .lte("week_start", windowEnd)
         .order("week_start", { ascending: true });
 
       if (rows?.length) {
         rows.forEach((row, i) => {
           const weekStart = (row.week_start as string) ?? "";
-          if (!isWithinAnalysisWindow(weekStart)) return;
+          if (!isWithinAnalysisWindow(weekStart, windowStart, windowEnd)) return;
 
           const rowThemes = {
             ...mergedGlobal,
@@ -498,7 +506,7 @@ export async function getWeeklyReportsCatalog(): Promise<WeeklyReportsCatalog> {
   }
 
   const [computedMap, emergingByWeek, fallback] = await Promise.all([
-    fetchComputedWeeksFromReviews(),
+    fetchComputedWeeksFromReviews(anchor),
     fetchHistoricalEmergingByWeek(),
     loadLocalFallbackSnapshot(),
   ]);
@@ -531,7 +539,7 @@ export async function getWeeklyReportsCatalog(): Promise<WeeklyReportsCatalog> {
   }
 
   weeks = weeks
-    .filter((w) => isWithinAnalysisWindow(w.weekStart))
+    .filter((w) => isWithinAnalysisWindow(w.weekStart, windowStart, windowEnd))
     .sort((a, b) => a.weekStart.localeCompare(b.weekStart))
     .slice(-ANALYSIS_WINDOW_WEEKS)
     .map((w, i) => ({

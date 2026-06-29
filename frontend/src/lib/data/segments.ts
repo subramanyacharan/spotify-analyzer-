@@ -1,6 +1,8 @@
 import type { SegmentsData } from "../analytics/types";
 import { getSupabaseServerClient } from "../supabase/server";
+import { applyWindowCorpusToSegments } from "./apply-window-corpus";
 import { fetchMergedTopThemes, fetchCanonicalCorpusReviewCount, pickPayload } from "./weekly-insights-merge";
+import { getWindowCorpus } from "./window-corpus";
 import { loadSegmentsFromLocal, parseSegmentsPayload } from "./segments-local";
 
 export async function getSegmentsData(): Promise<SegmentsData> {
@@ -13,11 +15,14 @@ export async function getSegmentsData(): Promise<SegmentsData> {
       const prioritization = pickPayload(merged, "insight_prioritization");
 
       if (segmentDeepDives?.segment_profiles) {
+        const sources = { segmentDeepDives, prioritization };
         const data = parseSegmentsPayload(segmentDeepDives, prioritization ?? null, "supabase");
-        data.totalReviews = await fetchCanonicalCorpusReviewCount({
-          segmentDeepDives,
-          prioritization,
-        });
+        const corpus = await getWindowCorpus(sources);
+        if (corpus) {
+          applyWindowCorpusToSegments(data, corpus);
+        } else {
+          data.totalReviews = await fetchCanonicalCorpusReviewCount(sources);
+        }
         return data;
       }
     } catch {

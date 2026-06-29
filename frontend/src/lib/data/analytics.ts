@@ -1,20 +1,37 @@
 import type { AnalyticsData, WeeklySentiment } from "../analytics/types";
 import { getWeekStart } from "../analytics/chart-theme";
 import { getSupabaseServerClient } from "../supabase/server";
-import { fetchMergedTopThemes, fetchCanonicalCorpusReviewCount, pickPayload } from "./weekly-insights-merge";
+import { applyWindowCorpusToAnalytics } from "./apply-window-corpus";
+import {
+  fetchMergedTopThemes,
+  fetchCanonicalCorpusReviewCount,
+  pickPayload,
+  resolveAnalysisAnchorDate,
+} from "./weekly-insights-merge";
+import {
+  analysisWindowEndFromAnchor,
+  analysisWindowStartFromAnchor,
+} from "./analysis-window";
+import { getWindowCorpus } from "./window-corpus";
 import { enrichAnalyticsFromSupabase } from "./analytics-supabase";
 import { loadAnalyticsFromLocal, parseAnalyticsPayload } from "./analytics-local";
 
-async function fetchWeeklyFromReviews(): Promise<{
+async function fetchWeeklyFromReviews(anchor?: Date): Promise<{
   points: WeeklySentiment[];
   source: AnalyticsData["weeklySource"];
 }> {
   const client = getSupabaseServerClient();
   if (!client) return { points: [], source: "unavailable" };
 
+  const resolvedAnchor = anchor ?? (await resolveAnalysisAnchorDate());
+  const windowStart = analysisWindowStartFromAnchor(resolvedAnchor);
+  const windowEnd = analysisWindowEndFromAnchor(resolvedAnchor);
+
   const { data: trends } = await client
     .from("historical_trends")
     .select("week_start, avg_sentiment, mention_count")
+    .gte("week_start", windowStart)
+    .lte("week_start", windowEnd)
     .order("week_start", { ascending: true })
     .limit(52);
 
@@ -57,7 +74,9 @@ async function fetchWeeklyFromReviews(): Promise<{
   while (offset < MAX) {
     const { data } = await client
       .from("processed_reviews")
-      .select("sentiment_label, raw_reviews(review_date)")
+      .select("sentiment_label, raw_reviews!inner(review_date)")
+      .gte("raw_reviews.review_date", windowStart)
+      .lte("raw_reviews.review_date", windowEnd)
       .range(offset, offset + PAGE - 1);
 
     if (!data?.length) break;
@@ -114,7 +133,14 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
       const opportunities = pickPayload(merged, "opportunity_scores");
 
       if (problemStatement?.answers) {
-        const weekly = await fetchWeeklyFromReviews();
+        const sources = {
+          problemStatement,
+          segmentDeepDives,
+          prioritization,
+          opportunities,
+        };
+        const anchor = await resolveAnalysisAnchorDate(sources);
+        const weekly = await fetchWeeklyFromReviews(anchor);
         const base = parseAnalyticsPayload(
           problemStatement,
           segmentDeepDives ?? null,
@@ -124,13 +150,16 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
           opportunities
         );
         if (weekly.points.length) base.weeklySentiment = weekly.points;
-        const enriched = await enrichAnalyticsFromSupabase(client, base);
-        enriched.totalReviews = await fetchCanonicalCorpusReviewCount({
-          problemStatement,
-          segmentDeepDives,
-          prioritization,
-          opportunities,
+        const corpus = await getWindowCorpus(sources);
+        if (corpus) {
+          applyWindowCorpusToAnalytics(base, corpus);
+          return base;
+        }
+        const enriched = await enrichAnalyticsFromSupabase(client, base, {
+          windowStart: analysisWindowStartFromAnchor(anchor),
+          windowEnd: analysisWindowEndFromAnchor(anchor),
         });
+        enriched.totalReviews = await fetchCanonicalCorpusReviewCount(sources);
         return enriched;
       }
     } catch {

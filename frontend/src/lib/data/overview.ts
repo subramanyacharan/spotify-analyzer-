@@ -3,11 +3,18 @@ import { filterQuotes, sanitizePainPoint, sanitizeRecommendation } from "../copy
 import { prepareThemesForDisplay } from "../copy/theme-display";
 import { getCorpusMetrics } from "./corpus-metrics";
 import { getSupabaseServerClient } from "../supabase/server";
+import { applyWindowCorpusToOverview } from "./apply-window-corpus";
 import {
   fetchMergedTopThemes,
   fetchProcessedReviewCount,
   fetchCanonicalCorpusReviewCount,
+  resolveAnalysisAnchorDate,
 } from "./weekly-insights-merge";
+import {
+  analysisWindowEndFromAnchor,
+  analysisWindowStartFromAnchor,
+} from "./analysis-window";
+import { getWindowCorpus } from "./window-corpus";
 import { loadOverviewFromLocal } from "./local-fallback";
 
 const BUSINESS_SEGMENTS = [
@@ -18,23 +25,30 @@ const BUSINESS_SEGMENTS = [
   "Niche Music Listener",
 ];
 
-async function fetchBusinessFriction(): Promise<SegmentFriction | null> {
+async function fetchBusinessFriction(anchor?: Date): Promise<SegmentFriction | null> {
   const client = getSupabaseServerClient();
   if (!client) return null;
 
+  const resolvedAnchor = anchor ?? (await resolveAnalysisAnchorDate());
+  const windowStart = analysisWindowStartFromAnchor(resolvedAnchor);
+  const windowEnd = analysisWindowEndFromAnchor(resolvedAnchor);
   const results: SegmentFriction[] = [];
 
   for (const segment of BUSINESS_SEGMENTS) {
     const { count: total } = await client
       .from("processed_reviews")
-      .select("*", { count: "exact", head: true })
-      .eq("user_segment", segment);
+      .select("*, raw_reviews!inner(review_date)", { count: "exact", head: true })
+      .eq("user_segment", segment)
+      .gte("raw_reviews.review_date", windowStart)
+      .lte("raw_reviews.review_date", windowEnd);
 
     const { count: negative } = await client
       .from("processed_reviews")
-      .select("*", { count: "exact", head: true })
+      .select("*, raw_reviews!inner(review_date)", { count: "exact", head: true })
       .eq("user_segment", segment)
-      .eq("sentiment_label", "negative");
+      .eq("sentiment_label", "negative")
+      .gte("raw_reviews.review_date", windowStart)
+      .lte("raw_reviews.review_date", windowEnd);
 
     if (!total || total === 0) continue;
     const negativePct = ((negative ?? 0) / total) * 100;
@@ -209,24 +223,28 @@ export async function getOverviewData(): Promise<OverviewData> {
       const { prioritization, problemStatement, opportunities } =
         parseWeeklySnapshot(merged);
       if (prioritization) {
+        const sources = { prioritization, problemStatement, opportunities };
         const overview = buildFromSnapshots(
           prioritization,
           problemStatement,
           opportunities
         );
-        overview.totalReviews = await fetchCanonicalCorpusReviewCount({
-          prioritization,
-          problemStatement,
-          opportunities,
-        });
-        const businessTop = await fetchBusinessFriction();
+        const corpus = await getWindowCorpus(sources);
+        if (corpus) {
+          applyWindowCorpusToOverview(overview, corpus);
+          return overview;
+        }
+        overview.totalReviews = await fetchCanonicalCorpusReviewCount(sources);
+        const anchor = await resolveAnalysisAnchorDate(sources);
+        const businessTop = await fetchBusinessFriction(anchor);
         if (businessTop) overview.topFrictionByLens.business = businessTop;
         return overview;
       }
 
-      const reviewCount = await fetchProcessedReviewCount();
+      const anchor = await resolveAnalysisAnchorDate();
+      const reviewCount = await fetchProcessedReviewCount(anchor);
       if (reviewCount > 0) {
-        const businessTop = await fetchBusinessFriction();
+        const businessTop = await fetchBusinessFriction(anchor);
         return {
           generatedAt: new Date().toISOString(),
           totalReviews: reviewCount,

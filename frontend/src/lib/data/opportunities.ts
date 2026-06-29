@@ -1,6 +1,8 @@
 import type { OpportunitiesData } from "../opportunities/types";
 import { getSupabaseServerClient } from "../supabase/server";
+import { applyWindowCorpusToOpportunities } from "./apply-window-corpus";
 import { fetchMergedTopThemes, fetchCanonicalCorpusReviewCount, pickPayload } from "./weekly-insights-merge";
+import { getWindowCorpus } from "./window-corpus";
 import { loadOpportunitiesFromLocal, parseOpportunitiesPayload } from "./opportunities-local";
 
 export async function getOpportunitiesData(): Promise<OpportunitiesData> {
@@ -12,11 +14,14 @@ export async function getOpportunitiesData(): Promise<OpportunitiesData> {
       const payload = pickPayload(merged, "opportunity_scores");
       const prioritization = pickPayload(merged, "insight_prioritization");
       if (payload?.opportunities) {
+        const sources = { opportunities: payload, prioritization };
         const data = parseOpportunitiesPayload(payload, "supabase", prioritization);
-        data.totalReviews = await fetchCanonicalCorpusReviewCount({
-          opportunities: payload,
-          prioritization,
-        });
+        const corpus = await getWindowCorpus(sources);
+        if (corpus) {
+          applyWindowCorpusToOpportunities(data, corpus);
+        } else {
+          data.totalReviews = await fetchCanonicalCorpusReviewCount(sources);
+        }
         return data;
       }
     } catch {
