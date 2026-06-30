@@ -23,7 +23,6 @@ export const USER_MESSAGES = {
     "We couldn't update your password. Please try again.",
   exportFailed: "Export failed. Please try again later.",
   noAccount: "No account found for that username or email.",
-  noTrendData: "No trend data is available yet.",
 } as const;
 
 const AUTH_ERROR_MAP: Record<string, string> = {

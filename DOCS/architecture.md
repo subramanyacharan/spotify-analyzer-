@@ -138,7 +138,6 @@ Phase 3 maps Phase 2 segment labels to a behavioral taxonomy for decision-facing
 |------|---------|
 | Executive Overview | KPIs, top friction segment, top opportunity |
 | Problem Statement Insights | Six core questions with metrics and quotes (`/insights`) |
-| Theme & Sentiment Analytics | Distribution, trend charts, heatmap (`/insights/analytics`) |
 | Segment Deep-Dives | Five-level segmentation comparison (`/segments`, `/deep-dive`) |
 | Opportunity Ranking | Prioritized product bets with evidence (`/opportunities`) |
 | Insight Prioritization | Critical / High / Monitor action matrix (`/opportunities/actions`) |
@@ -154,7 +153,7 @@ Phase 3 maps Phase 2 segment labels to a behavioral taxonomy for decision-facing
 
 **Data:** Server-side reads use the Supabase **service role** key (`frontend/src/lib/supabase/server.ts`). The browser **anon** key is auth-only. Phase 3 JSON comes from `weekly_insights.top_themes` via `fetchMergedTopThemes()`.
 
-**90-day window (live enrichment):** When Supabase is available, the dashboard aggregates reviews in `[last_weekly_run − 90 days, last_weekly_run]` through `getWindowCorpus()` — a **single-pass** scan that omits `cleaned_text`, keeps only cluster/segment aggregates in memory, and caches results for 30 minutes. `apply-window-corpus.ts` overlays counts, friction, opportunities, and rankings on Phase 3 snapshots. On timeout (~12s) or offline mode, views fall back to snapshot payloads plus the canonical corpus count.
+**90-day window (snapshot model):** The dashboard serves Phase 3 JSON from the **most recent** `weekly_insights` row only. The analysis window is `[last_weekly_run − 90 days, last_weekly_run]`, anchored by `weekly_insights.created_at` via `resolveAnalysisAnchorDate()`. Review counts, segment breakdowns, friction scores, and rankings stay fixed until the next weekly pipeline run writes a new row. `fetchCanonicalCorpusReviewCount()` prefers `total_reviews_analyzed` from the snapshot; live DB counts are used only when no snapshot exists (local/offline mode).
 
 **Per-view filters:** Segments and Opportunities support local comparison filters. A global multi-level filter bar is **not** mounted in the current UI.
 

@@ -397,7 +397,7 @@ Phase 3 engines normalize or map existing `processed_reviews.user_segment` label
 - **UI reference:** [`reference.png`](./reference.png) — sidebar navigation, five-level segmentation filters, segment matrix, comparison cards, sub-cluster table.
 - **Frontend stack:** **Next.js** (App Router) + React + Tailwind CSS + Recharts (or ECharts).
 - **Deployment platform:** **Vercel** — production hosting for the Next.js dashboard (Git-connected CI/CD, preview deploys per branch).
-- **Data access:** Server-side Supabase reads via **service role** (`getSupabaseServerClient()`). Phase 3 JSON from `weekly_insights.top_themes`. Live 90-day metrics via single-pass aggregation in `window-corpus.ts` + `apply-window-corpus.ts` (lite select, 30-min cache, 12s timeout fallback).
+- **Data access:** Server-side Supabase reads via **service role** (`getSupabaseServerClient()`). Phase 3 JSON from the **latest** `weekly_insights` row (`fetchMergedTopThemes()`). Dashboard metrics are snapshot-only from that run — stable until the next weekly pipeline completes.
 - **Environment variables (Vercel):** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (auth only). Server data reads: `SUPABASE_SERVICE_ROLE_KEY` only — never expose service role or use anon key for server reads. Run `supabase/rls_lockdown.sql` to block direct anon access to pipeline tables.
 - **Auth (required before deploy):** Supabase Auth — sign up, login (username or email), logout, forgot password, protected dashboard routes. See **§4.10** and `supabase/auth_profiles.sql`.
 - **Python pipeline (unchanged):** Phases 1–3 and Phase 5 orchestration remain Python scripts; they write to Supabase. The Vercel dashboard reads the latest data without re-running analysis.
@@ -415,7 +415,7 @@ Phase 3 engines normalize or map existing `processed_reviews.user_segment` label
   - **Logout** — `signOut` + redirect to `/login`
   - **Forgot password** — username or email → resolve email → `resetPasswordForEmail` → `/auth/callback` → `/reset-password`
 - **Route protection:** Next.js proxy (`frontend/src/proxy.ts`) refreshes session cookies and redirects unauthenticated users from protected routes to `/login`:
-  - `/overview`, `/insights`, `/insights/analytics`, `/segments`, `/deep-dive`, `/opportunities`, `/opportunities/actions`
+  - `/overview`, `/insights`, `/segments`, `/deep-dive`, `/opportunities`, `/opportunities/actions`
   - Legacy redirects: `/reports`, `/weekly-reports`, `/dashboard` → `/overview`
 - **Frontend auth files:**
   - `@supabase/ssr` browser client (`lib/supabase/client.ts`) + middleware session refresh (`lib/supabase/middleware.ts`)

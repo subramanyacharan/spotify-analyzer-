@@ -1,9 +1,5 @@
-import { AnalyticsView } from "@/components/analytics/AnalyticsView";
-import { getAnalyticsData } from "@/lib/data/analytics";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-export default async function AnalyticsPage() {
-  const data = await getAnalyticsData();
-  return <AnalyticsView data={data} />;
+export default function InsightsAnalyticsPage() {
+  redirect("/insights");
 }

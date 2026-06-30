@@ -1,37 +1,3 @@
-export interface ThemeVolume {
-  theme: string;
-  count: number;
-  negativePct: number;
-}
-
-export interface WeeklySentiment {
-  week: string;
-  weekLabel: string;
-  positive: number;
-  neutral: number;
-  negative: number;
-  negativePct: number;
-}
-
-export interface HeatmapCell {
-  segment: string;
-  theme: string;
-  value: number;
-  intensity: number;
-}
-
-export interface AnalyticsData {
-  generatedAt: string;
-  totalReviews: number;
-  themes: ThemeVolume[];
-  weeklySentiment: WeeklySentiment[];
-  heatmap: HeatmapCell[];
-  heatmapSegments: string[];
-  heatmapThemes: string[];
-  dataSource: "supabase" | "local";
-  weeklySource: "historical_trends" | "review_sample" | "unavailable";
-}
-
 export type SegmentationLens =
   | "business"
   | "engagement"

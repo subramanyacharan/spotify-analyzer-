@@ -86,7 +86,7 @@ GET https://your-app.vercel.app/api/health
 | Route | View |
 |-------|------|
 | `/overview` | Executive overview |
-| `/insights`, `/insights/analytics` | Problem insights & analytics |
+| `/insights` | Problem insights (User feedback) |
 | `/segments`, `/deep-dive` | Segments & deep-dive |
 | `/opportunities`, `/opportunities/actions` | Opportunities & prioritization |
 | `/login`, `/signup`, `/forgot-password` | Auth |
