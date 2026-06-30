@@ -1,0 +1,444 @@
+{
+  "generated_at": "2026-06-21T10:14:55.788229+00:00",
+  "filters": {},
+  "total_reviews_analyzed": 48730,
+  "scoring_formula": "Frequency × Severity × Segment Impact × Sentiment Intensity",
+  "opportunities": [
+    {
+      "opportunity_id": "cluster_4",
+      "cluster_id": 4,
+      "pain_point": "Users are frustrated with the app's music discovery features, such as random songs being added to playlists and poor recommendations.",
+      "product_opportunity": "Spotify's team could improve the music discovery experience by introducing more user-controlled features and algorithms that learn from individual listening habits.",
+      "feature_request": "Allow users to customize their home page and quick access tiles to prioritize their favorite playlists and podcasts.",
+      "themes": [
+        "Search & Discovery UX",
+        "Playlist Fatigue"
+      ],
+      "review_count": 11616,
+      "scores": {
+        "frequency": 0.9809,
+        "severity": 1.0,
+        "segment_impact": 0.9999,
+        "sentiment_intensity": 0.181,
+        "composite": 0.177525
+      },
+      "evidence": {
+        "segment_breakdown": [
+          {
+            "segment": "Playlist Driven",
+            "count": 11611,
+            "pct": 100.0
+          },
+          {
+            "segment": "Habit Listener",
+            "count": 3,
+            "pct": 0.0
+          },
+          {
+            "segment": "Discovery Seeker",
+            "count": 1,
+            "pct": 0.0
+          },
+          {
+            "segment": "Casual Listener",
+            "count": 1,
+            "pct": 0.0
+          }
+        ],
+        "theme_breakdown": [
+          {
+            "theme": "Search & Discovery UX",
+            "count": 11610,
+            "pct": 99.9
+          },
+          {
+            "theme": "Playlist Fatigue",
+            "count": 11610,
+            "pct": 99.9
+          },
+          {
+            "theme": "Repetitive Recommendations",
+            "count": 6,
+            "pct": 0.1
+          },
+          {
+            "theme": "Discover Weekly Issues",
+            "count": 1,
+            "pct": 0.0
+          }
+        ],
+        "representative_quotes": [
+          "random artists that I had never heard of before",
+          "slop being added to it",
+          "forces you into shuffle mode"
+        ],
+        "dominant_sentiment": "positive"
+      },
+      "rank": 1,
+      "tier": "Critical"
+    },
+    {
+      "opportunity_id": "cluster_1",
+      "cluster_id": 1,
+      "pain_point": "Users are frustrated with the current music discovery algorithm, which often plays unrelated songs and fails to learn their preferences.",
+      "product_opportunity": "Spotify's team could revamp the music discovery algorithm to prioritize user preferences and listening history, increasing user satisfaction and retention.",
+      "feature_request": "Improve the music discovery algorithm to provide more personalized and relevant song recommendations",
+      "themes": [
+        "Recommendation Quality",
+        "Playlist Fatigue"
+      ],
+      "review_count": 7602,
+      "scores": {
+        "frequency": 0.642,
+        "severity": 1.0,
+        "segment_impact": 1.0,
+        "sentiment_intensity": 0.2074,
+        "composite": 0.133151
+      },
+      "evidence": {
+        "segment_breakdown": [
+          {
+            "segment": "Playlist Driven",
+            "count": 7599,
+            "pct": 100.0
+          },
+          {
+            "segment": "Habit Listener",
+            "count": 2,
+            "pct": 0.0
+          },
+          {
+            "segment": "Discovery Seeker",
+            "count": 1,
+            "pct": 0.0
+          }
+        ],
+        "theme_breakdown": [
+          {
+            "theme": "Recommendation Quality",
+            "count": 7599,
+            "pct": 100.0
+          },
+          {
+            "theme": "Playlist Fatigue",
+            "count": 7599,
+            "pct": 100.0
+          },
+          {
+            "theme": "Repetitive Recommendations",
+            "count": 3,
+            "pct": 0.0
+          },
+          {
+            "theme": "Discover Weekly Issues",
+            "count": 1,
+            "pct": 0.0
+          }
+        ],
+        "representative_quotes": [
+          "Spotify became the worst app ever for free users",
+          "I hate the fact that any button I press can have a different effect",
+          "Limiting free users to a whopping six skips an hour"
+        ],
+        "dominant_sentiment": "positive"
+      },
+      "rank": 2,
+      "tier": "Critical"
+    },
+    {
+      "opportunity_id": "cluster_0",
+      "cluster_id": 0,
+      "pain_point": "Users are frustrated with repetitive and limited music recommendations.",
+      "product_opportunity": "Spotify's team could enhance the music discovery experience by introducing more personalized and interactive features, such as user-controlled playlists and improved recommendation algorithms.",
+      "feature_request": "Improve music discovery with more diverse and user-controlled recommendations",
+      "themes": [
+        "Repetitive Recommendations"
+      ],
+      "review_count": 8768,
+      "scores": {
+        "frequency": 0.7404,
+        "severity": 1.0,
+        "segment_impact": 0.5585,
+        "sentiment_intensity": 0.3055,
+        "composite": 0.126328
+      },
+      "evidence": {
+        "segment_breakdown": [
+          {
+            "segment": "Habit Listener",
+            "count": 4210,
+            "pct": 48.0
+          },
+          {
+            "segment": "Casual Listener",
+            "count": 3811,
+            "pct": 43.5
+          },
+          {
+            "segment": "Playlist Driven",
+            "count": 395,
+            "pct": 4.5
+          },
+          {
+            "segment": "Discovery Seeker",
+            "count": 292,
+            "pct": 3.3
+          },
+          {
+            "segment": "Heavy Listener",
+            "count": 50,
+            "pct": 0.6
+          },
+          {
+            "segment": "Niche Listener",
+            "count": 10,
+            "pct": 0.1
+          }
+        ],
+        "theme_breakdown": [
+          {
+            "theme": "Repetitive Recommendations",
+            "count": 8768,
+            "pct": 100.0
+          }
+        ],
+        "representative_quotes": [
+          "can't even shuffle my music anymore",
+          "can't choose which song I want to play",
+          "limited skips per hour"
+        ],
+        "dominant_sentiment": "positive"
+      },
+      "rank": 3,
+      "tier": "Critical"
+    },
+    {
+      "opportunity_id": "cluster_2",
+      "cluster_id": 2,
+      "pain_point": "Users are frustrated with repetitive and irrelevant music recommendations in Discover Weekly and Daily Mix playlists.",
+      "product_opportunity": "Spotify's team could refine its music discovery algorithms to better understand user preferences and provide more accurate and diverse recommendations.",
+      "feature_request": "Improve music discovery algorithms to provide more diverse and personalized song suggestions.",
+      "themes": [
+        "Repetitive Recommendations",
+        "Discover Weekly Issues"
+      ],
+      "review_count": 8902,
+      "scores": {
+        "frequency": 0.7517,
+        "severity": 0.8,
+        "segment_impact": 0.999,
+        "sentiment_intensity": 0.1313,
+        "composite": 0.07888
+      },
+      "evidence": {
+        "segment_breakdown": [
+          {
+            "segment": "Discovery Seeker",
+            "count": 8088,
+            "pct": 90.9
+          },
+          {
+            "segment": "Playlist Driven",
+            "count": 797,
+            "pct": 9.0
+          },
+          {
+            "segment": "Casual Listener",
+            "count": 9,
+            "pct": 0.1
+          },
+          {
+            "segment": "Habit Listener",
+            "count": 8,
+            "pct": 0.1
+          }
+        ],
+        "theme_breakdown": [
+          {
+            "theme": "Repetitive Recommendations",
+            "count": 8882,
+            "pct": 99.8
+          },
+          {
+            "theme": "Discover Weekly Issues",
+            "count": 8869,
+            "pct": 99.6
+          },
+          {
+            "theme": "Recommendation Quality",
+            "count": 14,
+            "pct": 0.2
+          },
+          {
+            "theme": "Playlist Fatigue",
+            "count": 12,
+            "pct": 0.1
+          },
+          {
+            "theme": "Search & Discovery UX",
+            "count": 6,
+            "pct": 0.1
+          }
+        ],
+        "representative_quotes": [
+          "Every once in a while there is a new bug",
+          "Not because of the update itself but the way you play the music",
+          "I wish in Daly Mix and Discover Weekly it could give a mixed suggestion"
+        ],
+        "dominant_sentiment": "positive"
+      },
+      "rank": 4,
+      "tier": "High"
+    },
+    {
+      "opportunity_id": "cluster_3",
+      "cluster_id": 3,
+      "pain_point": "Users are dissatisfied with the new widget, citing loss of functionality and poor design.",
+      "product_opportunity": "Spotify's team could improve user satisfaction by offering customizable widget options that cater to different user preferences.",
+      "feature_request": "Revert to the old widget or provide an option to use it alongside the new one.",
+      "themes": [
+        "Recommendation Quality"
+      ],
+      "review_count": 11842,
+      "scores": {
+        "frequency": 1.0,
+        "severity": 0.8,
+        "segment_impact": 0.0635,
+        "sentiment_intensity": 0.1274,
+        "composite": 0.006472
+      },
+      "evidence": {
+        "segment_breakdown": [
+          {
+            "segment": "Casual Listener",
+            "count": 10969,
+            "pct": 92.6
+          },
+          {
+            "segment": "Discovery Seeker",
+            "count": 392,
+            "pct": 3.3
+          },
+          {
+            "segment": "Habit Listener",
+            "count": 348,
+            "pct": 2.9
+          },
+          {
+            "segment": "Heavy Listener",
+            "count": 114,
+            "pct": 1.0
+          },
+          {
+            "segment": "Playlist Driven",
+            "count": 12,
+            "pct": 0.1
+          },
+          {
+            "segment": "Niche Listener",
+            "count": 7,
+            "pct": 0.1
+          }
+        ],
+        "theme_breakdown": [
+          {
+            "theme": "Recommendation Quality",
+            "count": 11835,
+            "pct": 99.9
+          },
+          {
+            "theme": "Repetitive Recommendations",
+            "count": 7,
+            "pct": 0.1
+          },
+          {
+            "theme": "Discover Weekly Issues",
+            "count": 7,
+            "pct": 0.1
+          }
+        ],
+        "representative_quotes": [
+          "I hate the new widget.",
+          "The new widget is awful.",
+          "New widget sucks."
+        ],
+        "dominant_sentiment": "positive"
+      },
+      "rank": 5,
+      "tier": "High"
+    }
+  ],
+  "top_opportunity": {
+    "opportunity_id": "cluster_4",
+    "cluster_id": 4,
+    "pain_point": "Users are frustrated with the app's music discovery features, such as random songs being added to playlists and poor recommendations.",
+    "product_opportunity": "Spotify's team could improve the music discovery experience by introducing more user-controlled features and algorithms that learn from individual listening habits.",
+    "feature_request": "Allow users to customize their home page and quick access tiles to prioritize their favorite playlists and podcasts.",
+    "themes": [
+      "Search & Discovery UX",
+      "Playlist Fatigue"
+    ],
+    "review_count": 11616,
+    "scores": {
+      "frequency": 0.9809,
+      "severity": 1.0,
+      "segment_impact": 0.9999,
+      "sentiment_intensity": 0.181,
+      "composite": 0.177525
+    },
+    "evidence": {
+      "segment_breakdown": [
+        {
+          "segment": "Playlist Driven",
+          "count": 11611,
+          "pct": 100.0
+        },
+        {
+          "segment": "Habit Listener",
+          "count": 3,
+          "pct": 0.0
+        },
+        {
+          "segment": "Discovery Seeker",
+          "count": 1,
+          "pct": 0.0
+        },
+        {
+          "segment": "Casual Listener",
+          "count": 1,
+          "pct": 0.0
+        }
+      ],
+      "theme_breakdown": [
+        {
+          "theme": "Search & Discovery UX",
+          "count": 11610,
+          "pct": 99.9
+        },
+        {
+          "theme": "Playlist Fatigue",
+          "count": 11610,
+          "pct": 99.9
+        },
+        {
+          "theme": "Repetitive Recommendations",
+          "count": 6,
+          "pct": 0.1
+        },
+        {
+          "theme": "Discover Weekly Issues",
+          "count": 1,
+          "pct": 0.0
+        }
+      ],
+      "representative_quotes": [
+        "random artists that I had never heard of before",
+        "slop being added to it",
+        "forces you into shuffle mode"
+      ],
+      "dominant_sentiment": "positive"
+    },
+    "rank": 1,
+    "tier": "Critical"
+  }
+}

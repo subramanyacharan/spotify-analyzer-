@@ -7,9 +7,9 @@ export function isVercel(): boolean {
   return process.env.VERCEL === "1";
 }
 
-/** Local ../data/outputs/*.json fallback — dev only, not on Vercel */
+/** Bundled Phase 3 JSON under frontend/data/outputs — used on Vercel when needed. */
 export function allowLocalDataFallback(): boolean {
-  return !isVercel();
+  return true;
 }
 
 export function isProductionDeploy(): boolean {
