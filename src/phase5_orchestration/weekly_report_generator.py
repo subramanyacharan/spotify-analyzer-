@@ -23,6 +23,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from src.phase1_data_pipeline.supabase_client import get_supabase_client
+from src.phase5_orchestration.weekly_insights_store import payload_review_count
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -113,9 +114,23 @@ def load_phase3_payloads(
         themes = {}
 
     def pick(key: str, filename: str) -> Dict[str, Any]:
-        if key in themes and themes[key]:
-            return themes[key]
         local = _load_local_json(filename)
+        from_db = themes.get(key) if themes.get(key) else None
+
+        if from_db and local:
+            db_count = payload_review_count(from_db)
+            local_count = payload_review_count(local)
+            if db_count > local_count * 1.15 and local_count > 0:
+                logger.warning(
+                    "Using local %s (%s reviews) — Supabase row has inflated count %s.",
+                    filename,
+                    f"{local_count:,}",
+                    f"{db_count:,}",
+                )
+                return local
+
+        if from_db:
+            return from_db
         return local or {}
 
     return {

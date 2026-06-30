@@ -3,8 +3,6 @@ import { isProductionConfigured } from "@/lib/deploy/deployment";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import {
   fetchWeeklySnapshotMeta,
-  hasRequiredPhase3Keys,
-  fetchMergedTopThemes,
 } from "@/lib/data/weekly-insights-merge";
 
 export async function GET() {
@@ -12,8 +10,6 @@ export async function GET() {
 
   try {
     const snapshotMeta = await fetchWeeklySnapshotMeta();
-    const themes = await fetchMergedTopThemes();
-    const prioritization = themes.insight_prioritization as Record<string, unknown> | undefined;
 
     return NextResponse.json(
       {
@@ -21,8 +17,8 @@ export async function GET() {
         configured: isProductionConfigured(),
         hasSupabaseClient: Boolean(client),
         snapshot: snapshotMeta,
-        totalReviewsAnalyzed: prioritization?.total_reviews_analyzed ?? null,
-        dataReady: hasRequiredPhase3Keys(themes),
+        totalReviewsAnalyzed: snapshotMeta.corpusReviewCount || null,
+        dataReady: snapshotMeta.hasRequiredKeys && snapshotMeta.corpusReviewCount > 0,
         timestamp: new Date().toISOString(),
       },
       { headers: { "Cache-Control": "no-store" } }

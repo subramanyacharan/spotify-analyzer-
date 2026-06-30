@@ -1,5 +1,6 @@
 import type { InsightsData } from "../insights/catalog";
 import {
+  corpusSourcesFromThemes,
   fetchCanonicalCorpusReviewCount,
   fetchMergedTopThemes,
   pickPayload,
@@ -11,12 +12,10 @@ export async function getInsightsData(): Promise<InsightsData> {
   try {
     const merged = await fetchMergedTopThemes();
     const payload = pickPayload(merged, "problem_statement_insights");
-    const prioritization = pickPayload(merged, "insight_prioritization");
-    const weeklyReport = pickPayload(merged, "weekly_report");
+    const sources = corpusSourcesFromThemes(merged);
 
     if (payload?.answers) {
-      const sources = { problemStatement: payload, prioritization, weeklyReport };
-      const data = parseInsightsPayload(payload, "supabase", prioritization);
+      const data = parseInsightsPayload(payload, "supabase", sources.prioritization);
       data.totalReviews = await fetchCanonicalCorpusReviewCount(sources);
       data.generatedAt = await resolveDashboardGeneratedAt(sources);
       return data;

@@ -152,6 +152,19 @@ def default_analysis_filters() -> QueryFilters:
     return QueryFilters(date_start=cutoff)
 
 
+def resolve_query_filters(filters: Optional[QueryFilters] = None) -> QueryFilters:
+    """
+    Always scope Phase 3 analysis to the 90-day window unless explicit dates are set.
+
+    Empty QueryFilters() from CLI reruns must not load the full processed_reviews corpus.
+    """
+    if filters is None:
+        return default_analysis_filters()
+    if filters.date_start is None and filters.date_end is None:
+        return default_analysis_filters()
+    return filters
+
+
 @dataclass
 class ReviewRecord:
     id: str
@@ -259,7 +272,7 @@ def _load_raw_metadata(
 
 def load_filtered_reviews(filters: Optional[QueryFilters] = None) -> List[ReviewRecord]:
     """Load processed reviews enriched with raw metadata, applying filters."""
-    filters = filters if filters is not None else default_analysis_filters()
+    filters = resolve_query_filters(filters)
     client = get_supabase_client()
     if not client:
         raise RuntimeError("Could not connect to Supabase.")
@@ -585,7 +598,7 @@ def answer_question(
 
 def run_all_queries(filters: Optional[QueryFilters] = None) -> Dict[str, Any]:
     """Answer all six core problem-statement questions."""
-    filters = filters if filters is not None else default_analysis_filters()
+    filters = resolve_query_filters(filters)
     records = load_filtered_reviews(filters)
     cluster_insights = load_cluster_insights()
 
@@ -615,24 +628,20 @@ def save_results(results: Dict[str, Any], output_path: str = DEFAULT_OUTPUT_FILE
 
 
 def save_to_weekly_insights(results: Dict[str, Any]) -> bool:
-    """Persist a snapshot into Supabase weekly_insights.top_themes."""
+    """Merge problem-statement insights into the current week's weekly_insights row."""
+    from src.phase5_orchestration.weekly_insights_store import merge_top_themes_for_week
+
     client = get_supabase_client()
     if not client:
         return False
 
-    today = datetime.now(timezone.utc).date()
-    week_start = today - timedelta(days=today.weekday())
-    week_end = week_start + timedelta(days=6)
-
-    payload = {
-        "week_start": week_start.isoformat(),
-        "week_end": week_end.isoformat(),
-        "top_themes": {"problem_statement_insights": results},
-        "pulse_report_md": _build_markdown_report(results),
-    }
-
     try:
-        client.table("weekly_insights").insert(payload).execute()
+        merge_top_themes_for_week(
+            client,
+            "problem_statement_insights",
+            results,
+            _build_markdown_report(results),
+        )
         logger.info("Saved problem-statement snapshot to weekly_insights.")
         return True
     except Exception as exc:

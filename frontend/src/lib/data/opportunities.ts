@@ -1,5 +1,6 @@
 import type { OpportunitiesData } from "../opportunities/types";
 import {
+  corpusSourcesFromThemes,
   fetchCanonicalCorpusReviewCount,
   fetchMergedTopThemes,
   pickPayload,
@@ -11,12 +12,10 @@ export async function getOpportunitiesData(): Promise<OpportunitiesData> {
   try {
     const merged = await fetchMergedTopThemes();
     const payload = pickPayload(merged, "opportunity_scores");
-    const prioritization = pickPayload(merged, "insight_prioritization");
-    const weeklyReport = pickPayload(merged, "weekly_report");
+    const sources = corpusSourcesFromThemes(merged);
 
     if (payload?.opportunities) {
-      const sources = { opportunities: payload, prioritization, weeklyReport };
-      const data = parseOpportunitiesPayload(payload, "supabase", prioritization);
+      const data = parseOpportunitiesPayload(payload, "supabase", sources.prioritization);
       data.totalReviews = await fetchCanonicalCorpusReviewCount(sources);
       data.generatedAt = await resolveDashboardGeneratedAt(sources);
       return data;

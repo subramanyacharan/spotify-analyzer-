@@ -2,7 +2,9 @@ from src.phase3_knowledge.problem_statement_engine import (
     QueryFilters,
     _select_relevant_reviews,
     _theme_matches,
+    default_analysis_filters,
     normalize_behavioral_segment,
+    resolve_query_filters,
     CORE_QUESTIONS,
     ReviewRecord,
 )
@@ -27,6 +29,12 @@ def test_normalize_discovery_seeker_from_text():
 def test_theme_matches_keywords():
     assert _theme_matches(["repetitive"], ["Repetitive Recommendations"], "")
     assert not _theme_matches(["discover"], ["Billing Issues"], "great app")
+
+
+def test_resolve_query_filters_defaults_empty_to_90_day_window():
+    resolved = resolve_query_filters(QueryFilters())
+    default = default_analysis_filters()
+    assert resolved.date_start == default.date_start
 
 
 def test_select_relevant_reviews_for_repetitive_question():

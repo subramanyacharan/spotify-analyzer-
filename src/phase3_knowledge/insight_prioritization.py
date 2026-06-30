@@ -45,6 +45,7 @@ from src.phase3_knowledge.problem_statement_engine import (
     ReviewRecord,
     load_cluster_insights,
     load_filtered_reviews,
+    resolve_query_filters,
 )
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -454,6 +455,7 @@ def build_product_recommendations(
 
 def run_insight_prioritization(filters: Optional[QueryFilters] = None) -> Dict[str, Any]:
     """Build the full Phase 3.4 prioritization bundle."""
+    filters = resolve_query_filters(filters)
     records = load_filtered_reviews(filters)
     cluster_insights = load_cluster_insights()
 
@@ -473,7 +475,7 @@ def run_insight_prioritization(filters: Optional[QueryFilters] = None) -> Dict[s
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "filters": {
             k: v
-            for k, v in (filters or QueryFilters()).__dict__.items()
+            for k, v in filters.__dict__.items()
             if v is not None
         },
         "total_reviews_analyzed": len(records),
@@ -532,13 +534,13 @@ def _build_markdown_report(results: Dict[str, Any]) -> str:
 
 
 def save_to_weekly_insights(results: Dict[str, Any]) -> bool:
-    from src.phase3_knowledge.opportunity_scoring import _merge_top_themes
+    from src.phase5_orchestration.weekly_insights_store import merge_top_themes_for_week
 
     client = get_supabase_client()
     if not client:
         return False
     try:
-        _merge_top_themes(
+        merge_top_themes_for_week(
             client,
             "insight_prioritization",
             results,

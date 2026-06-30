@@ -39,6 +39,7 @@ from src.phase3_knowledge.problem_statement_engine import (
     ReviewRecord,
     load_cluster_insights,
     load_filtered_reviews,
+    resolve_query_filters,
 )
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -343,6 +344,7 @@ def build_segment_comparison(all_reviews: List[ReviewRecord]) -> Dict[str, Any]:
 
 def run_segment_deep_dives(filters: Optional[QueryFilters] = None) -> Dict[str, Any]:
     """Generate profiles for all six behavioral segments plus cross-segment comparison."""
+    filters = resolve_query_filters(filters)
     records = load_filtered_reviews(filters)
     cluster_insights = load_cluster_insights()
 
@@ -356,7 +358,7 @@ def run_segment_deep_dives(filters: Optional[QueryFilters] = None) -> Dict[str, 
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "filters": {
             k: v
-            for k, v in (filters or QueryFilters()).__dict__.items()
+            for k, v in filters.__dict__.items()
             if v is not None
         },
         "total_reviews_analyzed": len(records),
@@ -422,47 +424,20 @@ def _build_markdown_report(results: Dict[str, Any]) -> str:
 
 
 def save_to_weekly_insights(results: Dict[str, Any]) -> bool:
-    """Merge segment deep-dives into the latest weekly_insights row or insert new."""
+    """Merge segment deep-dives into the current week's weekly_insights row."""
+    from src.phase5_orchestration.weekly_insights_store import merge_top_themes_for_week
+
     client = get_supabase_client()
     if not client:
         return False
 
-    today = datetime.now(timezone.utc).date()
-    week_start = today - timedelta(days=today.weekday())
-    week_end = week_start + timedelta(days=6)
-    md = _build_markdown_report(results)
-
     try:
-        existing = (
-            client.table("weekly_insights")
-            .select("id, top_themes, pulse_report_md")
-            .eq("week_start", week_start.isoformat())
-            .limit(1)
-            .execute()
+        merge_top_themes_for_week(
+            client,
+            "segment_deep_dives",
+            results,
+            _build_markdown_report(results),
         )
-        if existing.data:
-            row = existing.data[0]
-            top_themes = row.get("top_themes") or {}
-            if isinstance(top_themes, str):
-                top_themes = json.loads(top_themes)
-            if isinstance(top_themes, list):
-                top_themes = {"legacy_top_themes": top_themes}
-            if not isinstance(top_themes, dict):
-                top_themes = {}
-            top_themes["segment_deep_dives"] = results
-            combined_md = (row.get("pulse_report_md") or "") + "\n\n---\n\n" + md
-            client.table("weekly_insights").update(
-                {"top_themes": top_themes, "pulse_report_md": combined_md}
-            ).eq("id", row["id"]).execute()
-        else:
-            client.table("weekly_insights").insert(
-                {
-                    "week_start": week_start.isoformat(),
-                    "week_end": week_end.isoformat(),
-                    "top_themes": {"segment_deep_dives": results},
-                    "pulse_report_md": md,
-                }
-            ).execute()
         logger.info("Saved segment deep-dives to weekly_insights.")
         return True
     except Exception as exc:

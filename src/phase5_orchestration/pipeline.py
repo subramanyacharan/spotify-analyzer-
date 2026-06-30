@@ -32,7 +32,10 @@ from src.phase2_analysis.theme_classification import run_theme_classification_v2
 from src.phase2_analysis.user_segment_detection import run_user_segment_detection
 from src.phase3_knowledge.insight_prioritization import run_insight_prioritization_engine
 from src.phase3_knowledge.opportunity_scoring import run_opportunity_scoring_engine
-from src.phase3_knowledge.problem_statement_engine import run_problem_statement_engine
+from src.phase3_knowledge.problem_statement_engine import (
+    default_analysis_filters,
+    run_problem_statement_engine,
+)
 from src.phase3_knowledge.segment_deep_dive import run_segment_deep_dive_engine
 from src.phase5_orchestration.checkpoint import (
     DEFAULT_CHECKPOINT_PATH,
@@ -172,20 +175,36 @@ def _run_phase2_cluster_insights(config: PipelineConfig) -> Dict[str, Any]:
     return run_cluster_insight_generation()
 
 
+def _phase3_filters(_config: PipelineConfig):
+    return default_analysis_filters()
+
+
 def _run_phase3_problem(config: PipelineConfig) -> Dict[str, Any]:
-    return run_problem_statement_engine(save_supabase=config.save_supabase)
+    return run_problem_statement_engine(
+        filters=_phase3_filters(config),
+        save_supabase=config.save_supabase,
+    )
 
 
 def _run_phase3_deep_dive(config: PipelineConfig) -> Dict[str, Any]:
-    return run_segment_deep_dive_engine(save_supabase=config.save_supabase)
+    return run_segment_deep_dive_engine(
+        filters=_phase3_filters(config),
+        save_supabase=config.save_supabase,
+    )
 
 
 def _run_phase3_opportunities(config: PipelineConfig) -> Dict[str, Any]:
-    return run_opportunity_scoring_engine(save_supabase=config.save_supabase)
+    return run_opportunity_scoring_engine(
+        filters=_phase3_filters(config),
+        save_supabase=config.save_supabase,
+    )
 
 
 def _run_phase3_prioritization(config: PipelineConfig) -> Dict[str, Any]:
-    return run_insight_prioritization_engine(save_supabase=config.save_supabase)
+    return run_insight_prioritization_engine(
+        filters=_phase3_filters(config),
+        save_supabase=config.save_supabase,
+    )
 
 
 def _run_phase4_snapshots(config: PipelineConfig) -> Dict[str, Any]:

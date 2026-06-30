@@ -1,5 +1,6 @@
 import type { SegmentsData } from "../analytics/types";
 import {
+  corpusSourcesFromThemes,
   fetchCanonicalCorpusReviewCount,
   fetchMergedTopThemes,
   pickPayload,
@@ -11,12 +12,14 @@ export async function getSegmentsData(): Promise<SegmentsData> {
   try {
     const merged = await fetchMergedTopThemes();
     const segmentDeepDives = pickPayload(merged, "segment_deep_dives");
-    const prioritization = pickPayload(merged, "insight_prioritization");
-    const weeklyReport = pickPayload(merged, "weekly_report");
+    const sources = corpusSourcesFromThemes(merged);
 
     if (segmentDeepDives?.segment_profiles) {
-      const sources = { segmentDeepDives, prioritization, weeklyReport };
-      const data = parseSegmentsPayload(segmentDeepDives, prioritization ?? null, "supabase");
+      const data = parseSegmentsPayload(
+        segmentDeepDives,
+        sources.prioritization ?? null,
+        "supabase"
+      );
       data.totalReviews = await fetchCanonicalCorpusReviewCount(sources);
       data.generatedAt = await resolveDashboardGeneratedAt(sources);
       return data;

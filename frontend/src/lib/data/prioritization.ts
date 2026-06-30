@@ -1,5 +1,6 @@
 import type { PrioritizationData } from "../opportunities/types";
 import {
+  corpusSourcesFromThemes,
   fetchCanonicalCorpusReviewCount,
   fetchMergedTopThemes,
   pickPayload,
@@ -14,10 +15,9 @@ export async function getPrioritizationData(): Promise<PrioritizationData> {
   try {
     const merged = await fetchMergedTopThemes();
     const payload = pickPayload(merged, "insight_prioritization");
-    const weeklyReport = pickPayload(merged, "weekly_report");
+    const sources = corpusSourcesFromThemes(merged);
 
     if (payload?.prioritization_matrix) {
-      const sources = { prioritization: payload, weeklyReport };
       const data = parsePrioritizationPayload(payload, "supabase");
       data.totalReviews = await fetchCanonicalCorpusReviewCount(sources);
       data.generatedAt = await resolveDashboardGeneratedAt(sources);

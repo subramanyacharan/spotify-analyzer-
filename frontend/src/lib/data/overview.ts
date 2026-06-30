@@ -1,42 +1,20 @@
 import type { OverviewData, SegmentationLens, SegmentFriction } from "../types";
 import { filterQuotes, sanitizePainPoint, sanitizeRecommendation } from "../copy/sanitize";
 import { prepareThemesForDisplay } from "../copy/theme-display";
-import { getCorpusMetrics } from "./corpus-metrics";
+import { getCorpusMetricsForWindow, resolveCorpusReviewCount } from "./corpus-metrics";
 import {
+  corpusSourcesFromThemes,
   fetchCanonicalCorpusReviewCount,
   fetchMergedTopThemes,
   resolveDashboardGeneratedAt,
 } from "./weekly-insights-merge";
 import { loadOverviewFromLocal } from "./local-fallback";
 
-function parseWeeklySnapshot(topThemes: unknown): {
-  prioritization: Record<string, unknown> | null;
-  problemStatement: Record<string, unknown> | null;
-  opportunities: Record<string, unknown> | null;
-  weeklyReport: Record<string, unknown> | null;
-} {
-  if (!topThemes || typeof topThemes !== "object") {
-    return {
-      prioritization: null,
-      problemStatement: null,
-      opportunities: null,
-      weeklyReport: null,
-    };
-  }
-  const t = topThemes as Record<string, unknown>;
-  return {
-    prioritization: (t.insight_prioritization as Record<string, unknown>) ?? null,
-    problemStatement:
-      (t.problem_statement_insights as Record<string, unknown>) ?? null,
-    opportunities: (t.opportunity_scores as Record<string, unknown>) ?? null,
-    weeklyReport: (t.weekly_report as Record<string, unknown>) ?? null,
-  };
-}
-
 function buildFromSnapshots(
   prioritization: Record<string, unknown>,
   problemStatement: Record<string, unknown> | null,
-  opportunities: Record<string, unknown> | null
+  opportunities: Record<string, unknown> | null,
+  corpusTotal: number
 ): OverviewData {
   const frictionScores = (prioritization.segment_friction_scores ?? []) as Array<{
     segment: string;
@@ -54,7 +32,7 @@ function buildFromSnapshots(
     ? [...frictionScores].sort((a, b) => b.friction_score - a.friction_score)[0]
     : null;
 
-  const corpus = getCorpusMetrics(problemStatement);
+  const corpus = getCorpusMetricsForWindow(problemStatement, corpusTotal);
   const sentiment = corpus?.sentiment_breakdown ?? {
     positive: 0,
     neutral: 0,
@@ -166,12 +144,17 @@ function buildFromSnapshots(
 export async function getOverviewData(): Promise<OverviewData> {
   try {
     const merged = await fetchMergedTopThemes();
-    const { prioritization, problemStatement, opportunities, weeklyReport } =
-      parseWeeklySnapshot(merged);
+    const sources = corpusSourcesFromThemes(merged);
+    const prioritization = sources.prioritization;
 
     if (prioritization) {
-      const sources = { prioritization, problemStatement, opportunities, weeklyReport };
-      const overview = buildFromSnapshots(prioritization, problemStatement, opportunities);
+      const corpusTotal = resolveCorpusReviewCount(sources);
+      const overview = buildFromSnapshots(
+        prioritization,
+        sources.problemStatement ?? null,
+        sources.opportunities ?? null,
+        corpusTotal
+      );
       overview.totalReviews = await fetchCanonicalCorpusReviewCount(sources);
       overview.generatedAt = await resolveDashboardGeneratedAt(sources);
       return overview;

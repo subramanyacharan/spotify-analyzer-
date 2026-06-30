@@ -20,6 +20,7 @@ export type CorpusPayloadSources = {
   segmentDeepDives?: Record<string, unknown> | null;
   opportunities?: Record<string, unknown> | null;
   weeklyReport?: Record<string, unknown> | null;
+  dashboardSnapshot?: Record<string, unknown> | null;
   fallback?: number;
 };
 
@@ -43,15 +44,18 @@ export function getCorpusMetrics(problemStatement: Record<string, unknown> | nul
   return getCorpusAnswer(problemStatement)?.supporting_metrics ?? null;
 }
 
-/** Snapshot-only review count from Phase 3 JSON — used for local/offline fallback. Live dashboards use fetchCanonicalCorpusReviewCount. */
+/**
+ * Authoritative 90-day corpus count from Phase 3 weekly outputs.
+ * weekly_report / dashboard_snapshot first — never problem_statement top-level totals
+ * (partial runs can reflect full DB corpus ~152k).
+ */
 export function resolveCorpusReviewCount(sources: CorpusPayloadSources): number {
   const candidates = [
+    sources.weeklyReport?.total_reviews_analyzed,
+    sources.dashboardSnapshot?.total_reviews_analyzed,
     sources.prioritization?.total_reviews_analyzed,
-    sources.problemStatement?.total_reviews_analyzed,
     sources.segmentDeepDives?.total_reviews_analyzed,
     sources.opportunities?.total_reviews_analyzed,
-    sources.weeklyReport?.total_reviews_analyzed,
-    getCorpusMetrics(sources.problemStatement)?.review_count,
     sources.fallback,
   ];
 
@@ -60,4 +64,17 @@ export function resolveCorpusReviewCount(sources: CorpusPayloadSources): number 
     if (Number.isFinite(n) && n > 0) return n;
   }
   return 0;
+}
+
+/** Problem-statement metrics scoped to the same corpus count when possible. */
+export function getCorpusMetricsForWindow(
+  problemStatement: Record<string, unknown> | null | undefined,
+  corpusTotal: number
+): ReturnType<typeof getCorpusMetrics> {
+  const metrics = getCorpusMetrics(problemStatement);
+  if (!metrics || !corpusTotal) return metrics;
+
+  const answerCount = metrics.review_count ?? 0;
+  if (answerCount > 0 && answerCount <= corpusTotal * 1.05) return metrics;
+  return null;
 }

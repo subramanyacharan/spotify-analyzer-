@@ -33,6 +33,7 @@ from src.phase3_knowledge.problem_statement_engine import (
     ReviewRecord,
     load_cluster_insights,
     load_filtered_reviews,
+    resolve_query_filters,
 )
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -235,6 +236,7 @@ def build_opportunity_candidates(
 
 def run_opportunity_scoring(filters: Optional[QueryFilters] = None) -> Dict[str, Any]:
     """Score and rank all cluster-seeded product opportunities."""
+    filters = resolve_query_filters(filters)
     records = load_filtered_reviews(filters)
     cluster_insights = load_cluster_insights()
     opportunities = build_opportunity_candidates(records, cluster_insights)
@@ -243,7 +245,7 @@ def run_opportunity_scoring(filters: Optional[QueryFilters] = None) -> Dict[str,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "filters": {
             k: v
-            for k, v in (filters or QueryFilters()).__dict__.items()
+            for k, v in filters.__dict__.items()
             if v is not None
         },
         "total_reviews_analyzed": len(records),
@@ -286,50 +288,14 @@ def _build_markdown_report(results: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def _merge_top_themes(client: Any, key: str, payload: Dict[str, Any], md: str) -> bool:
-    today = datetime.now(timezone.utc).date()
-    week_start = today - timedelta(days=today.weekday())
-    week_end = week_start + timedelta(days=6)
-
-    existing = (
-        client.table("weekly_insights")
-        .select("id, top_themes, pulse_report_md")
-        .eq("week_start", week_start.isoformat())
-        .limit(1)
-        .execute()
-    )
-    if existing.data:
-        row = existing.data[0]
-        top_themes = row.get("top_themes") or {}
-        if isinstance(top_themes, str):
-            top_themes = json.loads(top_themes)
-        if isinstance(top_themes, list):
-            top_themes = {"legacy_top_themes": top_themes}
-        if not isinstance(top_themes, dict):
-            top_themes = {}
-        top_themes[key] = payload
-        combined_md = (row.get("pulse_report_md") or "") + "\n\n---\n\n" + md
-        client.table("weekly_insights").update(
-            {"top_themes": top_themes, "pulse_report_md": combined_md}
-        ).eq("id", row["id"]).execute()
-    else:
-        client.table("weekly_insights").insert(
-            {
-                "week_start": week_start.isoformat(),
-                "week_end": week_end.isoformat(),
-                "top_themes": {key: payload},
-                "pulse_report_md": md,
-            }
-        ).execute()
-    return True
-
-
 def save_to_weekly_insights(results: Dict[str, Any]) -> bool:
+    from src.phase5_orchestration.weekly_insights_store import merge_top_themes_for_week
+
     client = get_supabase_client()
     if not client:
         return False
     try:
-        _merge_top_themes(
+        merge_top_themes_for_week(
             client,
             "opportunity_scores",
             results,

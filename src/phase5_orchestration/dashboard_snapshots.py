@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from src.phase1_data_pipeline.supabase_client import get_supabase_client
-from src.phase3_knowledge.opportunity_scoring import _merge_top_themes
+from src.phase5_orchestration.weekly_insights_store import merge_top_themes_for_week
 from src.phase5_orchestration.weekly_report_generator import (
     BUSINESS_MAP,
     ENGAGEMENT_TIERS,
@@ -199,7 +199,7 @@ def run_dashboard_snapshots(
             f"- Reviews analyzed: {snapshot['total_reviews_analyzed']:,}\n"
             f"- Confidence: {snapshot['confidence_metadata'].get('overall')}\n"
         )
-        _merge_top_themes(client, "dashboard_snapshot", snapshot, md)
+        merge_top_themes_for_week(client, "dashboard_snapshot", snapshot, md)
         logger.info("Merged dashboard snapshot into weekly_insights.top_themes.")
 
     return snapshot
