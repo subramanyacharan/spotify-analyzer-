@@ -25,12 +25,6 @@ export const KPI_LABELS = {
   priorityOpportunity: "Priority opportunity",
 } as const;
 
-export const TIER_LABELS = {
-  Critical: "Critical",
-  High: "High",
-  Monitor: "Monitor",
-} as const;
-
 export const DATA_FRESHNESS = (source: "supabase" | "local", date?: string) =>
   date
     ? `Updated ${new Date(date).toLocaleDateString(undefined, { dateStyle: "medium" })} · ${source === "supabase" ? "Live data" : "Snapshot"}`

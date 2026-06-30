@@ -211,5 +211,3 @@ function mergeTierSummary(weeks: WeekSnapshot[]): Record<string, number> {
   }
   return out;
 }
-
-export { mergeSentiment, mergeThemes };

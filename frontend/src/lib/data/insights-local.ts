@@ -1,7 +1,7 @@
 import type { InsightAnswer, InsightsData, InsightTopicId } from "../insights/catalog";
 import { getTopicMeta } from "../insights/catalog";
 import { filterQuotes, sanitizeInsightSummary, sanitizePainPoint } from "../copy/sanitize";
-import { filterThemesForDisplay, displayThemeName } from "../copy/theme-display";
+import { prepareThemesForDisplay, displayThemeName } from "../copy/theme-display";
 import { resolveCorpusReviewCount } from "./corpus-metrics";
 import { readLocalOutputJson } from "./read-local-json";
 
@@ -28,7 +28,7 @@ function normalizeAnswer(raw: Record<string, unknown>): InsightAnswer | null {
       negative: sentiment.negative ?? 0,
       negativePct: sentiment.negative_pct ?? 0,
     },
-    topThemes: filterThemesForDisplay(
+    topThemes: prepareThemesForDisplay(
       ((metrics.top_themes as InsightAnswer["topThemes"]) ?? []).map((t) => ({
         ...t,
         theme: displayThemeName(t.theme),

@@ -5,7 +5,7 @@ import type {
   SegmentsData,
 } from "../analytics/types";
 import { sanitizePainPoint, filterQuotes } from "../copy/sanitize";
-import { filterThemesForDisplay } from "../copy/theme-display";
+import { prepareThemesForDisplay } from "../copy/theme-display";
 import { resolveCorpusReviewCount } from "./corpus-metrics";
 import { readLocalOutputJson } from "./read-local-json";
 
@@ -47,7 +47,7 @@ function normalizeBehaviorProfile(raw: Record<string, unknown>): SegmentProfile 
     negativePct: sentiment.negative_pct ?? 0,
     frictionScore: (sentiment.negative_pct ?? 0) / 100,
     avgClusterSeverity: (raw.avg_cluster_severity as number) ?? 0,
-    topThemes: filterThemesForDisplay(
+    topThemes: prepareThemesForDisplay(
       (raw.top_themes ?? []) as SegmentProfile["topThemes"]
     ),
     topPainPoints: ((raw.top_pain_points ?? []) as Array<Record<string, unknown>>).map(

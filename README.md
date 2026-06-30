@@ -10,8 +10,8 @@ GRAD PROJ/
 ├── frontend/                      # Phase 4 — Next.js dashboard (Vercel)
 │   └── src/
 │       ├── app/                   # Routes (overview, insights, auth, …)
-│       ├── components/            # UI, filters, auth, analytics
-│       ├── lib/                   # Data layer, Supabase, filters, auth
+│       ├── components/            # UI, auth, analytics
+│       ├── lib/                   # Data layer, Supabase, auth
 │       └── proxy.ts               # Session + route protection (Next.js 16)
 ├── scripts/                       # Phase 2–3 pipeline runners
 │   ├── run_embedding_clustering.py
@@ -32,7 +32,6 @@ GRAD PROJ/
 │   ├── phase1_data_pipeline/      # Ingestion, cleaning, PII, dedup
 │   ├── phase2_analysis/           # Embeddings, themes, sentiment, segments, LLM
 │   ├── phase3_knowledge/          # Problem engine, deep-dive, scoring, prioritization
-│   ├── phase4_output/             # Placeholder (dashboard lives in frontend/)
 │   └── phase5_orchestration/      # Weekly report, pipeline, health, scheduling
 ├── supabase/
 │   └── auth_profiles.sql          # Dashboard auth (Phase 4.10.1)

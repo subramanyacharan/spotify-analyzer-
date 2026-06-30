@@ -16,7 +16,7 @@ import type {
 import { getSupabaseServerClient } from "../supabase/server";
 import { readLocalOutputJson } from "./read-local-json";
 import { fetchMergedTopThemes, fetchProcessedReviewCount, normalizeTopThemes, pickPayload, resolveAnalysisAnchorDate } from "./weekly-insights-merge";
-import { filterThemesForDisplay } from "../copy/theme-display";
+import { prepareThemesForDisplay } from "../copy/theme-display";
 import { resolveCorpusReviewCount } from "./corpus-metrics";
 
 function weekEndFromStart(weekStart: string): string {
@@ -78,7 +78,7 @@ function parseTopThemesFromPayload(topThemes: unknown): {
     negativePct: sb.negative_pct ?? 0,
   };
 
-  const themes = filterThemesForDisplay(
+  const themes = prepareThemesForDisplay(
     (metrics.top_themes ?? []) as WeekThemeCount[],
     8
   );
@@ -160,7 +160,6 @@ function snapshotFromSupabaseRow(
     segmentFriction: parsed.segmentFriction,
     topPainPoints: parsed.topPainPoints,
     tierSummary: parsed.tierSummary,
-    pulseReportMd: (row.pulse_report_md as string) ?? "",
     source: "supabase",
   };
 }
@@ -179,7 +178,7 @@ function overlayComputedWeek(
   const bucket = computed.get(snapshot.weekStart);
   if (!bucket) return snapshot;
 
-  const topThemes = filterThemesForDisplay(
+  const topThemes = prepareThemesForDisplay(
     Array.from(bucket.themes.entries())
       .map(([theme, count]) => ({ theme, count }))
       .sort((a, b) => b.count - a.count),
@@ -368,7 +367,7 @@ function buildComputedSnapshots(
 
   return sorted.map(([weekStart, data], i) => {
     const weekNumber = startWeekNumber + i;
-    const topThemes = filterThemesForDisplay(
+    const topThemes = prepareThemesForDisplay(
       Array.from(data.themes.entries())
         .map(([theme, count]) => ({ theme, count }))
         .sort((a, b) => b.count - a.count),
@@ -395,7 +394,6 @@ function buildComputedSnapshots(
         frequency: Math.round(p.frequency * Math.min(scale, 1)),
       })),
       tierSummary: fallback.tierSummary,
-      pulseReportMd: `## Weekly computed report\n\nReviews: ${data.count.toLocaleString()}\nNegative: ${data.sentiment.negativePct.toFixed(1)}%`,
       source: "computed",
     };
   });
@@ -452,7 +450,6 @@ function synthesizeWeeksFromFallback(
         frequency: Math.round(p.frequency / count),
       })),
       tierSummary: fallback.tierSummary,
-      pulseReportMd: `# Weekly Report (Week ${weekNumber})\n\nEstimated snapshot from corpus data.`,
       source: "computed",
     });
   }
@@ -478,7 +475,7 @@ export async function getWeeklyReportsCatalog(): Promise<WeeklyReportsCatalog> {
     try {
       const { data: rows } = await client
         .from("weekly_insights")
-        .select("week_start, week_end, top_themes, pulse_report_md, created_at")
+        .select("week_start, week_end, top_themes, created_at")
         .gte("week_start", windowStart)
         .lte("week_start", windowEnd)
         .order("week_start", { ascending: true });

@@ -39,7 +39,6 @@ export interface WeekSnapshot {
   segmentFriction: WeekSegmentFriction[];
   topPainPoints: { painPoint: string; frequency: number; avgSeverity: number }[];
   tierSummary: Record<string, number>;
-  pulseReportMd: string;
   source: "supabase" | "computed" | "mixed";
 }
 

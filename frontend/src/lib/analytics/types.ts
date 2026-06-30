@@ -97,19 +97,3 @@ export interface SegmentsData {
   }[];
   dataSource: "supabase" | "local";
 }
-
-export const LENS_LABELS: Record<SegmentationLens, string> = {
-  business: "Business",
-  engagement: "Engagement",
-  behavior: "Behavioral",
-  context: "Context",
-  pain: "Pain Point",
-};
-
-export const LENS_DESCRIPTIONS: Record<SegmentationLens, string> = {
-  business: "Subscription and user-type relationship",
-  engagement: "Activity and listening intensity",
-  behavior: "Discovery listening intent patterns",
-  context: "Platform source and situational context",
-  pain: "Complaint severity and recurring themes",
-};

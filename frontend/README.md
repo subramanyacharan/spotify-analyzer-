@@ -70,8 +70,8 @@ GET https://your-app.vercel.app/api/health
 
 - `configured: false` — missing env vars in Vercel
 - Sign up at `/signup`, then open `/overview`
-- **Export Data** (TopBar) calls authenticated `GET /api/export` (raw JSON bundle)
 - **Export Report** (TopBar) calls authenticated `GET /api/export/report` and downloads a nine-section PDF for the 90-day analysis window — see [../DOCS/pdf-report.md](../DOCS/pdf-report.md)
+- **Integration API:** `GET /api/export` returns raw Phase 3 JSON (no TopBar button)
 
 ### 6. Ongoing deploys
 
@@ -89,8 +89,9 @@ GET https://your-app.vercel.app/api/health
 | `/insights`, `/insights/analytics` | Problem insights & analytics |
 | `/segments`, `/deep-dive` | Segments & deep-dive |
 | `/opportunities`, `/opportunities/actions` | Opportunities & prioritization |
-| `/reports` | Weekly reports |
 | `/login`, `/signup`, `/forgot-password` | Auth |
+
+Legacy URLs `/reports`, `/weekly-reports`, and `/dashboard` redirect to `/overview`.
 
 ## Local development
 

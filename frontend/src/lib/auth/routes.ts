@@ -29,12 +29,6 @@ export function isProtectedPath(pathname: string): boolean {
   );
 }
 
-export function isAuthPath(pathname: string): boolean {
-  return AUTH_ROUTES.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`)
-  );
-}
-
 export function isGuestOnlyPath(pathname: string): boolean {
   return GUEST_ONLY_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
@@ -50,13 +44,4 @@ export function isPublicApiPath(pathname: string): boolean {
 
 export function isProtectedApiPath(pathname: string): boolean {
   return pathname.startsWith("/api/") && !isPublicApiPath(pathname);
-}
-
-export function isPublicPath(pathname: string): boolean {
-  return (
-    pathname.startsWith("/auth/") ||
-    pathname === "/" ||
-    pathname.startsWith("/_next") ||
-    isPublicApiPath(pathname)
-  );
 }
