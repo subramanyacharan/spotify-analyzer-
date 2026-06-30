@@ -5,6 +5,7 @@ import {
   filterThemeNames,
 } from "../copy/theme-display";
 import { replaceLegacyThemeText } from "../copy/theme-display";
+import { completeInsightSentence } from "../copy/sanitize";
 import { resolveCorpusReviewCount } from "../data/corpus-metrics";
 import type { MergedWeeklyReport } from "./types";
 
@@ -146,7 +147,7 @@ function round(n: number, d = 2): number {
 /** Preserve analyzer wording; only normalize legacy theme labels. */
 function analyzerText(text: string): string {
   if (!text?.trim()) return "";
-  return replaceLegacyThemeText(text.trim());
+  return completeInsightSentence(replaceLegacyThemeText(text.trim()));
 }
 
 export type ExportReportOptions = {
@@ -174,7 +175,7 @@ function shortPainLabel(painPoint: string): string {
   }
   if (/widget/.test(lower)) return "Widget functionality";
   if (/search/.test(lower)) return "Search and discovery UX";
-  return painPoint.length > 72 ? `${painPoint.slice(0, 70)}…` : painPoint;
+  return completeInsightSentence(painPoint);
 }
 
 function intentLabel(dominant: string): string {
@@ -405,7 +406,7 @@ export function buildExportReportDocument(
       rankingScore: round(frictionScore, 4),
       rankingProof: "",
       topThemes: filterThemeNames(topThemesRaw.slice(0, 3).map((t) => t.theme as string)),
-      topPainSummary: analyzerText((topPainRaw[0]?.pain_point as string) ?? "").slice(0, 160) || "—",
+      topPainSummary: analyzerText((topPainRaw[0]?.pain_point as string) ?? "") || "—",
     };
   });
 
@@ -485,12 +486,12 @@ export function buildExportReportDocument(
         };
       }),
       topPains: topPains.map((p) => ({
-        summary: analyzerText((p.pain_point as string).slice(0, 140)),
+        summary: analyzerText(p.pain_point as string),
         count: p.count as number,
         pct: round(p.pct as number, 1),
       })),
       discoverySignals,
-      sampleQuote: quotes[0]?.slice(0, 200),
+      sampleQuote: quotes[0] ? completeInsightSentence(quotes[0]) : undefined,
     };
   });
 
@@ -614,7 +615,7 @@ export function buildExportReportDocument(
 
     return {
       rank: (o.rank as number) ?? i + 1,
-      name: analyzerText((o.pain_point as string) ?? "").slice(0, 160) || "Opportunity cluster",
+      name: analyzerText((o.pain_point as string) ?? "") || "Opportunity cluster",
       impactScore: round(composite * 100, 2),
       priorityLevel: (o.tier as string) ?? "Monitor",
       supportingMetrics: [
@@ -678,11 +679,11 @@ export function buildExportReportDocument(
   }
   if (typeof recAnswer?.finding_summary === "string") {
     const summary = analyzerText(recAnswer.finding_summary);
-    if (summary) proofPoints.push(summary.slice(0, 240));
+    if (summary) proofPoints.push(analyzerText(summary));
   }
   if (typeof discoveryAnswer?.finding_summary === "string") {
     const summary = analyzerText(discoveryAnswer.finding_summary);
-    if (summary) proofPoints.push(summary.slice(0, 240));
+    if (summary) proofPoints.push(analyzerText(summary));
   }
 
   const headline =

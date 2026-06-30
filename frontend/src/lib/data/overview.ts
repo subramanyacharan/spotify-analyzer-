@@ -130,9 +130,7 @@ function buildFromSnapshots(
 
   const painTop = topPain[0]
     ? {
-        segment:
-          sanitizePainPoint(topPain[0].pain_point).slice(0, 48) +
-          (topPain[0].pain_point.length > 48 ? "…" : ""),
+        segment: sanitizePainPoint(topPain[0].pain_point),
         reviewCount: topPain[0].frequency,
         frictionScore: topPain[0].avg_severity / 5,
         negativePct: 0,

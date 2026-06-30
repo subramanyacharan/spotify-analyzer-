@@ -1,5 +1,6 @@
 import type { OverviewData, SegmentationLens, SegmentFriction } from "../types";
 import { prepareThemesForDisplay } from "../copy/theme-display";
+import { sanitizePainPoint } from "../copy/sanitize";
 import { getCorpusMetrics, resolveCorpusReviewCount } from "./corpus-metrics";
 import { readLocalOutputJson } from "./read-local-json";
 
@@ -27,7 +28,7 @@ function painLensFriction(
   if (!painPoints.length) return null;
   const top = painPoints[0];
   return {
-    segment: top.pain_point.slice(0, 48) + (top.pain_point.length > 48 ? "…" : ""),
+    segment: sanitizePainPoint(top.pain_point),
     reviewCount: top.frequency,
     frictionScore: top.avg_severity / 5,
     negativePct: 0,

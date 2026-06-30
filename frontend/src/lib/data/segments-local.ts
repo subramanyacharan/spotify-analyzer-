@@ -87,7 +87,7 @@ function buildPainProfiles(
 ): SegmentProfile[] {
   return painPoints.slice(0, 5).map((p, i) => ({
     id: `pain_${i}`,
-    name: sanitizePainPoint((p.pain_point as string) ?? "").slice(0, 56) + "…",
+    name: sanitizePainPoint((p.pain_point as string) ?? ""),
     lens: "pain" as const,
     reviewCount: (p.frequency as number) ?? 0,
     negativePct: 0,

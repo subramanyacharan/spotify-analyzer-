@@ -166,7 +166,7 @@ export function OpportunityRankingView({ data }: { data: OpportunitiesData }) {
                           {opp.reviewCount.toLocaleString()} reviews
                         </span>
                       </div>
-                      <p className="mt-2 text-sm font-medium text-zinc-200 line-clamp-2">
+                      <p className="mt-2 text-sm font-medium leading-relaxed text-zinc-200">
                         {sanitizeRecommendation(opp.painPoint)}
                       </p>
                       <LowConfidenceDisclaimer level={level} className="mt-2" />

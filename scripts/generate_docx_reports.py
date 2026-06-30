@@ -108,98 +108,197 @@ def add_table(doc, headers: list[str], rows: list[list[str]]) -> None:
     doc.add_paragraph("")
 
 
+def complete_sentence(text: str) -> str:
+    """Ensure insight text is a full sentence without trailing ellipsis."""
+    if not text or not str(text).strip():
+        return ""
+    t = str(text).strip()
+    while t.endswith("…") or t.endswith("..."):
+        t = t.rstrip(".… ").strip()
+    if t and t[-1] not in ".!?":
+        t += "."
+    return t
+
+
 def build_documentation_report(doc) -> None:
     add_title(doc, "AI-Powered Review Discovery Engine")
-    add_p(doc, "Project Documentation Report")
-    add_p(doc, f"Analysis window: Last 90 days · Generated {datetime.now().strftime('%B %d, %Y')}")
+    add_p(doc, "Project Documentation — Team Reference")
+    add_p(
+        doc,
+        "This document explains the full system so product, engineering, and research teams "
+        "can understand how the platform works end to end. It describes architecture, data flow, "
+        "analysis methodology, and how to operate the pipeline and dashboard."
+    )
+    add_p(doc, f"Document version: {datetime.now().strftime('%B %d, %Y')}")
     doc.add_paragraph("")
 
     add_h(doc, "1. Project Overview")
-    add_h(doc, "Problem statement", 2)
+    add_h(doc, "1.1 Problem statement", 2)
     add_p(
         doc,
-        "Spotify users often repeat familiar playlists instead of discovering new music. "
-        "Product teams need a scalable way to understand discovery pain, recommendation frustration, "
-        "and segment-specific needs from large-scale public review data."
+        "Spotify has a large user base and a sophisticated recommendation system, yet much listening "
+        "still comes from repeat playlists and familiar artists rather than meaningful new discovery. "
+        "User feedback is scattered across App Store reviews, Play Store reviews, and community channels. "
+        "It is unstructured, high-volume, and impossible to read manually at scale."
     )
-    add_h(doc, "Business objective", 2)
     add_p(
         doc,
-        "Build a Product Decision Intelligence platform that ingests app store reviews, "
-        "analyzes them with a hybrid AI pipeline, and delivers ranked insights for the Growth Team."
+        "The Growth Team needs a centralized intelligence system that continuously answers: "
+        "Why do users struggle to discover music? What frustrates them about recommendations? "
+        "Which behavioral segments face the biggest challenges? What product opportunities emerge from reviews?"
     )
-    add_h(doc, "Why this matters for Spotify", 2)
+    add_h(doc, "1.2 Business objective", 2)
+    add_p(
+        doc,
+        "Build a Product Decision Intelligence platform that automatically ingests public reviews, "
+        "processes them through a hybrid AI pipeline, stores structured results permanently, "
+        "and presents ranked, evidence-backed insights through a secure web dashboard and exportable reports."
+    )
+    add_h(doc, "1.3 Why this matters for Spotify", 2)
     add_bullets(
         doc,
         [
-            "Discovery quality directly affects retention and premium value.",
-            "Manual review reading does not scale across tens of thousands of reviews.",
-            "Segment-level friction reveals where recommendation systems underperform.",
-            "Evidence-backed rankings support prioritization without demographic guessing.",
+            "Discovery quality affects retention, session depth, and premium value perception.",
+            "Recommendation failures show up in reviews before they appear in aggregate metrics.",
+            "Segment-level friction reveals which user cohorts the algorithm underserves.",
+            "A repeatable weekly pipeline gives the Growth Team continuous intelligence without manual analysis.",
+            "Evidence-backed rankings reduce debate about what users actually said in public feedback.",
+        ],
+    )
+    add_h(doc, "1.4 Core questions the system answers", 2)
+    add_bullets(
+        doc,
+        [
+            "Why do users struggle to discover new music?",
+            "What frustrates users about recommendations?",
+            "What listening behaviors are users trying to achieve?",
+            "What causes repetitive listening?",
+            "Which behavioral segments face the biggest discovery challenges?",
+            "What unmet needs appear consistently in reviews?",
+        ],
+    )
+    add_h(doc, "1.5 Design principles", 2)
+    add_bullets(
+        doc,
+        [
+            "Evidence-backed only — insights must link to review counts, themes, clusters, or quotes.",
+            "Behavioral segmentation — no inferred demographics (age, student/professional, etc.).",
+            "Hybrid analysis — lightweight models at scale plus cluster-level LLM calls, not per-review LLM.",
+            "Supabase-first — permanent structured storage; dashboard reads Supabase, not ChromaDB directly.",
+            "Modular phases — ingestion, analysis, insight engines, dashboard, and automation are independently runnable.",
         ],
     )
 
-    add_h(doc, "2. Project Architecture")
-    add_h(doc, "Data sources", 2)
+    add_h(doc, "2. System Architecture")
+    add_h(doc, "2.1 High-level components", 2)
+    add_table(
+        doc,
+        ["Component", "Technology", "Role"],
+        [
+            ["Data pipeline", "Python 3.11+", "Ingest, clean, analyze, generate insights"],
+            ["Primary database", "Supabase (PostgreSQL)", "Permanent store for all review and insight data"],
+            ["Vector store", "ChromaDB", "Phase 2 embeddings for clustering (pipeline only)"],
+            ["LLM", "Groq (llama-3.3-70b-versatile)", "Cluster-level pain points and opportunities"],
+            ["Dashboard", "Next.js on Vercel", "Authenticated UI for stakeholders"],
+            ["Automation", "GitHub Actions", "Weekly scheduled pipeline runs"],
+        ],
+    )
+    add_h(doc, "2.2 Data sources", 2)
     add_bullets(
         doc,
         [
-            "Google Play Store reviews (primary)",
-            "Apple App Store reviews (primary)",
-            "Optional Reddit (documented, not required for core pipeline)",
+            "Google Play Store reviews — primary source with rating, date, and text.",
+            "Apple App Store reviews — primary source with rating, date, and text.",
+            "Reddit (optional) — documented for future extension; not required for core operation.",
         ],
     )
-    add_h(doc, "Database flow", 2)
-    add_p(
+    add_h(doc, "2.3 Database schema (Supabase)", 2)
+    add_table(
         doc,
-        "Supabase (PostgreSQL) is the permanent store: raw_reviews → processed_reviews → "
-        "cluster_insights → weekly_insights → historical_trends. "
-        "ChromaDB holds Phase 2 embeddings for clustering only; the dashboard reads Supabase."
+        ["Table", "Purpose"],
+        [
+            ["raw_reviews", "Permanent raw review storage (source, text, rating, date)"],
+            ["processed_reviews", "Cleaned text, themes, sentiment, user_segment, cluster_id, pain_points"],
+            ["cluster_insights", "Cluster-level pain points, severity, opportunities, quotes"],
+            ["weekly_insights", "Weekly snapshots and Phase 3 JSON bundles (top_themes)"],
+            ["historical_trends", "Theme and sentiment aggregates over time"],
+            ["profiles", "Dashboard user accounts (auth)"],
+        ],
     )
-    add_h(doc, "AI analyzer flow", 2)
+    add_h(doc, "2.4 Data flow", 2)
     add_p(
         doc,
-        "Weekly Python pipeline: ingest (90-day window) → clean/sanitize/dedupe → embed & cluster → "
-        "themes/sentiment/segments → cluster-level LLM insights → Phase 3 insight engines → weekly snapshot."
+        "Reviews flow: App Store / Play Store → Phase 1 ingestion → raw_reviews → "
+        "cleaning/PII/dedupe → processed_reviews → Phase 2 embeddings & clustering → "
+        "themes, sentiment, segments, cluster_insights → Phase 3 insight engines → "
+        "weekly_insights.top_themes → Next.js dashboard and export APIs."
     )
-    add_h(doc, "Dashboard flow", 2)
+    add_h(doc, "2.5 AI analyzer flow", 2)
     add_p(
         doc,
-        "Next.js on Vercel loads Phase 3 JSON from weekly_insights.top_themes. "
-        "When Supabase is available, a live 90-day window overlay recomputes counts and rankings "
-        "from processed_reviews without re-running the analyzer."
+        "The analyzer uses a rolling analysis window (90 days) for ingestion and scoring. "
+        "Each weekly run can operate in full mode (re-ingest 90 days) or incremental mode (last 7 days). "
+        "Phase 2 assigns each review a cluster_id, theme labels, sentiment, and user_segment. "
+        "Phase 2.5 runs one LLM call per cluster (not per review) to extract pain points and severity. "
+        "Phase 3 aggregates Phase 2 outputs into ranked segments, opportunities, and an action matrix."
+    )
+    add_h(doc, "2.6 Dashboard flow", 2)
+    add_p(
+        doc,
+        "The Next.js app on Vercel uses Supabase Auth for login. Server-side loaders read Phase 3 JSON "
+        "from weekly_insights via the service role key. A live window overlay can recompute counts and "
+        "rankings from processed_reviews for the same 90-day period without re-running Python. "
+        "Users access Overview, Insights, Analytics, Segments, Opportunities, and PDF/DOCX export."
     )
 
     add_h(doc, "3. Phase-wise Breakdown")
     phases = [
         (
-            "Phase 1: Data Collection",
-            "Collect and store raw reviews from app stores within a rolling 90-day window.",
-            "App Store / Play Store APIs and scrapers.",
-            "Normalize dates, remove PII, deduplicate, filter short/empty text.",
-            "raw_reviews and processed_reviews tables in Supabase.",
+            "Phase 1: Data Collection & Preparation",
+            "Collect, clean, and store review data as the foundation for all downstream analysis.",
+            "App Store and Play Store APIs; raw review text, ratings, timestamps, source identifiers.",
+            "Fetch reviews within the analysis window. Normalize dates to ISO 8601. Remove HTML artifacts. "
+            "Strip PII (emails, phones, URLs). Deduplicate exact and near-duplicate text. "
+            "Filter empty or very short reviews.",
+            "raw_reviews and processed_reviews rows in Supabase; local exports in data/processed/.",
         ),
         (
-            "Phase 2: Data Processing & Hybrid Analysis",
-            "Structure reviews for scalable analysis without per-review LLM cost.",
-            "Cleaned review text, ratings, dates, sources.",
-            "Embeddings (ChromaDB), clustering, theme classification, VADER/TextBlob sentiment, "
-            "rule-based user_segment detection, Groq cluster-level insights.",
-            "processed_reviews with themes, sentiment, cluster_id, pain_points; cluster_insights rows.",
+            "Phase 2: Hybrid AI Analysis",
+            "Label every review with themes, sentiment, segment, and cluster at scale without per-review LLM cost.",
+            "Cleaned review text from processed_reviews.",
+            "Generate embeddings (sentence-transformers) and store in ChromaDB. Cluster with K-Means/DBSCAN. "
+            "Assign themes via keyword mapping and lightweight classifiers. Score sentiment with VADER/TextBlob. "
+            "Detect user_segment with rule-based classifiers. Run Groq LLM once per cluster for pain points.",
+            "processed_reviews with cluster_id, themes, sentiment_label, user_segment, pain_points; "
+            "cluster_insights table with severity and opportunities.",
         ),
         (
-            "Phase 3: AI Analysis Engine (Insight Intelligence)",
-            "Answer product questions and produce ranked outputs.",
-            "Phase 2 structured fields and cluster summaries.",
-            "Problem statement engine, segment deep-dives, opportunity scoring, insight prioritization.",
-            "JSON in data/outputs/ and weekly_insights.top_themes.",
+            "Phase 3: Insight Intelligence Layer",
+            "Transform structured Phase 2 data into product-ready answers and ranked lists.",
+            "Phase 2 fields, cluster_insights, and aggregated metrics.",
+            "Run four engines: (3.1) Problem Statement Query — six core questions; "
+            "(3.2) Segment Deep-Dive — profiles per behavioral segment; "
+            "(3.3) Opportunity Scoring — composite rank per cluster; "
+            "(3.4) Insight Prioritization — unified Critical/High/Monitor action matrix.",
+            "JSON files in data/outputs/ and merged keys in weekly_insights.top_themes.",
         ),
         (
             "Phase 4: Dashboard & Reporting",
-            "Present insights to stakeholders and export reports.",
-            "Phase 3 snapshots + live 90-day corpus overlay.",
-            "Next.js server loaders, Recharts visualizations, PDF/DOCX export.",
-            "Overview, Insights, Analytics, Segments, Opportunities, Action plan, downloadable reports.",
+            "Deliver insights to stakeholders through a secure web UI and downloadable reports.",
+            "Phase 3 JSON snapshots; optional live Supabase aggregates for the analysis window.",
+            "Next.js server components load data per route. Recharts visualizes trends and distributions. "
+            "Confidence badges computed at render time. Export Report generates PDF; DOCX reports generated "
+            "offline from pipeline JSON via scripts/generate_docx_reports.py.",
+            "Routes: /overview, /insights, /insights/analytics, /segments, /deep-dive, "
+            "/opportunities, /opportunities/actions; GET /api/export/report for PDF.",
+        ),
+        (
+            "Phase 5: Weekly Automation",
+            "Run the full pipeline on a schedule without manual intervention.",
+            "Environment secrets (Supabase, Groq); cached ChromaDB from prior runs.",
+            "GitHub Actions runs every Sunday 05:00 UTC. Orchestrator executes Phases 1–5 in order "
+            "with checkpoint/resume. Health check validates row counts and weekly_insights freshness.",
+            "Updated Supabase data visible on dashboard after next page load; no frontend redeploy required.",
         ),
     ]
     for title, purpose, inp, process, output in phases:
@@ -209,18 +308,38 @@ def build_documentation_report(doc) -> None:
         add_p(doc, f"Process: {process}")
         add_p(doc, f"Output: {output}")
 
-    add_h(doc, "4. Segmentation Framework")
-    add_h(doc, "Business segmentation (Phase 2 user_segment)", 2)
-    for name, desc in BUSINESS_SEGMENTS:
-        add_p(doc, f"{name}: {desc}")
-    add_h(doc, "Usage / engagement segmentation", 2)
-    add_p(doc, "Dashboard engagement lens groups activity tiers for comparison:")
-    for name, desc in ENGAGEMENT_LENSES:
-        add_p(doc, f"{name}: {desc}")
-    add_h(doc, "Behavioral segmentation (primary decision lens)", 2)
+    add_h(doc, "4. Repository Structure (key paths)")
+    add_bullets(
+        doc,
+        [
+            "src/phase1_data_pipeline/ — ingestion, cleaning, PII, deduplication",
+            "src/phase2_analysis/ — embeddings, clustering, themes, sentiment, segments, cluster LLM",
+            "src/phase3_knowledge/ — problem engine, deep-dive, opportunity scoring, prioritization",
+            "src/phase5_orchestration/ — pipeline orchestrator, weekly report, health checks",
+            "frontend/ — Next.js dashboard (Vercel root directory)",
+            "scripts/ — CLI entry points for each phase and run_pipeline.py",
+            "data/outputs/ — Phase 3 JSON used for local fallback and DOCX generation",
+            "DOCS/ — architecture, implementation plan, scoring methodology",
+        ],
+    )
+
+    add_h(doc, "5. Segmentation Framework")
     add_p(
         doc,
-        "Six behavioral segments used for ranking and opportunities (mapped from Phase 2 labels + text):"
+        "The dashboard uses five lenses to slice the same review corpus. Behavioral segmentation is the "
+        "primary lens for ranking and opportunities. Business labels come from Phase 2; engagement and "
+        "context are derived groupings for comparison."
+    )
+    add_h(doc, "5.1 Business segmentation (Phase 2 user_segment)", 2)
+    for name, desc in BUSINESS_SEGMENTS:
+        add_p(doc, f"{name}: {desc}")
+    add_h(doc, "5.2 Usage / engagement segmentation", 2)
+    for name, desc in ENGAGEMENT_LENSES:
+        add_p(doc, f"{name}: {desc}")
+    add_h(doc, "5.3 Behavioral segmentation (primary for ranking)", 2)
+    add_p(
+        doc,
+        "Six behavioral segments mapped from Phase 2 labels plus review language and themes:"
     )
     for seg in [
         "Discovery Seeker",
@@ -231,74 +350,99 @@ def build_documentation_report(doc) -> None:
         "Casual Listener",
     ]:
         add_p(doc, f"{seg}: {SEGMENT_DEFINITIONS[seg]}")
-    add_h(doc, "Pain segmentation", 2)
+    add_h(doc, "5.4 Pain segmentation", 2)
     for name, desc in PAIN_LENSES:
         add_p(doc, f"{name}: {desc}")
 
-    add_h(doc, "5. Theme Classification")
+    add_h(doc, "6. Theme Classification")
     add_p(
         doc,
-        "Themes are assigned at cluster level using keyword mapping and lightweight classifiers, "
-        "then propagated to all reviews in each cluster. Common themes include:"
+        "Themes are assigned at the cluster level using keyword patterns from cluster centroids and "
+        "lightweight classifiers, then propagated to every review in the cluster. "
+        "The taxonomy aligns with discovery and recommendation problem areas:"
     )
     for theme, desc in THEME_DEFINITIONS.items():
         add_p(doc, f"{theme}: {desc}")
 
-    add_h(doc, "6. Scoring System")
-    scores = [
-        ("Sentiment Score", "Average tone per review cohort (1–5 scale; higher = more positive)."),
-        ("Pain Score", "Average cluster severity (1–5) for issues cited in a segment or cluster."),
-        (
-            "Complaint Frequency",
-            "Share of reviews in a cohort citing the top pain-point cluster.",
-        ),
-        (
-            "Business Impact Score",
-            "Friction score weighted by review volume share (friction × volume %).",
-        ),
-        (
-            "Opportunity Score",
-            "Frequency × Severity × Segment Impact × Sentiment Intensity (composite 0–1 scale).",
-        ),
-        (
-            "Ranking Score (segments)",
-            "Friction score: 35% negative % + 30% pain density + 35% discovery-theme %, "
-            "adjusted by average cluster severity.",
-        ),
-    ]
-    add_table(doc, ["Metric", "Definition"], [[a, b] for a, b in scores])
+    add_h(doc, "7. Scoring System")
+    add_table(
+        doc,
+        ["Metric", "Definition", "Used on"],
+        [
+            ["Sentiment Score", "Average review tone (1–5; higher = more positive)", "Segment profiles, theme analysis"],
+            ["Pain Score", "Average cluster severity (1–5) for cited issues", "Segment cards, pain ranking"],
+            ["Complaint Frequency", "Share of cohort reviews citing the top pain cluster", "Segment breakdown, PDF export"],
+            ["Business Impact Score", "Friction score × review volume %", "Segment ranking proof"],
+            ["Opportunity Score", "Frequency × Severity × Segment Impact × Sentiment Intensity", "Opportunities tab"],
+            ["Ranking Score (friction)", "Weighted negative %, pain density, discovery-theme %, severity-adjusted", "Segment rank order"],
+            ["Impact Score (pain)", "Review frequency × (cluster severity ÷ 5)", "Pain point rank order"],
+            ["Priority Score", "Merged score for action matrix items", "Prioritization / Action plan"],
+        ],
+    )
 
-    add_h(doc, "7. Ranking & Prioritization Logic")
+    add_h(doc, "8. Ranking & Prioritization Logic")
     add_bullets(
         doc,
         [
-            "Segments: sorted by friction_score (descending).",
+            "Segments: sorted by friction_score descending (see formula in §7).",
             "Pain points: sorted by impact_score = frequency × (severity ÷ 5).",
-            "Opportunities: sorted by composite opportunity score.",
-            "Action matrix: merges top pains, opportunities, friction segments; sorted by priority_score.",
-            "Tiers: Critical / High / Monitor based on score thresholds and rank position.",
+            "Opportunities: sorted by composite score; tier Critical / High / Monitor by rank and score bands.",
+            "Action matrix: merges top pains, opportunities, friction segments, emerging issues; sorted by priority_score.",
+            "Dashboard may overlay live window counts when Supabase corpus load succeeds; structure comes from Phase 3 JSON.",
         ],
     )
 
-    add_h(doc, "8. Decision Framework")
+    add_h(doc, "9. Decision Framework")
     add_p(
         doc,
-        "The system selects priority targets using evidence-backed rules—not demographics:"
+        "The platform does not pick a single segment automatically for product teams. "
+        "It surfaces ranked evidence so teams can choose based on two complementary signals:"
     )
     add_bullets(
         doc,
         [
-            "Primary friction segment: highest behavioral friction_score in the 90-day window.",
-            "Largest volume signal: segment with most reviews or highest fatigue score (often Playlist Driven).",
-            "Top pain point: highest impact_score across clusters.",
-            "Top opportunity: highest composite score with Critical tier.",
-            "Final target: intersection of high friction, high volume, and Critical-tier pain/opportunity.",
+            "Friction rank (#1): highest negative rate and discovery pain density — who hurts most per review.",
+            "Volume rank (#1): largest review count or fatigue score — where the most users are affected.",
+            "Pain rank (#1): highest impact_score — the most severe widespread complaint theme.",
+            "Opportunity rank (#1): highest composite score with Critical tier — best-documented product bet.",
         ],
     )
     add_p(
         doc,
-        "Product teams weigh rank #1 friction (quality signal) against rank #1 volume (scale signal) "
-        "when choosing where discovery investment delivers the most user impact."
+        "Recommended practice: prioritize interventions that score high on both friction and volume "
+        "(e.g. Playlist Driven for scale, Habit Listener for intensity). Use the Prioritization Action plan "
+        "for the merged Critical-tier list. All decisions should cite review counts and cluster evidence."
+    )
+
+    add_h(doc, "10. Operations Guide")
+    add_h(doc, "10.1 Running the pipeline locally", 2)
+    add_bullets(
+        doc,
+        [
+            "Full run: python scripts/run_pipeline.py --mode full",
+            "Incremental: python scripts/run_pipeline.py --mode incremental",
+            "Single phase: python scripts/run_problem_statement_engine.py (and similar scripts/)",
+            "Health check: python scripts/check_pipeline_health.py",
+        ],
+    )
+    add_h(doc, "10.2 Dashboard deployment", 2)
+    add_p(
+        doc,
+        "Deploy frontend/ to Vercel with Root Directory set to frontend. Required env vars: "
+        "NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY. "
+        "Run supabase_schema.sql and supabase/auth_profiles.sql in Supabase SQL editor."
+    )
+    add_h(doc, "10.3 Authentication", 2)
+    add_p(
+        doc,
+        "Supabase Auth protects all dashboard routes. Users sign up with username and email. "
+        "Middleware refreshes sessions. Service role key is server-only for data reads."
+    )
+    add_h(doc, "10.4 Regenerating reports", 2)
+    add_p(
+        doc,
+        "PDF: Export Report button in dashboard (90-day window). "
+        "DOCX: python scripts/generate_docx_reports.py after a pipeline run."
     )
 
 
@@ -367,13 +511,15 @@ def build_insights_report(doc, prior: dict, profiles: dict, opps: dict, problem:
     )
     add_p(
         doc,
-        f"This report summarizes analyzer findings from {total:,} public reviews in the last 90 days. "
-        f"The highest-friction behavioral segment is {top_seg['name'] if top_seg else '—'} "
-        f"(friction {top_seg['ranking_score']:.3f}). "
-        f"The top prioritized pain point is: {top.get('title', '—')[:200]}."
+        complete_sentence(
+            f"This report summarizes analyzer findings from {total:,} public reviews in the last 90 days. "
+            f"The highest-friction behavioral segment is {top_seg['name'] if top_seg else 'unknown'} "
+            f"(friction score {top_seg['ranking_score']:.3f}). "
+            f"The top prioritized pain point is: {top.get('title', 'Not available')}."
+        ),
     )
     if rec_answer.get("finding_summary"):
-        add_p(doc, rec_answer["finding_summary"])
+        add_p(doc, complete_sentence(rec_answer["finding_summary"]))
 
     add_h(doc, "2. Top User Segments Ranked")
     headers = [
@@ -424,17 +570,22 @@ def build_insights_report(doc, prior: dict, profiles: dict, opps: dict, problem:
             add_p(doc, "Top themes: " + ", ".join(f"{t['theme']} ({t['count']:,})" for t in themes))
         pains = prof.get("top_pain_points", [])[:2]
         for p in pains:
-            add_p(doc, f"Pain: {p['pain_point'][:180]} ({p['count']:,} reviews, {p.get('pct', 0)}%)")
+            add_p(
+                doc,
+                complete_sentence(
+                    f"Pain: {p['pain_point']} ({p['count']:,} reviews, {p.get('pct', 0)}% of segment)."
+                ),
+            )
 
     add_h(doc, "4. Top Pain Points Ranked")
     pains = prior.get("top_pain_points", [])[:8]
     add_table(
         doc,
-        ["Rank", "Pain point (short)", "Reviews", "Vol %", "Severity", "Impact score"],
+        ["Rank", "Pain point", "Reviews", "Vol %", "Severity", "Impact score"],
         [
             [
                 i + 1,
-                p["pain_point"][:70] + ("…" if len(p["pain_point"]) > 70 else ""),
+                complete_sentence(p["pain_point"]),
                 f"{p['frequency']:,}",
                 f"{pct(p['frequency'], total)}%",
                 f"{p['avg_severity']}/5",
@@ -446,16 +597,19 @@ def build_insights_report(doc, prior: dict, profiles: dict, opps: dict, problem:
     for i, p in enumerate(pains):
         prev = pains[i - 1] if i > 0 else None
         if i == 0:
-            proof = f"Rank #1: {p['frequency']:,} reviews, highest frequency × severity in corpus."
+            proof = (
+                f"Rank #1: {p['frequency']:,} reviews with impact score {p['impact_score']:.1f}, "
+                f"the highest frequency × severity combination in the corpus."
+            )
         elif prev:
             proof = (
-                f"Rank #{i + 1}: {p['frequency']:,} reviews vs #{i} at {prev['frequency']:,}; "
-                f"impact score {p['impact_score']:.1f} vs {prev['impact_score']:.1f}."
+                f"Rank #{i + 1}: {p['frequency']:,} reviews versus rank #{i} at {prev['frequency']:,} reviews. "
+                f"Impact score {p['impact_score']:.1f} versus {prev['impact_score']:.1f} for the higher-ranked item."
             )
         else:
-            proof = f"Ranked by impact score (frequency × severity)."
-        add_p(doc, proof)
-        add_p(doc, p["pain_point"])
+            proof = "Ranked by impact score, which is complaint frequency multiplied by cluster severity."
+        add_p(doc, complete_sentence(proof))
+        add_p(doc, complete_sentence(p["pain_point"]))
 
     add_h(doc, "5. Theme Analysis")
     themes = next(
@@ -520,23 +674,48 @@ def build_insights_report(doc, prior: dict, profiles: dict, opps: dict, problem:
                 o.get("tier", ""),
                 round(o.get("scores", {}).get("composite", 0) * 100, 2),
                 f"{o.get('review_count', 0):,}",
-                (o.get("pain_point") or "")[:60] + "…",
+                complete_sentence(o.get("pain_point") or ""),
             ]
             for i, o in enumerate(opps.get("opportunities", [])[:8])
         ],
     )
+    for i, o in enumerate(opps.get("opportunities", [])[:8]):
+        prev = opps.get("opportunities", [])[i - 1] if i > 0 else None
+        composite = o.get("scores", {}).get("composite", 0)
+        if i == 0:
+            proof = (
+                f"Rank #1 with composite impact score {composite * 100:.2f} and {o.get('review_count', 0):,} "
+                f"supporting reviews in the 90-day window."
+            )
+        elif prev:
+            prev_c = prev.get("scores", {}).get("composite", 0)
+            proof = (
+                f"Rank #{i + 1} with impact score {composite * 100:.2f} below rank #{i} "
+                f"({prev_c * 100:.2f}) based on frequency, severity, and segment impact."
+            )
+        else:
+            proof = f"Ranked #{o.get('rank', i + 1)} by composite opportunity score."
+        add_p(doc, complete_sentence(proof))
+        add_p(doc, complete_sentence(o.get("pain_point") or ""))
 
     add_h(doc, "9. Final Recommendations")
-    add_p(doc, "Based on Critical-tier prioritization and opportunity scores:")
+    add_p(doc, "Based on Critical-tier prioritization and opportunity scores from the analyzer:")
     for rec in prior.get("product_recommendations", [])[:6]:
-        add_p(doc, f"[{rec.get('tier', 'Monitor')}] {rec.get('recommendation', '')}")
+        add_p(doc, complete_sentence(f"[{rec.get('tier', 'Monitor')}] {rec.get('recommendation', '')}"))
         add_p(
             doc,
-            f"Proof: {rec.get('review_count', 0):,} reviews · "
-            f"opportunity score {rec.get('opportunity_score', 0):.4f} · "
-            f"pain: {(rec.get('pain_point') or '')[:120]}"
+            complete_sentence(
+                f"Supporting evidence: {rec.get('review_count', 0):,} reviews, "
+                f"opportunity score {rec.get('opportunity_score', 0):.4f}. "
+                f"Related pain: {rec.get('pain_point', '')}"
+            ),
         )
-    add_p(doc, f"Top priority action: {top.get('recommendation', top.get('title', '—'))}")
+    add_p(
+        doc,
+        complete_sentence(
+            f"Top priority action: {top.get('recommendation') or top.get('title', 'See prioritization matrix in dashboard.')}"
+        ),
+    )
 
 
 def main() -> None:

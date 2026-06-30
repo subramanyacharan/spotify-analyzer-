@@ -21,7 +21,7 @@ export function sanitizePainPoint(text: string): string {
   }
   cleaned = cleaned.replace(/\s{2,}/g, " ").trim();
   if (cleaned && !/[.!?]$/.test(cleaned)) cleaned += ".";
-  return replaceLegacyThemeText(cleaned);
+  return completeInsightSentence(replaceLegacyThemeText(cleaned));
 }
 
 export function filterQuotes(quotes: string[]): string[] {
@@ -34,17 +34,19 @@ export function sanitizeRecommendation(text: string): string {
   cleaned = sanitizePainPoint(cleaned);
   cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
   if (cleaned && !/[.!?]$/.test(cleaned)) cleaned += ".";
-  return cleaned;
+  return completeInsightSentence(cleaned);
 }
 
 export function sanitizeInsightSummary(text: string): string {
   if (!text?.trim()) return text;
-  return replaceLegacyThemeText(
-    sanitizePainPoint(
-      text
-        .replace(/\bSpotify(?:'s team)?\s+(?:could|should|must|needs to)\b/gi, "Users suggest")
-        .replace(/\bSpotify is not able to\b/gi, "Users report difficulty with")
-        .replace(/\bSpotify can change\b/gi, "A possible improvement is to")
+  return completeInsightSentence(
+    replaceLegacyThemeText(
+      sanitizePainPoint(
+        text
+          .replace(/\bSpotify(?:'s team)?\s+(?:could|should|must|needs to)\b/gi, "Users suggest")
+          .replace(/\bSpotify is not able to\b/gi, "Users report difficulty with")
+          .replace(/\bSpotify can change\b/gi, "A possible improvement is to")
+      )
     )
   );
 }
@@ -52,4 +54,14 @@ export function sanitizeInsightSummary(text: string): string {
 /** User quotes are shown verbatim unless they are empty. */
 export function sanitizeQuote(text: string): string {
   return text?.trim() ?? "";
+}
+
+/** Strip trailing ellipsis and ensure insight copy ends as a complete sentence. */
+export function completeInsightSentence(text: string): string {
+  if (!text?.trim()) return "";
+  let cleaned = text.trim().replace(/(\.{2,}|…)\s*$/g, "").trim();
+  if (cleaned && !/[.!?]$/.test(cleaned)) {
+    cleaned += ".";
+  }
+  return cleaned;
 }

@@ -105,7 +105,7 @@ export async function downloadReportPdf(
     }
     pdf.body(seg.discoverySignals);
     if (seg.sampleQuote) {
-      pdf.body(`Sample review language: "${seg.sampleQuote}…"`, 2);
+      pdf.body(`Sample review language: "${seg.sampleQuote}"`, 2);
     }
     pdf.y += 4;
   }
