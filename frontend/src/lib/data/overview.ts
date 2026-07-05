@@ -32,6 +32,28 @@ function buildFromSnapshots(
     ? [...frictionScores].sort((a, b) => b.friction_score - a.friction_score)[0]
     : null;
 
+  const businessMap: Record<string, string[]> = {
+    "New User": ["Discovery Seeker"],
+    "Casual Listener": ["Casual Listener"],
+    "Premium User": ["Playlist Driven"],
+    "Heavy Listener": ["Heavy Listener"],
+    "Niche Music Listener": ["Niche Listener"],
+  };
+  let businessTop: (typeof frictionScores)[number] | null = null;
+  let businessTopCount = 0;
+  let businessTopLabel = "";
+  for (const [label, linked] of Object.entries(businessMap)) {
+    const matches = frictionScores.filter((row) => linked.includes(row.segment));
+    if (!matches.length) continue;
+    const reviewCount = matches.reduce((sum, row) => sum + row.review_count, 0);
+    const topMatch = [...matches].sort((a, b) => b.friction_score - a.friction_score)[0];
+    if (!businessTop || topMatch.friction_score > businessTop.friction_score) {
+      businessTop = topMatch;
+      businessTopCount = reviewCount;
+      businessTopLabel = label;
+    }
+  }
+
   const corpus = getCorpusMetricsForWindow(problemStatement, corpusTotal);
   const sentiment = corpus?.sentiment_breakdown ?? {
     positive: 0,
@@ -67,7 +89,14 @@ function buildFromSnapshots(
     : null;
 
   const topFrictionByLens: Record<SegmentationLens, SegmentFriction | null> = {
-    business: null,
+    business: businessTop
+      ? {
+          segment: businessTopLabel || businessTop.segment,
+          reviewCount: businessTopCount,
+          frictionScore: businessTop.friction_score,
+          negativePct: businessTop.negative_pct,
+        }
+      : null,
     engagement: behaviorTop
       ? {
           segment: "Heavy / New User tier",

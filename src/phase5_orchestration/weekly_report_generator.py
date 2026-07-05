@@ -45,10 +45,10 @@ BUSINESS_MAP = {
 }
 
 ENGAGEMENT_TIERS = [
-    {"id": "heavy_new", "name": "Heavy / New Users", "segments": ["Heavy Listener", "New User"]},
+    {"id": "heavy_new", "name": "Heavy / New Users", "segments": ["Heavy Listener", "Discovery Seeker"]},
     {"id": "casual", "name": "Casual / Medium", "segments": ["Casual Listener"]},
-    {"id": "premium", "name": "Premium Active", "segments": ["Premium User", "Playlist Driven"]},
-    {"id": "niche", "name": "Niche Listeners", "segments": ["Niche Listener", "Niche Music Listener"]},
+    {"id": "playlist_habit", "name": "Playlist & Habit", "segments": ["Playlist Driven", "Habit Listener"]},
+    {"id": "niche", "name": "Niche Listeners", "segments": ["Niche Listener"]},
 ]
 
 CONTEXT_LENSES = [
