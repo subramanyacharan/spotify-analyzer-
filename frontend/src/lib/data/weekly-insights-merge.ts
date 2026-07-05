@@ -158,24 +158,53 @@ async function loadWeeklySnapshotFromDb(): Promise<WeeklySnapshot | null> {
   return { themes, runAt, source: "supabase" };
 }
 
+const FULL_CORPUS_RATIO = 0.95;
+
 function reconcileThemesWithBundled(
   dbThemes: Record<string, unknown>,
-  bundled: Record<string, unknown>
+  bundled: Record<string, unknown>,
+  totalProcessed: number
 ): { themes: Record<string, unknown>; corrected: boolean } {
   const dbCount = resolveCorpusReviewCount(corpusSourcesFromThemes(dbThemes));
-  const bundledCount = resolveCorpusReviewCount(corpusSourcesFromThemes(bundled));
-
-  if (bundledCount <= 0 || dbCount <= bundledCount * 1.15) {
+  if (dbCount <= 0) {
     return { themes: dbThemes, corrected: false };
   }
 
-  // Supabase weekly_insights sometimes stores full-DB totals (~152k) instead of the
-  // 90-day window (~49k). Prefer bundled Phase 3 files from the same pipeline run.
+  // Only substitute bundled data when the snapshot count equals the entire DB
+  // (legacy no-date-filter bug). A higher count vs stale bundled JSON is normal
+  // as the 90-day window grows — never replace a newer valid weekly run.
+  const looksFullCorpus =
+    totalProcessed > 0 && dbCount >= totalProcessed * FULL_CORPUS_RATIO;
+  if (!looksFullCorpus) {
+    return { themes: dbThemes, corrected: false };
+  }
+
+  const bundledCount = resolveCorpusReviewCount(corpusSourcesFromThemes(bundled));
+  if (bundledCount <= 0 || bundledCount >= dbCount * FULL_CORPUS_RATIO) {
+    return { themes: dbThemes, corrected: false };
+  }
+
   const corrected: Record<string, unknown> = { ...bundled };
   for (const key of PHASE3_THEME_KEYS) {
     if (!corrected[key] && dbThemes[key]) corrected[key] = dbThemes[key];
   }
   return { themes: corrected, corrected: true };
+}
+
+/** Total rows in processed_reviews — used to detect full-corpus snapshot bugs. */
+export async function fetchTotalProcessedReviewCount(): Promise<number> {
+  const client = getSupabaseServerClient();
+  if (!client) return 0;
+
+  try {
+    const { count, error } = await client
+      .from("processed_reviews")
+      .select("id", { count: "exact", head: true });
+    if (error) return 0;
+    return count ?? 0;
+  } catch {
+    return 0;
+  }
 }
 
 let memorySnapshot: { at: number; snap: WeeklySnapshot } | null = null;
@@ -189,7 +218,12 @@ async function loadWeeklySnapshotImpl(): Promise<WeeklySnapshot> {
   const fromDb = await loadWeeklySnapshotFromDb();
 
   if (fromDb) {
-    const { themes, corrected } = reconcileThemesWithBundled(fromDb.themes, bundled);
+    const totalProcessed = await fetchTotalProcessedReviewCount();
+    const { themes, corrected } = reconcileThemesWithBundled(
+      fromDb.themes,
+      bundled,
+      totalProcessed
+    );
     fillMissingKeys(themes, bundled);
     const snap: WeeklySnapshot = {
       themes,
