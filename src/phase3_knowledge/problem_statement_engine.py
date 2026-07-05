@@ -193,14 +193,14 @@ def normalize_behavioral_segment(
 ) -> str:
     """
     Map Phase 2 user_segment labels to the Phase 3 behavioral taxonomy.
-    Refine with text/theme signals for Playlist Driven and Discovery Seeker.
+    Refine with review *text* only — Phase 2 pain themes (e.g. "Playlist Fatigue")
+    must not reclassify users into behavioral segments.
     """
     text = (cleaned_text or "").lower()
-    theme_str = " ".join(themes or []).lower()
 
-    if PLAYLIST_PATTERN.search(text) or "playlist" in theme_str:
+    if PLAYLIST_PATTERN.search(text):
         return "Playlist Driven"
-    if DISCOVERY_PATTERN.search(text) or "discover" in theme_str:
+    if DISCOVERY_PATTERN.search(text):
         return "Discovery Seeker"
 
     return PHASE2_SEGMENT_MAP.get(user_segment or "", "Casual Listener")

@@ -22,6 +22,29 @@ def test_normalize_playlist_driven_from_text():
     assert normalize_behavioral_segment("Casual Listener", text, []) == "Playlist Driven"
 
 
+def test_pain_themes_do_not_reclassify_playlist_driven():
+    """Playlist Fatigue is a pain theme — not a behavioral segment signal."""
+    assert (
+        normalize_behavioral_segment(
+            "Casual Listener",
+            "great app overall",
+            ["Playlist Fatigue", "Recommendation Quality"],
+        )
+        == "Casual Listener"
+    )
+
+
+def test_pain_themes_do_not_reclassify_discovery_seeker():
+    assert (
+        normalize_behavioral_segment(
+            "Casual Listener",
+            "great app overall",
+            ["Discover Weekly Issues", "Search & Discovery UX"],
+        )
+        == "Casual Listener"
+    )
+
+
 def test_normalize_discovery_seeker_from_text():
     text = "I want to explore and find new artists"
     assert normalize_behavioral_segment("Casual Listener", text, []) == "Discovery Seeker"
