@@ -270,6 +270,41 @@ def _load_raw_metadata(
     return metadata
 
 
+def _processed_row_rank(row: Dict[str, Any]) -> tuple:
+    """Prefer rows with Phase 2 enrichment when deduplicating by raw_review_id."""
+    themes = row.get("themes")
+    theme_count = len(themes) if isinstance(themes, list) else 0
+    return (
+        1 if row.get("sentiment_label") else 0,
+        1 if row.get("cluster_id") is not None else 0,
+        theme_count,
+        len(row.get("cleaned_text") or ""),
+    )
+
+
+def _row_to_review_record(row: Dict[str, Any], raw: Dict[str, Any]) -> ReviewRecord:
+    themes = _parse_themes(row.get("themes"))
+    behavioral = normalize_behavioral_segment(
+        row.get("user_segment") or "",
+        row.get("cleaned_text") or "",
+        themes,
+    )
+    return ReviewRecord(
+        id=row["id"],
+        cleaned_text=row.get("cleaned_text") or "",
+        themes=themes,
+        sentiment_label=row.get("sentiment_label") or "unknown",
+        sentiment_score=row.get("sentiment_score"),
+        user_segment=row.get("user_segment") or "Unknown",
+        behavioral_segment=behavioral,
+        cluster_id=row.get("cluster_id"),
+        source=raw.get("source") or "unknown",
+        review_date=raw.get("review_date") or "",
+        rating=raw.get("rating"),
+        pain_points=row.get("pain_points") or [],
+    )
+
+
 def load_filtered_reviews(filters: Optional[QueryFilters] = None) -> List[ReviewRecord]:
     """Load processed reviews enriched with raw metadata, applying filters."""
     filters = resolve_query_filters(filters)
@@ -278,10 +313,16 @@ def load_filtered_reviews(filters: Optional[QueryFilters] = None) -> List[Review
         raise RuntimeError("Could not connect to Supabase.")
 
     raw_meta = _load_raw_metadata(client, filters.date_start, filters.date_end)
-    records: List[ReviewRecord] = []
+    best_by_raw: Dict[str, tuple[tuple, ReviewRecord]] = {}
+    rows_scanned = 0
     offset = 0
 
-    logger.info("Loading processed reviews for problem-statement analysis…")
+    logger.info(
+        "Loading processed reviews for problem-statement analysis "
+        "(window %s to %s)…",
+        filters.date_start or "—",
+        filters.date_end or "—",
+    )
 
     while True:
         response = (
@@ -299,7 +340,11 @@ def load_filtered_reviews(filters: Optional[QueryFilters] = None) -> List[Review
             break
 
         for row in batch:
-            raw = raw_meta.get(row.get("raw_review_id"))
+            rows_scanned += 1
+            raw_id = row.get("raw_review_id")
+            if not raw_id:
+                continue
+            raw = raw_meta.get(raw_id)
             if not raw:
                 continue
 
@@ -323,28 +368,26 @@ def load_filtered_reviews(filters: Optional[QueryFilters] = None) -> List[Review
             if filters.cluster_id is not None and row.get("cluster_id") != filters.cluster_id:
                 continue
 
-            records.append(
-                ReviewRecord(
-                    id=row["id"],
-                    cleaned_text=row.get("cleaned_text") or "",
-                    themes=themes,
-                    sentiment_label=row.get("sentiment_label") or "unknown",
-                    sentiment_score=row.get("sentiment_score"),
-                    user_segment=row.get("user_segment") or "Unknown",
-                    behavioral_segment=behavioral,
-                    cluster_id=row.get("cluster_id"),
-                    source=raw.get("source") or "unknown",
-                    review_date=raw.get("review_date") or "",
-                    rating=raw.get("rating"),
-                    pain_points=row.get("pain_points") or [],
-                )
-            )
+            rank = _processed_row_rank(row)
+            record = _row_to_review_record(row, raw)
+            existing = best_by_raw.get(raw_id)
+            if existing is None or rank > existing[0]:
+                best_by_raw[raw_id] = (rank, record)
 
         if len(batch) < FETCH_BATCH_SIZE:
             break
         offset += FETCH_BATCH_SIZE
 
-    logger.info("Loaded %d filtered reviews.", len(records))
+    records = [pair[1] for pair in best_by_raw.values()]
+    dupes = rows_scanned - len(records)
+    if dupes > 0:
+        logger.warning(
+            "Deduplicated %d duplicate processed_reviews rows — "
+            "keeping one row per raw_review_id (%d unique reviews).",
+            dupes,
+            len(records),
+        )
+    logger.info("Loaded %d unique reviews in analysis window.", len(records))
     return records
 
 
