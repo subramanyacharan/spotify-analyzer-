@@ -74,7 +74,9 @@ BEGIN
 END;
 $$;
 
--- Attach trigger only if missing (no DROP TRIGGER)
+-- Sign-up creates auth.users + public.profiles via trigger.
+-- Accounts are confirmed immediately (see POST /api/auth/signup in the dashboard).
+-- For password reset, keep /auth/callback in Supabase redirect URLs.
 DO $trigger$
 BEGIN
     IF NOT EXISTS (

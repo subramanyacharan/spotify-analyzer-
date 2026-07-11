@@ -12,7 +12,6 @@ function resolveRedirectOrigin(requestOrigin: string): string {
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const confirm = searchParams.get("confirm") === "1";
   const nextParam = searchParams.get("next") ?? "/overview";
   const next =
     nextParam.startsWith("/") && !nextParam.startsWith("//")
@@ -42,10 +41,6 @@ export async function GET(request: Request) {
 
       const { error } = await supabase.auth.exchangeCodeForSession(code);
       if (!error) {
-        if (confirm) {
-          await supabase.auth.signOut();
-          return NextResponse.redirect(`${redirectOrigin}/login?confirmed=1`);
-        }
         return NextResponse.redirect(`${redirectOrigin}${next}`);
       }
     }

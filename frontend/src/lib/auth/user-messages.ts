@@ -11,10 +11,6 @@ export const USER_MESSAGES = {
     "We couldn't create your account. Please check your details and try again.",
   usernameTaken: "That username is already taken. Please choose another.",
   accountExists: "An account with this email already exists. Try signing in instead.",
-  emailConfirmRequired:
-    "Please confirm your email address before signing in.",
-  emailConfirmed:
-    "Your email is confirmed. Sign in with your username or email and password.",
   resetEmailFailed:
     "We couldn't send a reset link. Please try again later.",
   resetLinkInvalid:
@@ -27,7 +23,6 @@ export const USER_MESSAGES = {
 
 const AUTH_ERROR_MAP: Record<string, string> = {
   "Invalid login credentials": USER_MESSAGES.signInFailed,
-  "Email not confirmed": USER_MESSAGES.emailConfirmRequired,
   "User already registered": USER_MESSAGES.accountExists,
   "Signup requires a valid password": USER_MESSAGES.signUpFailed,
   "Password should be at least 6 characters": "Password must be at least 8 characters.",
@@ -45,9 +40,6 @@ export function mapAuthError(message: string | undefined | null): string {
   }
   if (lower.includes("already registered") || lower.includes("already exists")) {
     return USER_MESSAGES.accountExists;
-  }
-  if (lower.includes("email not confirmed")) {
-    return USER_MESSAGES.emailConfirmRequired;
   }
   if (lower.includes("rate limit") || lower.includes("too many")) {
     return "Too many attempts. Please wait a moment and try again.";

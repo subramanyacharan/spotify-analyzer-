@@ -410,7 +410,7 @@ Phase 3 engines normalize or map existing `processed_reviews.user_segment` label
 - **Action:** Gate the AI Analyzer dashboard behind Supabase Auth before production deploy.
 - **SQL:** Run `supabase/auth_profiles.sql` after `supabase_schema.sql` — creates `profiles` (id, username, email, created_at), RLS, sign-up trigger, and RPC helpers (`resolve_login_email`, `is_username_available`).
 - **Auth flows:**
-  - **Sign up** — username, email, password, confirm password → `auth.signUp` + profile row via trigger
+  - **Sign up** — username, email, password → `POST /api/auth/signup` (pre-confirmed account) → auto sign-in → profile row via trigger
   - **Login** — username **or** email + password → resolve username via `profiles` → `signInWithPassword`
   - **Logout** — `signOut` + redirect to `/login`
   - **Forgot password** — username or email → resolve email → `resetPasswordForEmail` → `/auth/callback` → `/reset-password`
@@ -423,7 +423,7 @@ Phase 3 engines normalize or map existing `processed_reviews.user_segment` label
   - Auth pages under `(auth)/`: `/login`, `/signup`, `/forgot-password`, `/reset-password`
   - OAuth/email callback at `/auth/callback`
   - Server helpers: `lib/auth/server.ts`, `lib/auth/resolve-email.ts`, `lib/auth/routes.ts`
-- **Supabase Dashboard config:** Site URL + redirect URLs must include `/auth/callback` for email confirm and password reset.
+- **Supabase Dashboard config:** Site URL + redirect URLs must include `/auth/callback` for password reset.
 - **Output:** Authenticated session required for all dashboard views when `NEXT_PUBLIC_SUPABASE_*` env vars are set; sidebar shows signed-in user + logout. Without env vars, dashboard runs in local JSON fallback mode (auth disabled).
 
 #### 4.10.2 Vercel Deployment — **Implemented**

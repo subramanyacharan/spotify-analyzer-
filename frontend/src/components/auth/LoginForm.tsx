@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import Link from "next/link";
 
@@ -38,25 +38,12 @@ export function LoginForm() {
 
   const redirectTo = searchParams.get("redirect") ?? "/overview";
   const callbackError = searchParams.get("error");
-  const confirmed = searchParams.get("confirmed") === "1";
-
-
 
   const [identifier, setIdentifier] = useState("");
-
   const [password, setPassword] = useState("");
-
   const [loading, setLoading] = useState(false);
-
   const [error, setError] = useState(mapAuthCallbackError(callbackError));
-
   const [success, setSuccess] = useState("");
-
-  useEffect(() => {
-    if (confirmed) {
-      setSuccess(USER_MESSAGES.emailConfirmed);
-    }
-  }, [confirmed]);
 
 
 

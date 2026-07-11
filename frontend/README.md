@@ -36,7 +36,7 @@ Vercel → Project → **Settings → Environment Variables** (enable for **Prod
 |----------|-------|-------|
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://xxx.supabase.co` | Browser-safe (auth) |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase **anon** key | Auth only — never for data reads |
-| `NEXT_PUBLIC_SITE_URL` | `https://your-app.vercel.app` | Public app URL for email confirmation & reset links |
+| `NEXT_PUBLIC_SITE_URL` | `https://your-app.vercel.app` | Public app URL for password reset links |
 | `SUPABASE_URL` | Same project URL | Server-side |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase **service_role** key | Server data reads only |
 
@@ -59,6 +59,8 @@ Supabase Dashboard → **Authentication → URL Configuration**:
 
 Add preview URLs too if using PR deploys: `https://*.vercel.app/auth/callback`
 
+**Optional (recommended):** Supabase → **Authentication → Providers → Email** → turn **Confirm email** off so legacy client sign-ups also work without verification. The app uses `POST /api/auth/signup` with the service role to create pre-confirmed accounts.
+
 ### 5. Verify deployment
 
 After deploy:
@@ -69,7 +71,7 @@ GET https://your-app.vercel.app/api/health
 ```
 
 - `configured: false` — missing env vars in Vercel
-- Sign up at `/signup`, then open `/overview`
+- Sign up at `/signup` — account is active immediately (no email verification), then `/overview` opens
 - **Export Report** (TopBar) calls authenticated `GET /api/export/report` and downloads a nine-section PDF for the 90-day analysis window — see [../DOCS/pdf-report.md](../DOCS/pdf-report.md)
 - **Integration API:** `GET /api/export` returns raw Phase 3 JSON (no TopBar button)
 

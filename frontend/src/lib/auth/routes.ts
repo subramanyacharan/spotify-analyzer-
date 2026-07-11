@@ -35,8 +35,8 @@ export function isGuestOnlyPath(pathname: string): boolean {
   );
 }
 
-/** Unauthenticated API routes (health checks) */
-export const PUBLIC_API_ROUTES = ["/api/health"] as const;
+/** Unauthenticated API routes (health checks, signup) */
+export const PUBLIC_API_ROUTES = ["/api/health", "/api/auth/signup"] as const;
 
 export function isPublicApiPath(pathname: string): boolean {
   return PUBLIC_API_ROUTES.includes(pathname as (typeof PUBLIC_API_ROUTES)[number]);
