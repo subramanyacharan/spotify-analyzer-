@@ -43,3 +43,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Bundled Phase 3 JSON — local pipeline sync only (gitignored at repo root too)
+/data/outputs/*.json

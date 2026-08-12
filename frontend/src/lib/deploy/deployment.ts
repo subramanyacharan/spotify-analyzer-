@@ -7,7 +7,7 @@ export function isVercel(): boolean {
   return process.env.VERCEL === "1";
 }
 
-/** Bundled Phase 3 JSON under frontend/data/outputs — used on Vercel when needed. */
+/** Phase 3 JSON on disk — local pipeline sync (gitignored), not shipped to GitHub. */
 export function allowLocalDataFallback(): boolean {
   return true;
 }

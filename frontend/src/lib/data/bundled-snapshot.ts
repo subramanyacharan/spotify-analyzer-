@@ -1,18 +1,8 @@
-import insightPrioritization from "../../../data/outputs/insight_prioritization.json";
-import segmentDeepDives from "../../../data/outputs/segment_deep_dives.json";
-import opportunityScores from "../../../data/outputs/opportunity_scores.json";
-import problemStatementInsights from "../../../data/outputs/problem_statement_insights.json";
-import dashboardSnapshot from "../../../data/outputs/dashboard_snapshot.json";
-import weeklyReport from "../../../data/outputs/weekly_report.json";
-
-/** Phase 3 snapshot shipped with the frontend — reliable fallback on Vercel. */
+/**
+ * Optional bundled Phase 3 fallback. Snapshot JSON lives locally under
+ * frontend/data/outputs/ (gitignored) and is synced by the pipeline script.
+ * Production reads Supabase via the server-side service role.
+ */
 export function getBundledPhase3Themes(): Record<string, unknown> {
-  return {
-    insight_prioritization: insightPrioritization,
-    segment_deep_dives: segmentDeepDives,
-    opportunity_scores: opportunityScores,
-    problem_statement_insights: problemStatementInsights,
-    dashboard_snapshot: dashboardSnapshot,
-    weekly_report: weeklyReport,
-  };
+  return {};
 }

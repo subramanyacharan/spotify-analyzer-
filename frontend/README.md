@@ -86,7 +86,7 @@ cp .env.local.example .env.local   # optional
 npm run dev
 ```
 
-Without Supabase env vars locally, data falls back to bundled `frontend/data/outputs/*.json` plus optional `../data/outputs/*.json`. On Vercel, Supabase is preferred; bundled snapshot ensures the dashboard still loads if env or partial weekly rows fail.
+Without Supabase env vars locally, data falls back to `frontend/data/outputs/*.json` and `../data/outputs/*.json` on disk (gitignored — run the pipeline or copy JSON locally). On Vercel, Supabase is the data source.
 
 Check data readiness: `GET /api/health` → `dataReady: true`, `totalReviewsAnalyzed: 48730` (approx).
 

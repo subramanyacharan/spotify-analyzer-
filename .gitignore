@@ -27,6 +27,14 @@ data/chroma_db/
 # Pipeline run logs
 data/outputs/*.log
 
+# Local-only pipeline JSON snapshots (Supabase is source of truth in production)
+data/outputs/*.json
+!data/outputs/README.md
+
+# Local-only DOCX reports and generator (keep on disk, not in GitHub)
+DOCS/reports/
+scripts/generate_docx_reports.py
+
 # OS files
 .DS_Store
 Thumbs.db
