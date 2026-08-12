@@ -2,7 +2,7 @@ import { readFile } from "fs/promises";
 import path from "path";
 import { allowLocalDataFallback } from "@/lib/deploy/deployment";
 
-/** Resolve Phase 3 JSON paths — bundled copy under frontend/data/outputs, or monorepo root in dev. */
+/** Resolve Phase 3 JSON paths — frontend/data/outputs, then monorepo root in local dev. */
 function outputJsonPaths(filename: string): string[] {
   const paths = [path.join(process.cwd(), "data", "outputs", filename)];
   if (allowLocalDataFallback()) {

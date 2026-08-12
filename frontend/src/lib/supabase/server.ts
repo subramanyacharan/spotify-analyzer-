@@ -1,12 +1,13 @@
 import "server-only";
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { classifySupabaseKey, isElevatedSupabaseKey } from "./key-kind";
 
 let client: SupabaseClient | null = null;
 
 /**
  * Server-only Supabase client for pipeline data reads.
- * MUST use service role key — never the anon key (anon is public in the browser).
+ * MUST use secret / service_role key — never publishable or anon keys.
  */
 export function getSupabaseServerClient(): SupabaseClient | null {
   const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -20,7 +21,16 @@ export function getSupabaseServerClient(): SupabaseClient | null {
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (anonKey && serviceKey === anonKey) {
     console.error(
-      "[security] SUPABASE_KEY must be the service role key, not the anon key."
+      "[security] SUPABASE_SERVICE_ROLE_KEY must not equal NEXT_PUBLIC_SUPABASE_ANON_KEY."
+    );
+    return null;
+  }
+
+  const keyKind = classifySupabaseKey(serviceKey);
+  if (!isElevatedSupabaseKey(keyKind)) {
+    console.error(
+      `[security] Server data reads require sb_secret_ or service_role key (got ${keyKind}). ` +
+        "Set SUPABASE_SERVICE_ROLE_KEY in Vercel to your Supabase secret key."
     );
     return null;
   }

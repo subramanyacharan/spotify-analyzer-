@@ -3,13 +3,15 @@
  * Vercel sets VERCEL=1; local JSON fallback is disabled on Vercel.
  */
 
+import { classifySupabaseKey, isElevatedSupabaseKey } from "../supabase/key-kind";
+
 export function isVercel(): boolean {
   return process.env.VERCEL === "1";
 }
 
-/** Phase 3 JSON on disk — local pipeline sync (gitignored), not shipped to GitHub. */
+/** Phase 3 JSON on disk — local pipeline sync (gitignored), not shipped to Vercel. */
 export function allowLocalDataFallback(): boolean {
-  return true;
+  return !isVercel();
 }
 
 export function isProductionDeploy(): boolean {
@@ -34,9 +36,9 @@ export function getMissingProductionEnv(): string[] {
 }
 
 export function isProductionConfigured(): boolean {
-  const hasServiceKey = Boolean(
-    process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_KEY
-  );
   const hasUrl = Boolean(process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL);
-  return hasUrl && hasServiceKey;
+  const serviceKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_KEY;
+  if (!hasUrl || !serviceKey) return false;
+  return isElevatedSupabaseKey(classifySupabaseKey(serviceKey));
 }

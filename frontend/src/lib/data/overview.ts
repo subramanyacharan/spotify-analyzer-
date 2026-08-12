@@ -6,6 +6,7 @@ import {
   corpusSourcesFromThemes,
   fetchCanonicalCorpusReviewCount,
   fetchMergedTopThemes,
+  hasRequiredPhase3Keys,
   resolveDashboardGeneratedAt,
 } from "./weekly-insights-merge";
 import { loadOverviewFromLocal } from "./local-fallback";
@@ -176,7 +177,7 @@ export async function getOverviewData(): Promise<OverviewData> {
     const sources = corpusSourcesFromThemes(merged);
     const prioritization = sources.prioritization;
 
-    if (prioritization) {
+    if (prioritization && hasRequiredPhase3Keys(merged)) {
       const corpusTotal = resolveCorpusReviewCount(sources);
       const overview = buildFromSnapshots(
         prioritization,

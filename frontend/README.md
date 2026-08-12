@@ -35,9 +35,9 @@ Vercel → Project → **Settings → Environment Variables** (enable for **Prod
 | Variable | Value | Notes |
 |----------|-------|-------|
 | `SUPABASE_URL` | `https://xxx.supabase.co` | Server-side data reads |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase **service_role** key | Server data reads only — never `NEXT_PUBLIC_` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase **secret** key (`sb_secret_...`) or legacy **service_role** JWT | Bypasses RLS — never use publishable/anon key here |
 
-Copy from `.env.local.example`. **Never** prefix the service role key with `NEXT_PUBLIC_`.
+Copy from `.env.local.example`. **Never** prefix the secret key with `NEXT_PUBLIC_`. Production reads `weekly_insights` from Supabase; local dev falls back to gitignored `frontend/data/outputs/*.json`.
 
 Run in Supabase SQL Editor (once):
 
@@ -50,10 +50,11 @@ After deploy:
 
 ```text
 GET https://your-app.vercel.app/api/health
-→ { "ok": true, "configured": true, "timestamp": "..." }
+→ { "ok": true, "configured": true, "dataReady": true, "totalReviewsAnalyzed": 48730, ... }
 ```
 
-- `configured: false` — missing env vars in Vercel
+- `configured: false` — missing or non-elevated Supabase key in Vercel
+- `dataReady: false` — check `hint` and `supabase.keyKind` in the health response
 - Open `/overview` directly — no login required
 - **Export Report** (TopBar) calls `GET /api/export/report` and downloads a nine-section PDF for the 90-day analysis window — see [../DOCS/pdf-report.md](../DOCS/pdf-report.md)
 - **Integration API:** `GET /api/export` returns raw Phase 3 JSON (no TopBar button)

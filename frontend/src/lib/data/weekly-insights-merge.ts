@@ -9,6 +9,8 @@ import {
   type CorpusPayloadSources,
 } from "./corpus-metrics";
 import { getBundledPhase3Themes } from "./bundled-snapshot";
+import { loadDiskPhase3Themes } from "./disk-snapshot";
+import { allowLocalDataFallback } from "../deploy/deployment";
 
 export const PHASE3_THEME_KEYS = [
   "problem_statement_insights",
@@ -30,7 +32,12 @@ const COMPLETE_RUN_KEYS = [
 const MERGE_ROW_LIMIT = 24;
 const MEMORY_TTL_MS = 5 * 60 * 1000;
 
-export type WeeklySnapshotSource = "supabase" | "bundled" | "supabase+bundled";
+export type WeeklySnapshotSource =
+  | "supabase"
+  | "bundled"
+  | "supabase+bundled"
+  | "disk"
+  | "supabase+disk";
 
 export type WeeklySnapshot = {
   themes: Record<string, unknown>;
@@ -215,6 +222,9 @@ async function loadWeeklySnapshotImpl(): Promise<WeeklySnapshot> {
   }
 
   const bundled = getBundledPhase3Themes();
+  const diskThemes = allowLocalDataFallback()
+    ? await loadDiskPhase3Themes()
+    : {};
   const fromDb = await loadWeeklySnapshotFromDb();
 
   if (fromDb) {
@@ -225,21 +235,40 @@ async function loadWeeklySnapshotImpl(): Promise<WeeklySnapshot> {
       totalProcessed
     );
     fillMissingKeys(themes, bundled);
+    if (!hasRequiredPhase3Keys(themes)) {
+      fillMissingKeys(themes, diskThemes);
+    }
+
+    const hadDiskFill =
+      !hasRequiredPhase3Keys(fromDb.themes) && hasRequiredPhase3Keys(themes);
     const snap: WeeklySnapshot = {
       themes,
       runAt:
         fromDb.runAt ??
         anchorFromThemes(themes) ??
-        anchorFromThemes(bundled),
+        anchorFromThemes(bundled) ??
+        anchorFromThemes(diskThemes),
       source: corrected
         ? "supabase+bundled"
         : hasRequiredPhase3Keys(themes)
-          ? "supabase"
+          ? hadDiskFill
+            ? "supabase+disk"
+            : "supabase"
           : "supabase+bundled",
     };
     if (hasRequiredPhase3Keys(snap.themes)) {
       memorySnapshot = { at: Date.now(), snap };
     }
+    return snap;
+  }
+
+  if (hasRequiredPhase3Keys(diskThemes)) {
+    const snap: WeeklySnapshot = {
+      themes: diskThemes,
+      runAt: anchorFromThemes(diskThemes),
+      source: "disk",
+    };
+    memorySnapshot = { at: Date.now(), snap };
     return snap;
   }
 
