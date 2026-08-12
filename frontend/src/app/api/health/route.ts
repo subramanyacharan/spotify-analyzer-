@@ -26,11 +26,17 @@ export async function GET() {
         totalReviewsAnalyzed: snapshotMeta.corpusReviewCount || null,
         dataReady,
         hint:
-          !dataReady && supabaseProbe.weeklyInsightsRows === 0
-            ? "Set SUPABASE_SERVICE_ROLE_KEY to your sb_secret_ or legacy service_role key in Vercel (not the publishable/anon key)."
-            : !dataReady && !supabaseProbe.elevatedKey
-              ? "Server key is not elevated — pipeline tables require secret/service_role access."
-              : null,
+          !dataReady && snapshotMeta.hasRequiredKeys && snapshotMeta.corpusReviewCount > 0
+            ? null
+            : !dataReady && supabaseProbe.queryError && snapshotMeta.hasRequiredKeys
+              ? "Supabase unreachable — serving bundled snapshot fallback."
+              : !dataReady && supabaseProbe.weeklyInsightsRows === 0
+                ? "Set SUPABASE_SERVICE_ROLE_KEY to your sb_secret_ or legacy service_role key in Vercel (not the publishable/anon key)."
+                : !dataReady && !supabaseProbe.elevatedKey
+                  ? "Server key is not elevated — pipeline tables require secret/service_role access."
+                  : !dataReady && supabaseProbe.queryError
+                    ? "Supabase unreachable — check SUPABASE_URL or restore the Supabase project."
+                    : null,
         timestamp: new Date().toISOString(),
       },
       { headers: { "Cache-Control": "no-store" } }

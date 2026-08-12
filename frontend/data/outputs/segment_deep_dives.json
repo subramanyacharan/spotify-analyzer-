@@ -1,0 +1,813 @@
+{
+  "generated_at": "2026-06-21T10:07:42.852797+00:00",
+  "filters": {},
+  "total_reviews_analyzed": 48730,
+  "segment_profiles": [
+    {
+      "segment": "Discovery Seeker",
+      "review_count": 8774,
+      "top_themes": [
+        {
+          "theme": "Repetitive Recommendations",
+          "count": 8389,
+          "pct": 95.6
+        },
+        {
+          "theme": "Discover Weekly Issues",
+          "count": 8097,
+          "pct": 92.3
+        },
+        {
+          "theme": "Recommendation Quality",
+          "count": 385,
+          "pct": 4.4
+        }
+      ],
+      "top_pain_points": [
+        {
+          "pain_point": "Users are frustrated with repetitive and irrelevant music recommendations in Discover Weekly and Daily Mix playlists.",
+          "count": 8088,
+          "pct": 92.2
+        },
+        {
+          "pain_point": "Users are dissatisfied with the new widget, citing loss of functionality and poor design.",
+          "count": 392,
+          "pct": 4.5
+        },
+        {
+          "pain_point": "Users are frustrated with repetitive and limited music recommendations.",
+          "count": 292,
+          "pct": 3.3
+        },
+        {
+          "pain_point": "Users are frustrated with the current music discovery algorithm, which often plays unrelated songs and fails to learn their preferences.",
+          "count": 1,
+          "pct": 0.0
+        },
+        {
+          "pain_point": "Users are frustrated with the app's music discovery features, such as random songs being added to playlists and poor recommendations.",
+          "count": 1,
+          "pct": 0.0
+        }
+      ],
+      "sentiment_breakdown": {
+        "positive": 6129,
+        "neutral": 1056,
+        "negative": 1589,
+        "negative_pct": 18.1,
+        "avg_sentiment_score": 3.93
+      },
+      "avg_cluster_severity": 4.03,
+      "listening_intent_signals": {
+        "discovery_signals": 284,
+        "comfort_habit_signals": 164,
+        "mood_context_signals": 119,
+        "discovery_pct": 3.2,
+        "comfort_habit_pct": 1.9,
+        "mood_context_pct": 1.4,
+        "dominant_intent": "discovery"
+      },
+      "cluster_overlap": [
+        {
+          "cluster_id": 2,
+          "review_count": 8088,
+          "pct": 92.2,
+          "themes": [
+            "Repetitive Recommendations",
+            "Discover Weekly Issues"
+          ],
+          "pain_point": "Users are frustrated with repetitive and irrelevant music recommendations in Discover Weekly and Daily Mix playlists.",
+          "severity": 4,
+          "product_opportunity": "Spotify's team could refine its music discovery algorithms to better understand user preferences and provide more accurate and diverse recommendations."
+        },
+        {
+          "cluster_id": 3,
+          "review_count": 392,
+          "pct": 4.5,
+          "themes": [
+            "Recommendation Quality"
+          ],
+          "pain_point": "Users are dissatisfied with the new widget, citing loss of functionality and poor design.",
+          "severity": 4,
+          "product_opportunity": "Spotify's team could improve user satisfaction by offering customizable widget options that cater to different user preferences."
+        },
+        {
+          "cluster_id": 0,
+          "review_count": 292,
+          "pct": 3.3,
+          "themes": [
+            "Repetitive Recommendations"
+          ],
+          "pain_point": "Users are frustrated with repetitive and limited music recommendations.",
+          "severity": 5,
+          "product_opportunity": "Spotify's team could enhance the music discovery experience by introducing more personalized and interactive features, such as user-controlled playlists and improved recommendation algorithms."
+        },
+        {
+          "cluster_id": 1,
+          "review_count": 1,
+          "pct": 0.0,
+          "themes": [
+            "Recommendation Quality",
+            "Playlist Fatigue"
+          ],
+          "pain_point": "Users are frustrated with the current music discovery algorithm, which often plays unrelated songs and fails to learn their preferences.",
+          "severity": 5,
+          "product_opportunity": "Spotify's team could revamp the music discovery algorithm to prioritize user preferences and listening history, increasing user satisfaction and retention."
+        },
+        {
+          "cluster_id": 4,
+          "review_count": 1,
+          "pct": 0.0,
+          "themes": [
+            "Search & Discovery UX",
+            "Playlist Fatigue"
+          ],
+          "pain_point": "Users are frustrated with the app's music discovery features, such as random songs being added to playlists and poor recommendations.",
+          "severity": 5,
+          "product_opportunity": "Spotify's team could improve the music discovery experience by introducing more user-controlled features and algorithms that learn from individual listening habits."
+        }
+      ],
+      "representative_quotes": [
+        "Let us use the old widget. The new one is trash and takes up way to much space with useless information.",
+        "I don't understand why they would change how the queue works, removing a single track takes like 3 taps instead of 1 now. The new widget sucks as well, if you have a 4x1 space from the previous one, y\u00e2\u20ac\u00a6",
+        "Non stop advertising. Regularly plays songs back to back that are supposedly hidden. I just got 5 Justin Bieber songs (awesome display of zero talent) in a row. I understand that this is a ploy to get\u00e2\u20ac\u00a6",
+        "New widget is terrible and they force it on you.",
+        "No one needs the new features that keep showing up on premium. I assume they're just an excuse to keep raising the price. The app lags, freezes, shuts down my phone, etc especially when trying to watc\u00e2\u20ac\u00a6"
+      ],
+      "profile_summary": "Discovery Seeker (8,774 reviews, 18.1% negative): Dominant listening intent signal is discovery. Top themes include Repetitive Recommendations, Discover Weekly Issues, Recommendation Quality. Discovery language appears in 3.2% of reviews; comfort/habit signals in 1.9%."
+    },
+    {
+      "segment": "Habit Listener",
+      "review_count": 4571,
+      "top_themes": [
+        {
+          "theme": "Repetitive Recommendations",
+          "count": 4223,
+          "pct": 92.4
+        },
+        {
+          "theme": "Recommendation Quality",
+          "count": 348,
+          "pct": 7.6
+        }
+      ],
+      "top_pain_points": [
+        {
+          "pain_point": "Users are frustrated with repetitive and limited music recommendations.",
+          "count": 4210,
+          "pct": 92.1
+        },
+        {
+          "pain_point": "Users are dissatisfied with the new widget, citing loss of functionality and poor design.",
+          "count": 348,
+          "pct": 7.6
+        },
+        {
+          "pain_point": "Users are frustrated with repetitive and irrelevant music recommendations in Discover Weekly and Daily Mix playlists.",
+          "count": 8,
+          "pct": 0.2
+        },
+        {
+          "pain_point": "Users are frustrated with the app's music discovery features, such as random songs being added to playlists and poor recommendations.",
+          "count": 3,
+          "pct": 0.1
+        },
+        {
+          "pain_point": "Users are frustrated with the current music discovery algorithm, which often plays unrelated songs and fails to learn their preferences.",
+          "count": 2,
+          "pct": 0.0
+        }
+      ],
+      "sentiment_breakdown": {
+        "positive": 2194,
+        "neutral": 699,
+        "negative": 1678,
+        "negative_pct": 36.7,
+        "avg_sentiment_score": 3.21
+      },
+      "avg_cluster_severity": 4.92,
+      "listening_intent_signals": {
+        "discovery_signals": 3,
+        "comfort_habit_signals": 72,
+        "mood_context_signals": 47,
+        "discovery_pct": 0.1,
+        "comfort_habit_pct": 1.6,
+        "mood_context_pct": 1.0,
+        "dominant_intent": "comfort_habit"
+      },
+      "cluster_overlap": [
+        {
+          "cluster_id": 0,
+          "review_count": 4210,
+          "pct": 92.1,
+          "themes": [
+            "Repetitive Recommendations"
+          ],
+          "pain_point": "Users are frustrated with repetitive and limited music recommendations.",
+          "severity": 5,
+          "product_opportunity": "Spotify's team could enhance the music discovery experience by introducing more personalized and interactive features, such as user-controlled playlists and improved recommendation algorithms."
+        },
+        {
+          "cluster_id": 3,
+          "review_count": 348,
+          "pct": 7.6,
+          "themes": [
+            "Recommendation Quality"
+          ],
+          "pain_point": "Users are dissatisfied with the new widget, citing loss of functionality and poor design.",
+          "severity": 4,
+          "product_opportunity": "Spotify's team could improve user satisfaction by offering customizable widget options that cater to different user preferences."
+        },
+        {
+          "cluster_id": 2,
+          "review_count": 8,
+          "pct": 0.2,
+          "themes": [
+            "Repetitive Recommendations",
+            "Discover Weekly Issues"
+          ],
+          "pain_point": "Users are frustrated with repetitive and irrelevant music recommendations in Discover Weekly and Daily Mix playlists.",
+          "severity": 4,
+          "product_opportunity": "Spotify's team could refine its music discovery algorithms to better understand user preferences and provide more accurate and diverse recommendations."
+        },
+        {
+          "cluster_id": 4,
+          "review_count": 3,
+          "pct": 0.1,
+          "themes": [
+            "Search & Discovery UX",
+            "Playlist Fatigue"
+          ],
+          "pain_point": "Users are frustrated with the app's music discovery features, such as random songs being added to playlists and poor recommendations.",
+          "severity": 5,
+          "product_opportunity": "Spotify's team could improve the music discovery experience by introducing more user-controlled features and algorithms that learn from individual listening habits."
+        },
+        {
+          "cluster_id": 1,
+          "review_count": 2,
+          "pct": 0.0,
+          "themes": [
+            "Recommendation Quality",
+            "Playlist Fatigue"
+          ],
+          "pain_point": "Users are frustrated with the current music discovery algorithm, which often plays unrelated songs and fails to learn their preferences.",
+          "severity": 5,
+          "product_opportunity": "Spotify's team could revamp the music discovery algorithm to prioritize user preferences and listening history, increasing user satisfaction and retention."
+        }
+      ],
+      "representative_quotes": [
+        "1 Star - UNUSABLE GARBAGE! This latest update is an absolute abomination! I am constantly bombarded with unsolicited videos (just commercials! - for PAYING CUSTOMERS NOW?!!!!) and spam pop-ups asking \u00e2\u20ac\u00a6",
+        "I am not happy with this app anymore. Way too many ads. Just like YouTube but even worse. I had 5 ads paying just so i can listen to one song. You cannot even listen to the song you want. It will shuf\u00e2\u20ac\u00a6",
+        "Too many ads, I've had premium and I find that it's alot of money for not too much and that it can take a while to load. In reply to Spotify's reply. I have had premium, and it's too much money for wh\u00e2\u20ac\u00a6",
+        "Not sure what happened but I can no longer view my queue. For whatever reason the queue button doesn't work and when you go into the menu to open the queue it tells me I need to have premium. I pay fo\u00e2\u20ac\u00a6",
+        "La aplicaci\u00c3\u00b3n es muy buena no tengo ning\u00c3\u00ban problema,aunque los precios de premium esten elevados ser\u00c3\u00a1 much\u00c3\u00adsimo mejor que bajar\u00c3\u00a1n los precios como antes,y un detalle que creo que ser\u00c3\u00ada un buen avance \u00e2\u20ac\u00a6"
+      ],
+      "profile_summary": "Habit Listener (4,571 reviews, 36.7% negative): Dominant listening intent signal is comfort habit. Top themes include Repetitive Recommendations, Recommendation Quality. Discovery language appears in 0.1% of reviews; comfort/habit signals in 1.6%."
+    },
+    {
+      "segment": "Heavy Listener",
+      "review_count": 164,
+      "top_themes": [
+        {
+          "theme": "Recommendation Quality",
+          "count": 114,
+          "pct": 69.5
+        },
+        {
+          "theme": "Repetitive Recommendations",
+          "count": 50,
+          "pct": 30.5
+        }
+      ],
+      "top_pain_points": [
+        {
+          "pain_point": "Users are dissatisfied with the new widget, citing loss of functionality and poor design.",
+          "count": 114,
+          "pct": 69.5
+        },
+        {
+          "pain_point": "Users are frustrated with repetitive and limited music recommendations.",
+          "count": 50,
+          "pct": 30.5
+        }
+      ],
+      "sentiment_breakdown": {
+        "positive": 79,
+        "neutral": 45,
+        "negative": 40,
+        "negative_pct": 24.4,
+        "avg_sentiment_score": 3.44
+      },
+      "avg_cluster_severity": 4.3,
+      "listening_intent_signals": {
+        "discovery_signals": 0,
+        "comfort_habit_signals": 32,
+        "mood_context_signals": 5,
+        "discovery_pct": 0.0,
+        "comfort_habit_pct": 19.5,
+        "mood_context_pct": 3.0,
+        "dominant_intent": "comfort_habit"
+      },
+      "cluster_overlap": [
+        {
+          "cluster_id": 3,
+          "review_count": 114,
+          "pct": 69.5,
+          "themes": [
+            "Recommendation Quality"
+          ],
+          "pain_point": "Users are dissatisfied with the new widget, citing loss of functionality and poor design.",
+          "severity": 4,
+          "product_opportunity": "Spotify's team could improve user satisfaction by offering customizable widget options that cater to different user preferences."
+        },
+        {
+          "cluster_id": 0,
+          "review_count": 50,
+          "pct": 30.5,
+          "themes": [
+            "Repetitive Recommendations"
+          ],
+          "pain_point": "Users are frustrated with repetitive and limited music recommendations.",
+          "severity": 5,
+          "product_opportunity": "Spotify's team could enhance the music discovery experience by introducing more personalized and interactive features, such as user-controlled playlists and improved recommendation algorithms."
+        }
+      ],
+      "representative_quotes": [
+        "constantly cuts in and out and sorta rushes through the part that cuts out (hard to explain it). I've read articles on how to fix this with no luck, still doing the same thing.",
+        "constantly claiming that it's offline when it isn't.",
+        "can't play the songs you want to. they put songs you didn't want to play into the queue. they only let you have six skips and hour. daily limit on the songs you choose the play. ads every five seconds\u00e2\u20ac\u00a6",
+        "im using this from long time, before it was 2 adds, now it as increased 4 adds, can't skip that adds, Most uninstalls happen in the first 24 hours. If you show too many ads during onboarding, you'll l\u00e2\u20ac\u00a6",
+        "ishh horrible such a irritation they'll cost 200 per month after first payment and then we can't even chose the songs there are also limited saying that after 24 hours waste of time"
+      ],
+      "profile_summary": "Heavy Listener (164 reviews, 24.4% negative): Dominant listening intent signal is comfort habit. Top themes include Recommendation Quality, Repetitive Recommendations. Discovery language appears in 0.0% of reviews; comfort/habit signals in 19.5%."
+    },
+    {
+      "segment": "Playlist Driven",
+      "review_count": 20414,
+      "top_themes": [
+        {
+          "theme": "Playlist Fatigue",
+          "count": 19221,
+          "pct": 94.2
+        },
+        {
+          "theme": "Search & Discovery UX",
+          "count": 11616,
+          "pct": 56.9
+        },
+        {
+          "theme": "Recommendation Quality",
+          "count": 7618,
+          "pct": 37.3
+        },
+        {
+          "theme": "Repetitive Recommendations",
+          "count": 1180,
+          "pct": 5.8
+        },
+        {
+          "theme": "Discover Weekly Issues",
+          "count": 781,
+          "pct": 3.8
+        }
+      ],
+      "top_pain_points": [
+        {
+          "pain_point": "Users are frustrated with the app's music discovery features, such as random songs being added to playlists and poor recommendations.",
+          "count": 11611,
+          "pct": 56.9
+        },
+        {
+          "pain_point": "Users are frustrated with the current music discovery algorithm, which often plays unrelated songs and fails to learn their preferences.",
+          "count": 7599,
+          "pct": 37.2
+        },
+        {
+          "pain_point": "Users are frustrated with repetitive and irrelevant music recommendations in Discover Weekly and Daily Mix playlists.",
+          "count": 797,
+          "pct": 3.9
+        },
+        {
+          "pain_point": "Users are frustrated with repetitive and limited music recommendations.",
+          "count": 395,
+          "pct": 1.9
+        },
+        {
+          "pain_point": "Users are dissatisfied with the new widget, citing loss of functionality and poor design.",
+          "count": 12,
+          "pct": 0.1
+        }
+      ],
+      "sentiment_breakdown": {
+        "positive": 13978,
+        "neutral": 1637,
+        "negative": 4799,
+        "negative_pct": 23.5,
+        "avg_sentiment_score": 3.85
+      },
+      "avg_cluster_severity": 4.96,
+      "listening_intent_signals": {
+        "discovery_signals": 451,
+        "comfort_habit_signals": 2585,
+        "mood_context_signals": 353,
+        "discovery_pct": 2.2,
+        "comfort_habit_pct": 12.7,
+        "mood_context_pct": 1.7,
+        "dominant_intent": "comfort_habit"
+      },
+      "cluster_overlap": [
+        {
+          "cluster_id": 4,
+          "review_count": 11611,
+          "pct": 56.9,
+          "themes": [
+            "Search & Discovery UX",
+            "Playlist Fatigue"
+          ],
+          "pain_point": "Users are frustrated with the app's music discovery features, such as random songs being added to playlists and poor recommendations.",
+          "severity": 5,
+          "product_opportunity": "Spotify's team could improve the music discovery experience by introducing more user-controlled features and algorithms that learn from individual listening habits."
+        },
+        {
+          "cluster_id": 1,
+          "review_count": 7599,
+          "pct": 37.2,
+          "themes": [
+            "Recommendation Quality",
+            "Playlist Fatigue"
+          ],
+          "pain_point": "Users are frustrated with the current music discovery algorithm, which often plays unrelated songs and fails to learn their preferences.",
+          "severity": 5,
+          "product_opportunity": "Spotify's team could revamp the music discovery algorithm to prioritize user preferences and listening history, increasing user satisfaction and retention."
+        },
+        {
+          "cluster_id": 2,
+          "review_count": 797,
+          "pct": 3.9,
+          "themes": [
+            "Repetitive Recommendations",
+            "Discover Weekly Issues"
+          ],
+          "pain_point": "Users are frustrated with repetitive and irrelevant music recommendations in Discover Weekly and Daily Mix playlists.",
+          "severity": 4,
+          "product_opportunity": "Spotify's team could refine its music discovery algorithms to better understand user preferences and provide more accurate and diverse recommendations."
+        },
+        {
+          "cluster_id": 0,
+          "review_count": 395,
+          "pct": 1.9,
+          "themes": [
+            "Repetitive Recommendations"
+          ],
+          "pain_point": "Users are frustrated with repetitive and limited music recommendations.",
+          "severity": 5,
+          "product_opportunity": "Spotify's team could enhance the music discovery experience by introducing more personalized and interactive features, such as user-controlled playlists and improved recommendation algorithms."
+        },
+        {
+          "cluster_id": 3,
+          "review_count": 12,
+          "pct": 0.1,
+          "themes": [
+            "Recommendation Quality"
+          ],
+          "pain_point": "Users are dissatisfied with the new widget, citing loss of functionality and poor design.",
+          "severity": 4,
+          "product_opportunity": "Spotify's team could improve user satisfaction by offering customizable widget options that cater to different user preferences."
+        }
+      ],
+      "representative_quotes": [
+        "The latest version makes the app incredibly sluggish and almost unusable. I can no longer play my songs without being connected to the internet and waiting for the whole playlist that I already have d\u00e2\u20ac\u00a6",
+        "Are you guys smoking crack over there??? What in the world is this new homepage, its so unintuitive and ugly and useless. Please bring back or give an option to bring back the old homepage because thi\u00e2\u20ac\u00a6",
+        "THE MOST IRRITATING APP. It keeps on asking for a log in, when I do, nothing plays. like not even a single song. And when I try to open the app again, it's asking for another log in? like what the hel\u00e2\u20ac\u00a6",
+        "Still a one star app. One song, three ads. Terrible [REDACTED] Rogan is found everywhere so I dont need you anymore. also adding songs to a Playlist is not cool. anything you can do to make a buck. sh\u00e2\u20ac\u00a6",
+        "if I worked at Spotify, I'd just revel in the fact that it was a money factory. instead they're forcing AI half-baked into it, forcing videos into the podcasts with seemingly no way to have them not b\u00e2\u20ac\u00a6"
+      ],
+      "profile_summary": "Playlist Driven (20,414 reviews, 23.5% negative): Dominant listening intent signal is comfort habit. Top themes include Playlist Fatigue, Search & Discovery UX, Recommendation Quality. Discovery language appears in 2.2% of reviews; comfort/habit signals in 12.7%."
+    },
+    {
+      "segment": "Niche Listener",
+      "review_count": 17,
+      "top_themes": [
+        {
+          "theme": "Repetitive Recommendations",
+          "count": 10,
+          "pct": 58.8
+        },
+        {
+          "theme": "Recommendation Quality",
+          "count": 7,
+          "pct": 41.2
+        }
+      ],
+      "top_pain_points": [
+        {
+          "pain_point": "Users are frustrated with repetitive and limited music recommendations.",
+          "count": 10,
+          "pct": 58.8
+        },
+        {
+          "pain_point": "Users are dissatisfied with the new widget, citing loss of functionality and poor design.",
+          "count": 7,
+          "pct": 41.2
+        }
+      ],
+      "sentiment_breakdown": {
+        "positive": 9,
+        "neutral": 1,
+        "negative": 7,
+        "negative_pct": 41.2,
+        "avg_sentiment_score": 3.29
+      },
+      "avg_cluster_severity": 4.59,
+      "listening_intent_signals": {
+        "discovery_signals": 0,
+        "comfort_habit_signals": 0,
+        "mood_context_signals": 0,
+        "discovery_pct": 0.0,
+        "comfort_habit_pct": 0.0,
+        "mood_context_pct": 0.0,
+        "dominant_intent": "mixed/unclear"
+      },
+      "cluster_overlap": [
+        {
+          "cluster_id": 0,
+          "review_count": 10,
+          "pct": 58.8,
+          "themes": [
+            "Repetitive Recommendations"
+          ],
+          "pain_point": "Users are frustrated with repetitive and limited music recommendations.",
+          "severity": 5,
+          "product_opportunity": "Spotify's team could enhance the music discovery experience by introducing more personalized and interactive features, such as user-controlled playlists and improved recommendation algorithms."
+        },
+        {
+          "cluster_id": 3,
+          "review_count": 7,
+          "pct": 41.2,
+          "themes": [
+            "Recommendation Quality"
+          ],
+          "pain_point": "Users are dissatisfied with the new widget, citing loss of functionality and poor design.",
+          "severity": 4,
+          "product_opportunity": "Spotify's team could improve user satisfaction by offering customizable widget options that cater to different user preferences."
+        }
+      ],
+      "representative_quotes": [
+        "just because I'm in a different country it doesn't mean I want foreign adds. Unessecery amount of ads.",
+        "would've rated higher if the ads were only 1 every 7-15 songs but the ads are 3 after every 3-4 songs WHICH IS SO ANNOYING?? The old spotify was wayy better when there were rarely any ads.. until the \u00e2\u20ac\u00a6",
+        "Spotify. The ads often take up to 1/6 of the ads. I rarely get an ad that only plays once. Then I get hit with a limit again. I feel like Spotify wasn't like this before, but it's just gotten more sti\u00e2\u20ac\u00a6",
+        "Add a blocked button for pod cast channel. 3 star for now.. Still having problems on skipping on some podcast channels that I really don't like, even if the genre of their podcast are in the same genr\u00e2\u20ac\u00a6",
+        "Downtime caused interruption to my business. It's a rare occurrence, but had dire effects"
+      ],
+      "profile_summary": "Niche Listener (17 reviews, 41.2% negative): Dominant listening intent signal is mixed/unclear. Top themes include Repetitive Recommendations, Recommendation Quality. Discovery language appears in 0.0% of reviews; comfort/habit signals in 0.0%."
+    },
+    {
+      "segment": "Casual Listener",
+      "review_count": 14790,
+      "top_themes": [
+        {
+          "theme": "Recommendation Quality",
+          "count": 10976,
+          "pct": 74.2
+        },
+        {
+          "theme": "Repetitive Recommendations",
+          "count": 3814,
+          "pct": 25.8
+        }
+      ],
+      "top_pain_points": [
+        {
+          "pain_point": "Users are dissatisfied with the new widget, citing loss of functionality and poor design.",
+          "count": 10969,
+          "pct": 74.2
+        },
+        {
+          "pain_point": "Users are frustrated with repetitive and limited music recommendations.",
+          "count": 3811,
+          "pct": 25.8
+        },
+        {
+          "pain_point": "Users are frustrated with repetitive and irrelevant music recommendations in Discover Weekly and Daily Mix playlists.",
+          "count": 9,
+          "pct": 0.1
+        },
+        {
+          "pain_point": "Users are frustrated with the app's music discovery features, such as random songs being added to playlists and poor recommendations.",
+          "count": 1,
+          "pct": 0.0
+        }
+      ],
+      "sentiment_breakdown": {
+        "positive": 8749,
+        "neutral": 3102,
+        "negative": 2939,
+        "negative_pct": 19.9,
+        "avg_sentiment_score": 3.7
+      },
+      "avg_cluster_severity": 4.26,
+      "listening_intent_signals": {
+        "discovery_signals": 0,
+        "comfort_habit_signals": 110,
+        "mood_context_signals": 123,
+        "discovery_pct": 0.0,
+        "comfort_habit_pct": 0.7,
+        "mood_context_pct": 0.8,
+        "dominant_intent": "mood_context"
+      },
+      "cluster_overlap": [
+        {
+          "cluster_id": 3,
+          "review_count": 10969,
+          "pct": 74.2,
+          "themes": [
+            "Recommendation Quality"
+          ],
+          "pain_point": "Users are dissatisfied with the new widget, citing loss of functionality and poor design.",
+          "severity": 4,
+          "product_opportunity": "Spotify's team could improve user satisfaction by offering customizable widget options that cater to different user preferences."
+        },
+        {
+          "cluster_id": 0,
+          "review_count": 3811,
+          "pct": 25.8,
+          "themes": [
+            "Repetitive Recommendations"
+          ],
+          "pain_point": "Users are frustrated with repetitive and limited music recommendations.",
+          "severity": 5,
+          "product_opportunity": "Spotify's team could enhance the music discovery experience by introducing more personalized and interactive features, such as user-controlled playlists and improved recommendation algorithms."
+        },
+        {
+          "cluster_id": 2,
+          "review_count": 9,
+          "pct": 0.1,
+          "themes": [
+            "Repetitive Recommendations",
+            "Discover Weekly Issues"
+          ],
+          "pain_point": "Users are frustrated with repetitive and irrelevant music recommendations in Discover Weekly and Daily Mix playlists.",
+          "severity": 4,
+          "product_opportunity": "Spotify's team could refine its music discovery algorithms to better understand user preferences and provide more accurate and diverse recommendations."
+        },
+        {
+          "cluster_id": 4,
+          "review_count": 1,
+          "pct": 0.0,
+          "themes": [
+            "Search & Discovery UX",
+            "Playlist Fatigue"
+          ],
+          "pain_point": "Users are frustrated with the app's music discovery features, such as random songs being added to playlists and poor recommendations.",
+          "severity": 5,
+          "product_opportunity": "Spotify's team could improve the music discovery experience by introducing more user-controlled features and algorithms that learn from individual listening habits."
+        }
+      ],
+      "representative_quotes": [
+        "Sorry I refuse to pay to have access to my music when the only difference is no commercials and I can skip more songs. I don't care about the music videos, audiobooks, or the podcasts that you keep ad\u00e2\u20ac\u00a6",
+        "Ads after every 2 songs\u00e2\u20ac\u201dseriously? The app claims to give 30 minutes without ads, but I still get video ads even after just 10 minutes. There are also major connectivity issues. If the internet is tur\u00e2\u20ac\u00a6",
+        "Stop plastering ads everywhere",
+        "Whoever you got making the decisions, kill them immediately",
+        "Unless you pay, the experience is terrible. I could tolerate the ads before, but after the latest update, you can\u00e2\u20ac\u2122t even listen to the music you choose. When you create an album, it just plays random \u00e2\u20ac\u00a6"
+      ],
+      "profile_summary": "Casual Listener (14,790 reviews, 19.9% negative): Dominant listening intent signal is mood context. Top themes include Recommendation Quality, Repetitive Recommendations. Discovery language appears in 0.0% of reviews; comfort/habit signals in 0.7%."
+    }
+  ],
+  "segment_comparison": {
+    "repetitive_listening_ranking": [
+      {
+        "segment": "Playlist Driven",
+        "score": 29993.0,
+        "review_count": 20414
+      },
+      {
+        "segment": "Discovery Seeker",
+        "score": 11173.0,
+        "review_count": 8774
+      },
+      {
+        "segment": "Habit Listener",
+        "score": 7432.0,
+        "review_count": 4571
+      },
+      {
+        "segment": "Casual Listener",
+        "score": 6513.0,
+        "review_count": 14790
+      },
+      {
+        "segment": "Heavy Listener",
+        "score": 95.0,
+        "review_count": 164
+      },
+      {
+        "segment": "Niche Listener",
+        "score": 20.0,
+        "review_count": 17
+      }
+    ],
+    "recommendation_fatigue_ranking": [
+      {
+        "segment": "Playlist Driven",
+        "score": 30012.0,
+        "review_count": 20414
+      },
+      {
+        "segment": "Casual Listener",
+        "score": 20668.0,
+        "review_count": 14790
+      },
+      {
+        "segment": "Discovery Seeker",
+        "score": 11952.0,
+        "review_count": 8774
+      },
+      {
+        "segment": "Habit Listener",
+        "score": 7927.0,
+        "review_count": 4571
+      },
+      {
+        "segment": "Heavy Listener",
+        "score": 244.0,
+        "review_count": 164
+      },
+      {
+        "segment": "Niche Listener",
+        "score": 31.0,
+        "review_count": 17
+      }
+    ],
+    "discovery_failure_ranking": [
+      {
+        "segment": "Playlist Driven",
+        "score": 29301.0,
+        "review_count": 20414
+      },
+      {
+        "segment": "Casual Listener",
+        "score": 14188.0,
+        "review_count": 14790
+      },
+      {
+        "segment": "Discovery Seeker",
+        "score": 11395.0,
+        "review_count": 8774
+      },
+      {
+        "segment": "Habit Listener",
+        "score": 507.0,
+        "review_count": 4571
+      },
+      {
+        "segment": "Heavy Listener",
+        "score": 150.0,
+        "review_count": 164
+      },
+      {
+        "segment": "Niche Listener",
+        "score": 11.0,
+        "review_count": 17
+      }
+    ],
+    "highest_friction_segment": "Playlist Driven",
+    "segment_metrics": {
+      "Discovery Seeker": {
+        "repetitive_listening_score": 11173.0,
+        "recommendation_fatigue_score": 11952.0,
+        "discovery_failure_score": 11395.0,
+        "review_count": 8774
+      },
+      "Habit Listener": {
+        "repetitive_listening_score": 7432.0,
+        "recommendation_fatigue_score": 7927.0,
+        "discovery_failure_score": 507.0,
+        "review_count": 4571
+      },
+      "Heavy Listener": {
+        "repetitive_listening_score": 95.0,
+        "recommendation_fatigue_score": 244.0,
+        "discovery_failure_score": 150.0,
+        "review_count": 164
+      },
+      "Playlist Driven": {
+        "repetitive_listening_score": 29993.0,
+        "recommendation_fatigue_score": 30012.0,
+        "discovery_failure_score": 29301.0,
+        "review_count": 20414
+      },
+      "Niche Listener": {
+        "repetitive_listening_score": 20.0,
+        "recommendation_fatigue_score": 31.0,
+        "discovery_failure_score": 11.0,
+        "review_count": 17
+      },
+      "Casual Listener": {
+        "repetitive_listening_score": 6513.0,
+        "recommendation_fatigue_score": 20668.0,
+        "discovery_failure_score": 14188.0,
+        "review_count": 14790
+      }
+    }
+  }
+}

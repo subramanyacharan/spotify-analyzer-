@@ -44,5 +44,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Bundled Phase 3 JSON — local pipeline sync only (gitignored at repo root too)
-/data/outputs/*.json
+# Dashboard snapshot JSON lives in data/outputs/ (tracked for Vercel fallback).
+# Monorepo root data/outputs/*.json stays gitignored at repo root.
