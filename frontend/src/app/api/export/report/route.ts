@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { requireApiUser } from "@/lib/auth/api-guard";
 import { getWeeklyReportsCatalog } from "@/lib/data/weekly-reports";
 import {
   ANALYSIS_WINDOW_DAYS,
@@ -16,9 +15,6 @@ import { mergeWeekRange } from "@/lib/reports/merge-weeks";
 import { buildExportReportDocument } from "@/lib/reports/export-document";
 
 export async function GET() {
-  const { response } = await requireApiUser();
-  if (response) return response;
-
   try {
     const catalog = await getWeeklyReportsCatalog();
     const totalWeeks = catalog.weeks.length;

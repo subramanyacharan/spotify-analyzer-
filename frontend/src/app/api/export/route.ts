@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
-import { requireApiUser } from "@/lib/auth/api-guard";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function GET() {
-  const { user, response } = await requireApiUser();
-  if (response) return response;
-
   const dataClient = getSupabaseServerClient();
   if (!dataClient) {
     return NextResponse.json(
@@ -29,7 +25,6 @@ export async function GET() {
 
   const payload = {
     exportedAt: new Date().toISOString(),
-    exportedBy: user!.email,
     weeklyInsight: weeklyRows?.[0] ?? null,
   };
 

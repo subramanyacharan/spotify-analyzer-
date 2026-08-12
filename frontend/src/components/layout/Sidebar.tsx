@@ -10,7 +10,6 @@ import {
   Target,
   Users,
 } from "lucide-react";
-import { UserSection } from "@/components/auth/UserSection";
 
 const NAV = [
   { href: "/overview", label: "Overview", icon: LayoutDashboard },
@@ -56,8 +55,6 @@ export function Sidebar() {
           );
         })}
       </nav>
-
-      <UserSection />
     </aside>
   );
 }

@@ -1,7 +1,6 @@
 import { DashboardShell } from "@/components/layout/DashboardShell";
 import { DeepDiveView } from "@/components/segments/DeepDiveView";
 import type { SegmentationLens, SegmentProfile } from "@/lib/analytics/types";
-import { requireAuth } from "@/lib/auth/server";
 import { getSegmentsData } from "@/lib/data/segments";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +29,6 @@ export default async function DeepDivePage({
 }: {
   searchParams: Promise<{ segment?: string; lens?: string }>;
 }) {
-  await requireAuth("/deep-dive");
   const params = await searchParams;
   const data = await getSegmentsData();
   const lens = (params.lens ?? "behavior") as SegmentationLens;

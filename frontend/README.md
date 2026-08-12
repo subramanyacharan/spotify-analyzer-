@@ -34,9 +34,9 @@ Vercel → Project → **Settings → Environment Variables** (enable for **Prod
 
 | Variable | Value | Notes |
 |----------|-------|-------|
-| `NEXT_PUBLIC_SUPABASE_URL` | `https://xxx.supabase.co` | Browser-safe (auth) |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase **anon** key | Auth only — never for data reads |
-| `NEXT_PUBLIC_SITE_URL` | `https://your-app.vercel.app` | Public app URL for password reset links |
+| `NEXT_PUBLIC_SUPABASE_URL` | `https://xxx.supabase.co` | Optional — not required for dashboard access |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase **anon** key | Optional — dashboard no longer uses browser auth |
+| `NEXT_PUBLIC_SITE_URL` | `https://your-app.vercel.app` | Optional public app URL |
 | `SUPABASE_URL` | Same project URL | Server-side |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase **service_role** key | Server data reads only |
 
@@ -48,20 +48,7 @@ Run in Supabase SQL Editor (once):
 - `supabase/auth_profiles.sql`
 - `supabase/rls_lockdown.sql`
 
-### 4. Supabase auth URLs
-
-Supabase Dashboard → **Authentication → URL Configuration**:
-
-| Setting | Value |
-|---------|-------|
-| **Site URL** | `https://your-app.vercel.app` |
-| **Redirect URLs** | `https://your-app.vercel.app/auth/callback` |
-
-Add preview URLs too if using PR deploys: `https://*.vercel.app/auth/callback`
-
-**Optional (recommended):** Supabase → **Authentication → Providers → Email** → turn **Confirm email** off so legacy client sign-ups also work without verification. The app uses `POST /api/auth/signup` with the service role to create pre-confirmed accounts.
-
-### 5. Verify deployment
+### 4. Verify deployment
 
 After deploy:
 
@@ -71,8 +58,8 @@ GET https://your-app.vercel.app/api/health
 ```
 
 - `configured: false` — missing env vars in Vercel
-- Sign up at `/signup` — account is active immediately (no email verification), then `/overview` opens
-- **Export Report** (TopBar) calls authenticated `GET /api/export/report` and downloads a nine-section PDF for the 90-day analysis window — see [../DOCS/pdf-report.md](../DOCS/pdf-report.md)
+- Open `/overview` directly — no login required
+- **Export Report** (TopBar) calls `GET /api/export/report` and downloads a nine-section PDF for the 90-day analysis window — see [../DOCS/pdf-report.md](../DOCS/pdf-report.md)
 - **Integration API:** `GET /api/export` returns raw Phase 3 JSON (no TopBar button)
 
 ### 6. Ongoing deploys
@@ -91,9 +78,8 @@ GET https://your-app.vercel.app/api/health
 | `/insights` | Problem insights (User feedback) |
 | `/segments`, `/deep-dive` | Segments & deep-dive |
 | `/opportunities`, `/opportunities/actions` | Opportunities & prioritization |
-| `/login`, `/signup`, `/forgot-password` | Auth |
 
-Legacy URLs `/reports`, `/weekly-reports`, and `/dashboard` redirect to `/overview`.
+Legacy URLs `/reports`, `/weekly-reports`, `/dashboard`, and old auth routes (`/login`, `/signup`, etc.) redirect to `/overview`.
 
 ## Local development
 
@@ -110,10 +96,10 @@ Check data readiness: `GET /api/health` → `dataReady: true`, `totalReviewsAnal
 
 ## Security
 
+- Dashboard is **read-only** — no login, signup, or user writes from the UI
 - Service role key stays server-only (`lib/supabase/server.ts`, `server-only` import)
 - RLS lockdown blocks direct anon/authenticated reads of pipeline tables
 - Security headers in `vercel.json` (X-Frame-Options, nosniff, etc.)
-- Middleware redirects unauthenticated users on protected routes when auth is configured
 
 ## Stack
 
