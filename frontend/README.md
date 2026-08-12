@@ -34,18 +34,14 @@ Vercel → Project → **Settings → Environment Variables** (enable for **Prod
 
 | Variable | Value | Notes |
 |----------|-------|-------|
-| `NEXT_PUBLIC_SUPABASE_URL` | `https://xxx.supabase.co` | Optional — not required for dashboard access |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase **anon** key | Optional — dashboard no longer uses browser auth |
-| `NEXT_PUBLIC_SITE_URL` | `https://your-app.vercel.app` | Optional public app URL |
-| `SUPABASE_URL` | Same project URL | Server-side |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase **service_role** key | Server data reads only |
+| `SUPABASE_URL` | `https://xxx.supabase.co` | Server-side data reads |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase **service_role** key | Server data reads only — never `NEXT_PUBLIC_` |
 
 Copy from `.env.local.example`. **Never** prefix the service role key with `NEXT_PUBLIC_`.
 
 Run in Supabase SQL Editor (once):
 
 - `supabase_schema.sql`
-- `supabase/auth_profiles.sql`
 - `supabase/rls_lockdown.sql`
 
 ### 4. Verify deployment

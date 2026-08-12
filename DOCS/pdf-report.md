@@ -11,7 +11,7 @@ The dashboard **Export Report** button (TopBar) generates a downloadable PDF fro
 | `weekly_report.json` / merged weekly snapshots | Executive summary text, problem-statement findings, sentiment |
 | Merged weekly catalog | Theme counts and confidence metadata — consumed by **PDF export API only** (no in-app Reports screen) |
 
-**API:** Authenticated `GET /api/export/report` returns JSON consumed client-side by `downloadReportPdf()`. Requires a signed-in session (`requireApiUser`). No query parameters — the report always covers the **90-day analysis window** anchored to the latest weekly pipeline run.
+**API:** Public `GET /api/export/report` returns JSON consumed client-side by `downloadReportPdf()`. No query parameters — the report always covers the **90-day analysis window** anchored to the latest weekly pipeline run.
 
 **Implementation files:**
 

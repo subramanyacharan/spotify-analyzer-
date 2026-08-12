@@ -149,7 +149,7 @@ Phase 3 maps Phase 2 segment labels to a behavioral taxonomy for decision-facing
 
 **Export:** TopBar **Export Report** → `GET /api/export/report` → client-side PDF (`jspdf`). Always covers the 90-day analysis window; formats existing Phase 3 JSON only; does not re-run analysis.
 
-**Auth:** Supabase Auth (required before production). Middleware protects dashboard routes; `profiles` table stores username + email; login and password reset accept username or email. SQL: `supabase/auth_profiles.sql`.
+**Access:** Public read-only dashboard. Server-side Supabase reads via **service role** (`getSupabaseServerClient()`). Run `supabase/rls_lockdown.sql` on pipeline tables.
 
 **Data:** Server-side reads use the Supabase **service role** key (`frontend/src/lib/supabase/server.ts`). The browser **anon** key is auth-only. Phase 3 JSON comes from `weekly_insights.top_themes` via `fetchMergedTopThemes()`.
 

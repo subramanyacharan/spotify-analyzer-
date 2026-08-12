@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Download, Loader2 } from "lucide-react";
-import { genericExportError } from "@/lib/auth/user-messages";
+import { genericExportError } from "@/lib/messages";
 import type { ExportReportDocument } from "@/lib/reports/export-document";
 import { downloadReportPdf } from "@/lib/reports/generate-pdf";
 

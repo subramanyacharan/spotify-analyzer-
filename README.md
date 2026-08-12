@@ -9,10 +9,10 @@ GRAD PROJ/
 ├── DOCS/                          # Architecture, implementation plan, decisions
 ├── frontend/                      # Phase 4 — Next.js dashboard (Vercel)
 │   └── src/
-│       ├── app/                   # Routes (overview, insights, auth, …)
-│       ├── components/            # UI, auth, analytics
-│       ├── lib/                   # Data layer, Supabase, auth
-│       └── proxy.ts               # Session + route protection (Next.js 16)
+│       ├── app/                   # Routes (overview, insights, …)
+│       ├── components/            # UI, analytics
+│       ├── lib/                   # Data layer, Supabase server client
+│       └── proxy.ts               # Legacy route redirects (Next.js 16)
 ├── scripts/                       # Phase 2–3 pipeline runners
 │   ├── run_embedding_clustering.py
 │   ├── run_theme_classification.py
@@ -34,7 +34,8 @@ GRAD PROJ/
 │   ├── phase3_knowledge/          # Problem engine, deep-dive, scoring, prioritization
 │   └── phase5_orchestration/      # Weekly report, pipeline, health, scheduling
 ├── supabase/
-│   └── auth_profiles.sql          # Dashboard auth (Phase 4.10.1)
+│   ├── dedupe_processed_reviews.sql
+│   └── rls_lockdown.sql
 ├── data/
 │   ├── raw/                       # Raw review exports
 │   ├── processed/                 # Local Phase 1 exports
@@ -116,14 +117,13 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000/overview](http://localhost:3000/overview). See `frontend/README.md` and `DOCS/implementationPlan.md` §4.10 for auth and Vercel deploy.
+Open [http://localhost:3000/overview](http://localhost:3000/overview). See `frontend/README.md` for Vercel deploy.
 
 ### Deploy to Vercel (Phase 4.10.2)
 
 1. Push this folder to [github.com/subramanyacharan/spotify-analyzer-](https://github.com/subramanyacharan/spotify-analyzer-)
 2. [vercel.com/new](https://vercel.com/new) → import repo → **Root Directory:** `frontend`
 3. Set env vars (see `frontend/.env.local.example`)
-4. Configure Supabase auth redirect URLs for your Vercel domain
 
 Full guide: [`frontend/README.md`](frontend/README.md)
 
@@ -133,8 +133,7 @@ Full guide: [`frontend/README.md`](frontend/README.md)
 - [x] Phase 2 — Hybrid AI analysis engine
 - [x] Phase 3 — Insight engines (problem, deep-dive, opportunities, prioritization)
 - [x] Phase 4 — Dashboard & analytics (frontend)
-- [x] Phase 4.10.1 — Supabase Auth
-- [x] Phase 4.10.2 — Vercel deployment ([spotify-analyzer-](https://github.com/subramanyacharan/spotify-analyzer-))
+- [x] Phase 4.10 — Vercel deployment ([spotify-analyzer-](https://github.com/subramanyacharan/spotify-analyzer-))
 - [x] Phase 5.1 — Automated weekly report generation
 - [x] Phase 5.2 — Pipeline orchestration
 - [x] Phase 5.3 — GitHub Actions weekly scheduling

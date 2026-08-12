@@ -95,7 +95,6 @@ CREATE POLICY "Deny public access to historical_trends" ON public.historical_tre
 CREATE POLICY "Deny public access to cluster_insights" ON public.cluster_insights AS RESTRICTIVE FOR ALL TO anon, authenticated USING (false);
 
 -- ---------------------------------------------------------------------------
--- Phase 4.10.1 — Dashboard auth (separate migration)
--- Run supabase/auth_profiles.sql after this schema for profiles + login RPCs.
+-- Phase 4 — Dashboard (separate from pipeline schema)
 -- Run supabase/rls_lockdown.sql on existing DBs that had USING (true) policies.
 -- ---------------------------------------------------------------------------

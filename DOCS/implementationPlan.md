@@ -398,35 +398,20 @@ Phase 3 engines normalize or map existing `processed_reviews.user_segment` label
 - **Frontend stack:** **Next.js** (App Router) + React + Tailwind CSS + Recharts (or ECharts).
 - **Deployment platform:** **Vercel** — production hosting for the Next.js dashboard (Git-connected CI/CD, preview deploys per branch).
 - **Data access:** Server-side Supabase reads via **service role** (`getSupabaseServerClient()`). Phase 3 JSON from the **latest** `weekly_insights` row (`fetchMergedTopThemes()`). Dashboard metrics are snapshot-only from that run — stable until the next weekly pipeline completes.
-- **Environment variables (Vercel):** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (auth only). Server data reads: `SUPABASE_SERVICE_ROLE_KEY` only — never expose service role or use anon key for server reads. Run `supabase/rls_lockdown.sql` to block direct anon access to pipeline tables.
-- **Auth (required before deploy):** Supabase Auth — sign up, login (username or email), logout, forgot password, protected dashboard routes. See **§4.10** and `supabase/auth_profiles.sql`.
+- **Environment variables (Vercel):** `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` for server data reads only — never expose service role or use anon key for server reads. Run `supabase/rls_lockdown.sql` to block direct anon access to pipeline tables.
+- **Access:** Public read-only dashboard — no login or signup. Middleware redirects legacy `/login` URLs to `/overview`.
 - **Python pipeline (unchanged):** Phases 1–3 and Phase 5 orchestration remain Python scripts; they write to Supabase. The Vercel dashboard reads the latest data without re-running analysis.
 - **Constraint:** All metrics must trace back to Supabase fields and Phase 2/3 outputs — no unsupported demographic filters; five-level segmentation uses existing columns and Phase 3 JSON only.
 
-### 4.10 Authentication & Vercel Deployment
+### 4.10 Vercel Deployment — **Implemented**
 
-#### 4.10.1 Supabase Auth (pre-deploy) — **Implemented**
+#### Public read-only dashboard
 
-- **Action:** Gate the AI Analyzer dashboard behind Supabase Auth before production deploy.
-- **SQL:** Run `supabase/auth_profiles.sql` after `supabase_schema.sql` — creates `profiles` (id, username, email, created_at), RLS, sign-up trigger, and RPC helpers (`resolve_login_email`, `is_username_available`).
-- **Auth flows:**
-  - **Sign up** — username, email, password → `POST /api/auth/signup` (pre-confirmed account) → auto sign-in → profile row via trigger
-  - **Login** — username **or** email + password → resolve username via `profiles` → `signInWithPassword`
-  - **Logout** — `signOut` + redirect to `/login`
-  - **Forgot password** — username or email → resolve email → `resetPasswordForEmail` → `/auth/callback` → `/reset-password`
-- **Route protection:** Next.js proxy (`frontend/src/proxy.ts`) refreshes session cookies and redirects unauthenticated users from protected routes to `/login`:
-  - `/overview`, `/insights`, `/segments`, `/deep-dive`, `/opportunities`, `/opportunities/actions`
-  - Legacy redirects: `/reports`, `/weekly-reports`, `/dashboard` → `/overview`
-- **Frontend auth files:**
-  - `@supabase/ssr` browser client (`lib/supabase/client.ts`) + middleware session refresh (`lib/supabase/middleware.ts`)
-  - Session provider (`components/auth/AuthProvider.tsx`) + sidebar user/logout (`components/auth/UserSection.tsx`)
-  - Auth pages under `(auth)/`: `/login`, `/signup`, `/forgot-password`, `/reset-password`
-  - OAuth/email callback at `/auth/callback`
-  - Server helpers: `lib/auth/server.ts`, `lib/auth/resolve-email.ts`, `lib/auth/routes.ts`
-- **Supabase Dashboard config:** Site URL + redirect URLs must include `/auth/callback` for password reset.
-- **Output:** Authenticated session required for all dashboard views when `NEXT_PUBLIC_SUPABASE_*` env vars are set; sidebar shows signed-in user + logout. Without env vars, dashboard runs in local JSON fallback mode (auth disabled).
+- **Action:** Deploy the Growth Intelligence dashboard to Vercel without login.
+- **Access:** All dashboard routes and export APIs are public; users cannot write or modify pipeline data from the UI.
+- **Middleware:** `frontend/src/lib/supabase/middleware.ts` redirects `/`, legacy report URLs, and old auth paths to `/overview`.
 
-#### 4.10.2 Vercel Deployment — **Implemented**
+#### 4.10.1 Vercel project setup — **Implemented**
 
 - **Action:** Deploy the Growth Intelligence dashboard to Vercel.
 - **Repository:** [github.com/subramanyacharan/spotify-analyzer-](https://github.com/subramanyacharan/spotify-analyzer-)
@@ -435,12 +420,11 @@ Phase 3 engines normalize or map existing `processed_reviews.user_segment` label
   - `frontend/vercel.json` — security headers, `iad1` region.
   - Connect Git repository; push to `main` triggers production deploy; PRs get preview URLs.
   - **CI:** `.github/workflows/frontend-ci.yml` — validates `npm run build` on frontend changes.
-  - **Required env vars** (Production + Preview): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (auth only), `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (server data — never `NEXT_PUBLIC_`).
+  - **Required env vars** (Production + Preview): `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (server data — never `NEXT_PUBLIC_`).
   - Run `supabase/rls_lockdown.sql` so anon key cannot read `raw_reviews`, `processed_reviews`, `weekly_insights`, etc. directly.
   - Local JSON fallback disabled on Vercel (`VERCEL=1`); live data from Supabase only.
-  - Protected API: `GET /api/export` (authenticated JSON bundle — **no TopBar button**; available for integrations); `GET /api/export/report` (authenticated PDF report JSON, 90-day window); public `GET /api/health` returns `{ ok, configured, timestamp }`.
+  - Public API: `GET /api/export` (JSON bundle); `GET /api/export/report` (PDF report JSON, 90-day window); `GET /api/health` returns `{ ok, configured, timestamp }`.
   - **Export Report** button in TopBar calls `/api/export/report` and downloads a nine-section PDF — see [pdf-report.md](../DOCS/pdf-report.md). No analyzer re-run; formats Phase 3 outputs only.
-  - Build warns if env vars missing; middleware blocks dashboard on Vercel without auth config.
 - **Output:** Live dashboard URL on Vercel (production + preview environments). See `frontend/README.md` for step-by-step deploy.
 
 #### 4.10.3 PDF Report Export — **Implemented**
@@ -463,7 +447,7 @@ Phase 3 engines normalize or map existing `processed_reviews.user_segment` label
 - **Confidence badges** display on problem-statement answers, segment profiles, opportunities, and prioritization rows
 - Teams can identify: (1) highest-pain segment at any lens level, (2) highest-opportunity segment, (3) most important problems to solve
 - No demographic segmentation UI; Business/Engagement/Behavior/Context/Pain lenses use existing data only
-- **Next.js app deployed to Vercel** with Supabase env vars configured; **Supabase Auth enabled** (`auth_profiles.sql` applied); production URL accessible to authenticated stakeholders
+- **Next.js app deployed to Vercel** with Supabase env vars configured; production URL is public read-only for stakeholders
 - **PDF report export** produces nine-section insight PDF from Phase 3 JSON ([pdf-report.md](./pdf-report.md))
 
 ---
